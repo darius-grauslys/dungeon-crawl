@@ -55,6 +55,42 @@ function isMask(v) {
 }
 
 /**
+ * World: the whole state of a game at one moment. Immutable.
+ */
+class World {
+  constructor(fields) {
+    this.seed = fields.seed;
+    this.rng = fields.rng;
+    this.depth = fields.depth;
+    this.turn = fields.turn;
+    this.state = fields.state;
+    this.grid = fields.grid;
+    this.hero = fields.hero;
+    this.monsters = fields.monsters;
+    this.items = fields.items;
+    this.visible = fields.visible;
+    this.explored = fields.explored;
+    this.gold = fields.gold;
+    this.log = fields.log;
+  }
+
+  with(changes) {
+    const merged = {
+      seed: this.seed, rng: this.rng, depth: this.depth, turn: this.turn,
+      state: this.state, grid: this.grid, hero: this.hero,
+      monsters: this.monsters, items: this.items,
+      visible: this.visible, explored: this.explored, gold: this.gold, log: this.log
+    };
+    if (changes) {
+      for (const key of Object.keys(changes)) {
+        merged[key] = changes[key];
+      }
+    }
+    return of(merged);
+  }
+}
+
+/**
  * Create a frozen world.
  * @param {object} fields
  * @returns {object} a frozen world
@@ -142,7 +178,7 @@ export function of(fields) {
     }
   }
 
-  const world = {
+  const world = new World({
     seed,
     rng,
     depth,
@@ -156,22 +192,7 @@ export function of(fields) {
     explored,
     gold,
     log: Object.freeze(log.slice())
-  };
-
-  world.with = function (changes) {
-    const merged = {
-      seed: world.seed, rng: world.rng, depth: world.depth, turn: world.turn,
-      state: world.state, grid: world.grid, hero: world.hero,
-      monsters: world.monsters, items: world.items,
-      visible: world.visible, explored: world.explored, gold: world.gold, log: world.log
-    };
-    if (changes) {
-      for (const key of Object.keys(changes)) {
-        merged[key] = changes[key];
-      }
-    }
-    return of(merged);
-  };
+  });
 
   return Object.freeze(world);
 }
