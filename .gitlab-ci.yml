@@ -1,0 +1,29 @@
+# Written by `wabbajack pipeline`. Edit it and it is this project's own:
+# `pipeline --update` replaces it only while it is exactly as wabbajack
+# wrote it (to bring in a newer wabbajack's rules), never once edited.
+#
+# The merge gate's check: a merge request into the default branch runs this
+# job on this project's own runner (tag sheo-ci-dungeon-game). Its executor never runs the
+# script below: it has the stack check the change on the host (a fresh
+# sandbox, the project's sheo-setup, then sheo-check with the agent's
+# forge-ci, from the merge request's sheo-agent:: label), and the job fails
+# unless that passes. The forge merges only once it does ("Pipelines must
+# succeed"); cheese sends a failure back to the agent. The tests show in the
+# merge request (the JUnit report).
+#
+# A merge request into a staging group's branch (sheo-staging/<name>) gets
+# the job too, so it can merge, and passes at once: the group's checks run
+# when it is promoted to the default branch.
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^sheo-staging\//
+
+sheo-check:
+  tags: [sheo-ci-dungeon-game]
+  script:
+    - echo "sheo's executor checks this change on the host; this script never runs"
+  artifacts:
+    when: always
+    reports:
+      junit: sheo-check.junit.xml
