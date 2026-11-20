@@ -130,3 +130,31 @@ test('world: with returns new world with changed turn, original unchanged', () =
   assert.strictEqual(world.turn, 0);
   assert.notStrictEqual(world, w2);
 });
+
+test('world: intrinsic valid - two worlds from the same fields are deep equal', () => {
+  const { grid, hero, monster, item, visible, explored } = makeValidComponents();
+  const fields = {
+    seed: 123,
+    rng: 456,
+    depth: 2,
+    turn: 0,
+    state: 'playing',
+    grid,
+    hero,
+    monsters: [monster],
+    items: [item],
+    visible,
+    explored,
+    gold: 7,
+    log: ['start']
+  };
+  const w1 = worldOf({ ...fields });
+  const w2 = worldOf({ ...fields });
+  assert.deepStrictEqual(w1, w2);
+});
+
+test('world: intrinsic valid - with is a shared method, not an own property', () => {
+  const { world } = makeWorld();
+  assert.strictEqual(Object.hasOwn(world, 'with'), false);
+  assert.strictEqual(typeof world.with, 'function');
+});
