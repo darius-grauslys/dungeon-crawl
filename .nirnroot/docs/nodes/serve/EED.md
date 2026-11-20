@@ -33,7 +33,7 @@ None
 `GET /` answers 200, a `text/html` content type, and a body containing `<canvas`, `width="960"`, `height="720"` and `/game.js`.
 
 ## Intrinsic - bundle:
-`GET /game.js` answers 200, a `text/javascript` content type, and a body of more than 1000 characters that matches `/export\s*\{[^}]*\bstart\b/`.
+`GET /game.js` answers 200, a `text/javascript` content type, and a non-empty body that matches `/export\s*\{[^}]*\bstart\b/` (its length depends on how much of `play` is implemented, so no length is asked).
 
 ## Intrinsic - assets:
 `GET /assets/sheets/heroes.png` answers 200, `image/png`, and exactly the bytes of `<root>/assets/sheets/heroes.png`.

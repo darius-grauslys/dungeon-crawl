@@ -128,6 +128,7 @@ import { spawnSync } from "node:child_process";
 import { createServer } from "node:http";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { inspect } from "node:util";
 
 const LOG = process.env.SHEO_BRIDGE_LOG || ".sheo-check.log";
 const TIMEOUT = Number(process.env.SHEO_BRIDGE_TIMEOUT_MS || 120000);
@@ -154,9 +155,15 @@ function head(text) {
     .join(" | ");
 }
 
+// A failing test's error as text. What a test threw may be anything, and String() throws on some of it: an
+// error that can't be copied out of the test's process (it holds a function) comes back as Node's stand-in,
+// an object with no prototype that only util.inspect prints. Never throws: a crash here broke the whole check.
 function message(err) {
   const e = err?.cause ?? err;
-  return String(e?.stack || e?.message || e || "failed");
+  const v = e?.stack || e?.message || e || "failed";
+  if (typeof v === "string") return v;
+  try { return inspect(v); }
+  catch { return "the test failed with a value that can't be printed"; }
 }
 
 // ---------------------------------------------------------------- browser tests
