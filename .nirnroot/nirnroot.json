@@ -1,0 +1,2 @@
+{"bridges": {"map": {"run": ["python3", ".nirnroot/bridges/map.py"]},
+             "fs": {"run": ["python3", ".nirnroot/bridges/fs.py"]}}}

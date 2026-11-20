@@ -1,0 +1,14 @@
+{
+  "crawl": {"parent": null},
+  "serve": {"parent": "crawl"},
+  "play": {"parent": "crawl"},
+  "rules": {"parent": "play"},
+  "dungeon": {"parent": "rules"},
+  "fov": {"parent": "rules"},
+  "combat": {"parent": "rules"},
+  "monsters": {"parent": "rules"},
+  "view": {"parent": "play"},
+  "atlas": {"parent": "view"},
+  "hud": {"parent": "view"},
+  "input": {"parent": "play"}
+}

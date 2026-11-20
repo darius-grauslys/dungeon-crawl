@@ -1,0 +1,11 @@
+{
+  "name": "nirnroot-node-profile",
+  "private": true,
+  "type": "module",
+  "description": "Seeded by nirnroot's Node profile: agents don't change dependencies.",
+  "dependencies": {
+    "esbuild": "0.28.2",
+    "playwright-core": "1.64.1",
+    "three": "0.187.0"
+  }
+}
