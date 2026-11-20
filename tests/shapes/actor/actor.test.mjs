@@ -57,3 +57,20 @@ test("actor with returns a new actor with changed pos, leaving the original unch
   assert.strictEqual(a.pos.y, 2);
   assert.notStrictEqual(a, b);
 });
+
+test("two actors made by of from the same fields are deep equal", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  const a = of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s });
+  const b = of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s });
+  assert.deepStrictEqual(a, b);
+});
+
+test("with is a shared method, not an own property of an actor", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  const a = of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s });
+  assert.strictEqual(Object.hasOwn(a, 'with'), false);
+  assert.strictEqual(Object.hasOwn(a, 'id'), true);
+  assert.strictEqual(Object.hasOwn(a, 'kind'), true);
+  assert.strictEqual(Object.hasOwn(a, 'pos'), true);
+  assert.strictEqual(Object.hasOwn(a, 'stats'), true);
+});
