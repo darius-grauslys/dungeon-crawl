@@ -68,7 +68,10 @@ Property `log`, a frozen array of strings.
 
 ## Field - with:
 `with(changes)` answers a new world: this one with the keys of `changes`
-put in, checked as `of` checks them; this one is unchanged.
+put in, checked as `of` checks them; this one is unchanged. `with` is a
+method every world shares (on its prototype, as a class method is), never
+an own property: a world's own properties are its data keys alone, so two
+worlds of equal fields are deep equal (`assert.deepStrictEqual`).
 
 # Intrinsics:
 ## Intrinsic - valid:
@@ -78,7 +81,9 @@ in range, has every value it was given, is frozen, and its `monsters`,
 `items` and `log` are frozen. `state: 'paused'`, `depth: 6`,
 `visible: empty(4, 3)`, a monster of kind `hero`, a `log` of 51 strings,
 and a missing `gold`, each throw a `TypeError`. `w.with({turn: 9}).turn`
-is 9 and `w.turn` is unchanged.
+is 9 and `w.turn` is unchanged. Two worlds made by `of` from the same
+fields pass `assert.deepStrictEqual`, and `with` is not an own property
+(`Object.hasOwn(w, 'with')` false).
 
 # Callbacks:
 None

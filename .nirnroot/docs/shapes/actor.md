@@ -30,7 +30,10 @@ Property `stats`, a `stats`.
 ## Field - with:
 `with(changes)` answers a new actor, this one with the properties of
 `changes` (any of `pos`, `stats`) put in, checked as `of` checks them;
-this one is unchanged.
+this one is unchanged. `with` is a method every actor shares (on its
+prototype, as a class method is), never an own property: an actor's own
+properties are `id`, `kind`, `pos` and `stats` alone, so two actors of
+equal fields are deep equal (`assert.deepStrictEqual`).
 
 # Intrinsics:
 ## Intrinsic - valid:
@@ -38,7 +41,9 @@ this one is unchanged.
 and is frozen. `kind: 'dragon'`, `id: -1`, `pos: {x: 1, y: 2}` (a plain
 object, not a `point`), and a missing `stats` each throw a `TypeError`.
 `a.with({pos: point.of(3, 3)})` has `pos` (3, 3), the same `id`, `kind`
-and `stats`, and `a.pos` is still (1, 2). `KINDS` is
+and `stats`, and `a.pos` is still (1, 2). Two actors made by `of` from the
+same fields pass `assert.deepStrictEqual`, and `with` is not an own
+property (`Object.hasOwn(a, 'with')` false). `KINDS` is
 `['hero', 'bat', 'slime', 'snake', 'skeleton', 'demon']`.
 
 # Callbacks:
