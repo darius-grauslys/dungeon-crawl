@@ -39,6 +39,25 @@ function isStats(v) {
 }
 
 /**
+ * Actor class: a creature on the floor: the hero or a monster. Immutable.
+ */
+class Actor {
+  constructor({ id, kind, pos, stats }) {
+    this.id = id;
+    this.kind = kind;
+    this.pos = pos;
+    this.stats = stats;
+  }
+
+  with(changes) {
+    const c = changes || {};
+    const newPos = 'pos' in c ? c.pos : this.pos;
+    const newStats = 'stats' in c ? c.stats : this.stats;
+    return of({ id: this.id, kind: this.kind, pos: newPos, stats: newStats });
+  }
+}
+
+/**
  * Create an actor.
  * @param {{id: number, kind: string, pos: point, stats: stats}} input
  * @returns {object} a frozen actor
@@ -57,12 +76,6 @@ export function of({ id, kind, pos, stats }) {
     throw new TypeError('actor stats must be stats');
   }
 
-  const actor = { id, kind, pos, stats };
-  actor.with = function (changes) {
-    const c = changes || {};
-    const newPos = 'pos' in c ? c.pos : pos;
-    const newStats = 'stats' in c ? c.stats : stats;
-    return of({ id, kind, pos: newPos, stats: newStats });
-  };
+  const actor = new Actor({ id, kind, pos, stats });
   return Object.freeze(actor);
 }
