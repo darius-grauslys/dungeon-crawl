@@ -1,0 +1,556 @@
+{
+  "digest": "22f4c2669959b5a230b27f43f5e55ea1c65ffefb654685f79c5a8d9d71001fd8",
+  "fixtures": {},
+  "nodes": {
+    "atlas": {
+      "children": [],
+      "code": [
+        "src/atlas/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": [
+          "sprite"
+        ]
+      },
+      "edge-tests": [
+        "tests/edges/atlas/"
+      ],
+      "forwarder": [
+        "edges/edge_to_atlas.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "sprite"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/atlas/"
+      ],
+      "parent": "view"
+    },
+    "combat": {
+      "children": [],
+      "code": [
+        "src/combat/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": [
+          "stats",
+          "strike"
+        ]
+      },
+      "edge-tests": [
+        "tests/edges/combat/"
+      ],
+      "forwarder": [
+        "edges/edge_to_combat.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "stats",
+          "strike"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/combat/"
+      ],
+      "parent": "rules"
+    },
+    "crawl": {
+      "children": [
+        "play",
+        "serve"
+      ],
+      "code": [
+        "src/crawl/"
+      ],
+      "edge-tests": [],
+      "forwarder": [],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "item",
+          "mask",
+          "point",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/crawl/"
+      ],
+      "parent": null
+    },
+    "dungeon": {
+      "children": [],
+      "code": [
+        "src/dungeon/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": [
+          "floor-plan",
+          "point",
+          "tile-grid"
+        ]
+      },
+      "edge-tests": [
+        "tests/edges/dungeon/"
+      ],
+      "forwarder": [
+        "edges/edge_to_dungeon.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "floor-plan",
+          "point",
+          "tile-grid"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/dungeon/"
+      ],
+      "parent": "rules"
+    },
+    "fov": {
+      "children": [],
+      "code": [
+        "src/fov/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": [
+          "mask",
+          "point",
+          "tile-grid"
+        ]
+      },
+      "edge-tests": [
+        "tests/edges/fov/"
+      ],
+      "forwarder": [
+        "edges/edge_to_fov.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "mask",
+          "point",
+          "tile-grid"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/fov/"
+      ],
+      "parent": "rules"
+    },
+    "hud": {
+      "children": [],
+      "code": [
+        "src/hud/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "item",
+          "mask",
+          "point",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "edge-tests": [
+        "tests/edges/hud/"
+      ],
+      "forwarder": [
+        "edges/edge_to_hud.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "item",
+          "mask",
+          "point",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/hud/"
+      ],
+      "parent": "view"
+    },
+    "input": {
+      "children": [],
+      "code": [
+        "src/input/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": [
+          "intent"
+        ]
+      },
+      "edge-tests": [
+        "tests/edges/input/"
+      ],
+      "forwarder": [
+        "edges/edge_to_input.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "intent"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/input/"
+      ],
+      "parent": "play"
+    },
+    "monsters": {
+      "children": [],
+      "code": [
+        "src/monsters/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "intent",
+          "point",
+          "stats",
+          "tile-grid"
+        ]
+      },
+      "edge-tests": [
+        "tests/edges/monsters/"
+      ],
+      "forwarder": [
+        "edges/edge_to_monsters.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "intent",
+          "point",
+          "stats",
+          "tile-grid"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/monsters/"
+      ],
+      "parent": "rules"
+    },
+    "play": {
+      "children": [
+        "input",
+        "rules",
+        "view"
+      ],
+      "code": [
+        "src/play/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "item",
+          "mask",
+          "point",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "edge-tests": [
+        "tests/edges/play/"
+      ],
+      "forwarder": [
+        "edges/edge_to_play.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "intent",
+          "item",
+          "mask",
+          "point",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/play/"
+      ],
+      "parent": "crawl"
+    },
+    "rules": {
+      "children": [
+        "combat",
+        "dungeon",
+        "fov",
+        "monsters"
+      ],
+      "code": [
+        "src/rules/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "intent",
+          "item",
+          "mask",
+          "point",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "edge-tests": [
+        "tests/edges/rules/"
+      ],
+      "forwarder": [
+        "edges/edge_to_rules.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "floor-plan",
+          "intent",
+          "item",
+          "mask",
+          "point",
+          "stats",
+          "strike",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/rules/"
+      ],
+      "parent": "play"
+    },
+    "serve": {
+      "children": [],
+      "code": [
+        "src/serve/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": []
+      },
+      "edge-tests": [
+        "tests/edges/serve/"
+      ],
+      "forwarder": [
+        "edges/edge_to_serve.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": []
+      },
+      "internal-tests": [
+        "tests/internal/serve/"
+      ],
+      "parent": "crawl"
+    },
+    "view": {
+      "children": [
+        "atlas",
+        "hud"
+      ],
+      "code": [
+        "src/view/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "item",
+          "mask",
+          "point",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "edge-tests": [
+        "tests/edges/view/"
+      ],
+      "forwarder": [
+        "edges/edge_to_view.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "item",
+          "mask",
+          "point",
+          "sprite",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/view/"
+      ],
+      "parent": "play"
+    }
+  },
+  "shapes": {
+    "actor": {
+      "closure": [
+        "actor",
+        "point",
+        "stats"
+      ],
+      "code": [
+        "shapes/actor/"
+      ],
+      "tests": [
+        "tests/shapes/actor/"
+      ]
+    },
+    "floor-plan": {
+      "closure": [
+        "floor-plan",
+        "point",
+        "tile-grid"
+      ],
+      "code": [
+        "shapes/floor-plan/"
+      ],
+      "tests": [
+        "tests/shapes/floor-plan/"
+      ]
+    },
+    "intent": {
+      "closure": [
+        "intent"
+      ],
+      "code": [
+        "shapes/intent/"
+      ],
+      "tests": [
+        "tests/shapes/intent/"
+      ]
+    },
+    "item": {
+      "closure": [
+        "item",
+        "point"
+      ],
+      "code": [
+        "shapes/item/"
+      ],
+      "tests": [
+        "tests/shapes/item/"
+      ]
+    },
+    "mask": {
+      "closure": [
+        "mask"
+      ],
+      "code": [
+        "shapes/mask/"
+      ],
+      "tests": [
+        "tests/shapes/mask/"
+      ]
+    },
+    "point": {
+      "closure": [
+        "point"
+      ],
+      "code": [
+        "shapes/point/"
+      ],
+      "tests": [
+        "tests/shapes/point/"
+      ]
+    },
+    "sprite": {
+      "closure": [
+        "sprite"
+      ],
+      "code": [
+        "shapes/sprite/"
+      ],
+      "tests": [
+        "tests/shapes/sprite/"
+      ]
+    },
+    "stats": {
+      "closure": [
+        "stats"
+      ],
+      "code": [
+        "shapes/stats/"
+      ],
+      "tests": [
+        "tests/shapes/stats/"
+      ]
+    },
+    "strike": {
+      "closure": [
+        "strike"
+      ],
+      "code": [
+        "shapes/strike/"
+      ],
+      "tests": [
+        "tests/shapes/strike/"
+      ]
+    },
+    "tile-grid": {
+      "closure": [
+        "tile-grid"
+      ],
+      "code": [
+        "shapes/tile-grid/"
+      ],
+      "tests": [
+        "tests/shapes/tile-grid/"
+      ]
+    },
+    "world": {
+      "closure": [
+        "actor",
+        "item",
+        "mask",
+        "point",
+        "stats",
+        "tile-grid",
+        "world"
+      ],
+      "code": [
+        "shapes/world/"
+      ],
+      "tests": [
+        "tests/shapes/world/"
+      ]
+    }
+  },
+  "version": 1
+}

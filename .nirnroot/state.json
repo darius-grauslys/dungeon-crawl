@@ -1,6 +1,45 @@
 {
   "fixtures": [],
+  "parents": {
+    "atlas": "view",
+    "combat": "rules",
+    "crawl": null,
+    "dungeon": "rules",
+    "fov": "rules",
+    "hud": "view",
+    "input": "play",
+    "monsters": "rules",
+    "play": "crawl",
+    "rules": "play",
+    "serve": "crawl",
+    "view": "play"
+  },
   "project-files": true,
-  "seeded": [],
-  "shapes": []
+  "seeded": [
+    "atlas",
+    "combat",
+    "crawl",
+    "dungeon",
+    "fov",
+    "hud",
+    "input",
+    "monsters",
+    "play",
+    "rules",
+    "serve",
+    "view"
+  ],
+  "shapes": [
+    "actor",
+    "floor-plan",
+    "intent",
+    "item",
+    "mask",
+    "point",
+    "sprite",
+    "stats",
+    "strike",
+    "tile-grid",
+    "world"
+  ]
 }
