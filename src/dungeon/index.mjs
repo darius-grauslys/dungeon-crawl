@@ -148,11 +148,11 @@ function tryCarve(gen) {
   if (spots.length < 12) return null;
 
   const tiles = grid.map((c) => c);
-  const tileGrid = tileGrid.of(WIDTH, HEIGHT, tiles);
+  const gridShape = tileGrid.of(WIDTH, HEIGHT, tiles);
   const startPt = point.of(start.cx, start.cy);
   const stairsPt = point.of(stairs.cx, stairs.cy);
   const spotsArr = spots.map((s) => point.of(s.x, s.y));
-  return floorPlan.of({ grid: tileGrid, start: startPt, stairs: stairsPt, spots: spotsArr });
+  return floorPlan.of({ grid: gridShape, start: startPt, stairs: stairsPt, spots: spotsArr });
 }
 
 /** `generate(seed, depth) -> floor-plan`. `seed` an integer from 0 to 4294967295, `depth` an integer from 1 to 5; anything else throws a `TypeError`. Answers a floor 48 cells wide and 32 high: every cell of its outer border is `wall`; rooms and corridors are `floor`; exactly one cell is `stairs`. `start` is where the hero arrives. `spots` holds from 12 to 40 points, each at a Manhattan distance of at least 5 from `start`. Every `floor` and `stairs` cell can be reached from `start` by orthogonal steps over `floor` and `stairs` cells. */
