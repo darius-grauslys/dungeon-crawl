@@ -83,11 +83,15 @@ export async function load(base) {
   _sprites = sprites;
 }
 
+function _inTable(name) {
+  return TABLE.some((r) => r.name === name);
+}
+
 /** `sprite(name) -> sprite`. The `sprite` for a name of the table: its `image` the keyed sheet (a canvas), its rectangle the table's, 16 by 16. Before a `load` has resolved, answers `null`. A name not in the table throws a `TypeError`, loaded or not. */
 export function sprite(name) {
-  if (!_sprites) return null;
-  if (!_sprites.has(name)) {
+  if (!_inTable(name)) {
     throw new TypeError(`atlas: no sprite named ${name}`);
   }
+  if (!_sprites) return null;
   return _sprites.get(name);
 }
