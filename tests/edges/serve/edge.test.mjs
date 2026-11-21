@@ -8,6 +8,26 @@ async function serve() {
   return mod.serve;
 }
 
+async function pollDrain(server) {
+  const start = Date.now();
+  let drained = await server.drain();
+  while (drained.length === 0 && Date.now() - start < 1000) {
+    await new Promise((r) => setTimeout(r, 10));
+    drained = await server.drain();
+  }
+  return drained;
+}
+
+async function pollClosed(server) {
+  const start = Date.now();
+  let closed = await server.closed();
+  while (closed.length === 0 && Date.now() - start < 1000) {
+    await new Promise((r) => setTimeout(r, 10));
+    closed = await server.closed();
+  }
+  return closed;
+}
+
 test("page", async () => {
   const srv = await serve();
   const server = await srv({ port: 0, root: process.cwd() });
@@ -82,6 +102,103 @@ test("not-found", async () => {
       req.end();
     });
     assert.equal(res2, 404);
+  } finally {
+    await server.close();
+  }
+});
+
+test("connections", async () => {
+  const srv = await serve();
+  const server = await srv({ port: 0, root: process.cwd() });
+  try {
+    const port = server.port;
+
+    const ws1 = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+    const ws2 = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+
+    await Promise.all([
+      new Promise((resolve, reject) => { ws1.onopen = resolve; ws1.onerror = (e) => reject(e); }),
+      new Promise((resolve, reject) => { ws2.onopen = resolve; ws2.onerror = (e) => reject(e); })
+    ]);
+
+    // ws2 sends "hello"
+    ws2.send("hello");
+
+    // drain comes out as [[2, 'hello']]
+    let drained = await pollDrain(server);
+    assert.deepEqual(drained, [[2, "hello"]]);
+
+    // the next drain() is empty
+    drained = await server.drain();
+    assert.deepEqual(drained, []);
+
+    // send(1, 'hi') arrives at the first client as 'hi'
+    server.send(1, "hi");
+    const msg1 = await new Promise((resolve, reject) => {
+      ws1.onmessage = (e) => resolve(e.data);
+      ws1.onerror = (e) => reject(e);
+      setTimeout(() => reject("timeout"), 1000);
+    });
+    assert.equal(msg1, "hi");
+
+    // and at the second not at all
+    let ws2msg = null;
+    ws2.onmessage = (e) => { ws2msg = e.data; };
+    await new Promise((r) => setTimeout(r, 200));
+    assert.equal(ws2msg, null);
+
+    // A text of 70000 characters sent either way arrives whole
+    const bigText = "a".repeat(70000);
+    ws1.send(bigText);
+    let drainedBig = await pollDrain(server);
+    assert.deepEqual(drainedBig, [[1, bigText]]);
+
+    // server sends 70000 chars to client, arrives whole
+    server.send(2, bigText);
+    const msg2Big = await new Promise((resolve, reject) => {
+      ws2.onmessage = (e) => resolve(e.data);
+      ws2.onerror = (e) => reject(e);
+      setTimeout(() => reject("timeout"), 1000);
+    });
+    assert.equal(msg2Big, bigText);
+  } finally {
+    await server.close();
+  }
+});
+
+test("closed", async () => {
+  const srv = await serve();
+  const server = await srv({ port: 0, root: process.cwd() });
+  try {
+    const port = server.port;
+
+    const ws1 = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+    await new Promise((resolve, reject) => { ws1.onopen = resolve; ws1.onerror = (e) => reject(e); });
+
+    // a client that closes appears in closed() exactly once
+    ws1.close();
+    let closed = await pollClosed(server);
+    assert.deepEqual(closed, [1]);
+
+    closed = await server.closed();
+    assert.deepEqual(closed, []);
+
+    // one closed with end too, and its client sees the socket close
+    const ws2 = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+    await new Promise((resolve, reject) => { ws2.onopen = resolve; ws2.onerror = (e) => reject(e); });
+
+    let closedSeen = false;
+    ws2.onclose = () => { closedSeen = true; };
+    server.end(2);
+
+    const start = Date.now();
+    while (!closedSeen && Date.now() - start < 1000) {
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    assert.ok(closedSeen);
+
+    closed = await pollClosed(server);
+    assert.deepEqual(closed, [2]);
   } finally {
     await server.close();
   }
