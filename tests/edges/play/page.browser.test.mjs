@@ -182,6 +182,10 @@ test("keys", async () => {
   document.dispatchEvent(ev);
   assert.equal(open.recordedTexts()[open.recordedTexts().length - 1], message.act(intent.use()).text());
 
+  ev = new KeyboardEvent("keydown", { key: ">", cancelable: true, shiftKey: true });
+  document.dispatchEvent(ev);
+  assert.equal(open.recordedTexts()[open.recordedTexts().length - 1], message.act(intent.descend()).text());
+
   ev = new KeyboardEvent("keydown", { key: "p", cancelable: true });
   document.dispatchEvent(ev);
   assert.equal(open.recordedTexts()[open.recordedTexts().length - 1], message.pause(true).text());
@@ -335,9 +339,9 @@ test("world/valid", () => {
 
 test("world/data", () => {
   const grid = tileGrid.fromRows(['#####', '#...#', '#####']);
-  const heroActor = actor.of({ id: 0, kind: 'hero', pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) });
+  const heroActor = actor.of({ id: 0, kind: 'hero', pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), held: 300, facing: 'left', last: { kind: 'attack', dx: -1, dy: 0, at: 50 } });
   const heroShape = hero.of({ name: 'Ann', actor: heroActor, pending: intent.move(1, 0) });
-  const monsterActor = actor.of({ id: 1, kind: 'slime', pos: point.of(2, 2), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) });
+  const monsterActor = actor.of({ id: 1, kind: 'slime', pos: point.of(2, 2), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), last: { kind: 'move', dx: 0, dy: 1, at: 20 } });
   const goldItem = item.of({ id: 0, kind: 'gold', pos: point.of(3, 3), amount: 10 });
   const visible = mask.of(5, 3, [false, false, false, false, false, false, true, false, false, false, false, false, false, false, false]);
   const explored = mask.empty(5, 3);
@@ -379,13 +383,27 @@ test("message/valid", () => {
 });
 
 test("message/round-trip", () => {
-  const w = makeWorld();
-  const s = makeSave(1);
+  const grid = tileGrid.fromRows(['#####', '#...#', '#####']);
+  const heroActor = actor.of({ id: 0, kind: 'hero', pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), held: 300, facing: 'left', last: { kind: 'attack', dx: -1, dy: 0, at: 50 } });
+  const heroShape = hero.of({ name: 'Ann', actor: heroActor });
+  const monsterActor = actor.of({ id: 1, kind: 'slime', pos: point.of(2, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) });
+  const goldItem = item.of({ id: 0, kind: 'gold', pos: point.of(3, 1), amount: 10 });
+  const visible = mask.empty(5, 3);
+  const explored = mask.empty(5, 3);
+  const entry = save.of({ seed: 1, depth: 1, players: [] });
 
-  const m1 = message.create(null);
+  const w = world.of({
+    seed: 1, rng: 1, depth: 1, time: 0, state: 'playing',
+    grid, heroes: [heroShape], monsters: [monsterActor], items: [goldItem],
+    visible, explored, gold: 0, log: [], entry
+  });
+
+  const sOnePlayer = save.of({ seed: 1, depth: 1, players: [{ name: 'Cy', stats: stats.of({ hp: 10, maxHp: 30, attack: 6, defense: 2 }) }] });
+
+  const m1 = message.create(sOnePlayer);
   assert.deepStrictEqual(message.parse(m1.text()), m1);
 
-  const m2 = message.create(s);
+  const m2 = message.create(null);
   assert.deepStrictEqual(message.parse(m2.text()), m2);
 
   const m3 = message.join('ABCDEF', 'xyz234', 'Ann');
@@ -394,24 +412,36 @@ test("message/round-trip", () => {
   const m4 = message.act(intent.move(1, 0));
   assert.deepStrictEqual(message.parse(m4.text()), m4);
 
-  const m5 = message.pause(false);
+  const m5 = message.act(intent.attack(1, 0));
   assert.deepStrictEqual(message.parse(m5.text()), m5);
 
-  const m6 = message.requestSave();
+  const m6 = message.act(intent.use());
   assert.deepStrictEqual(message.parse(m6.text()), m6);
 
-  const m7 = message.created('ABCDEF', 'xyz234');
+  const m7 = message.act(intent.wait());
   assert.deepStrictEqual(message.parse(m7.text()), m7);
 
-  const m8 = message.joined('ABCDEF', 'Ann');
+  const m8 = message.act(intent.descend());
   assert.deepStrictEqual(message.parse(m8.text()), m8);
 
-  const m9 = message.refused('full');
+  const m9 = message.pause(false);
   assert.deepStrictEqual(message.parse(m9.text()), m9);
 
-  const m10 = message.state(w, false);
+  const m10 = message.requestSave();
   assert.deepStrictEqual(message.parse(m10.text()), m10);
 
-  const m11 = message.saved(s);
+  const m11 = message.created('ABCDEF', 'xyz234');
   assert.deepStrictEqual(message.parse(m11.text()), m11);
+
+  const m12 = message.joined('ABCDEF', 'Ann');
+  assert.deepStrictEqual(message.parse(m12.text()), m12);
+
+  const m13 = message.refused('full');
+  assert.deepStrictEqual(message.parse(m13.text()), m13);
+
+  const m14 = message.state(w, false);
+  assert.deepStrictEqual(message.parse(m14.text()), m14);
+
+  const m15 = message.saved(sOnePlayer);
+  assert.deepStrictEqual(message.parse(m15.text()), m15);
 });
