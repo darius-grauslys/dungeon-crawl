@@ -563,7 +563,7 @@ export function advance(world, ms) {
       if (intentM.kind === "wait") {
         const newReady = newTime + MONSTER_LATENCY.wait;
         currentMonsters[mi] = { id: m.id, kind: m.kind, pos: m.pos, stats: m.stats, ready: newReady, held: m.held, facing: m.facing, last: m.last };
-      } else if (intentM.kind === "move") {
+      } else if (intentM.kind === "attack" || intentM.kind === "move") {
         const nx = m.pos.x + intentM.dx;
         const ny = m.pos.y + intentM.dy;
         const isAttack = !!(target && nx === target.x && ny === target.y);
