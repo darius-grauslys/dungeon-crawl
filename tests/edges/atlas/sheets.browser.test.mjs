@@ -8,16 +8,27 @@ import * as spriteShape from "../../../shapes/sprite/index.mjs";
 
 const NAMES = [
   "wall", "floor", "stairs", "hero", "skeleton", "slime", "snake",
-  "bat", "demon", "potion", "gold", "sword", "armor"
+  "bat", "demon", "potion", "gold", "sword", "armor",
+  "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5",
+  "wall-6", "wall-7", "wall-8", "wall-9", "wall-10", "wall-11",
+  "wall-12", "wall-13", "wall-14", "wall-15"
 ];
 
 // Intrinsic - table:
 // `names()` is the table's names in order. Before any `load`, `sprite('hero')` is `null`;
-// `sprite('dragon')` throws a `TypeError`.
-test("table: before load, sprite('hero') is null; sprite('dragon') throws; names() in order", () => {
+// `sprite('dragon')` throws a `TypeError`. `names()` has 29 names, `wall-0` to `wall-15` the last sixteen in order;
+// `sprite('wall-16')` throws a `TypeError`.
+test("table: before load, sprite('hero') is null; sprite('dragon') and sprite('wall-16') throw; names() has 29 names with wall-0..wall-15 last", () => {
   assert.equal(sprite("hero"), null);
   assert.throws(() => sprite("dragon"), TypeError);
-  assert.deepEqual(names(), NAMES);
+  assert.throws(() => sprite("wall-16"), TypeError);
+  const n = names();
+  assert.equal(n.length, 29);
+  assert.deepEqual(n.slice(-16), [
+    "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5", "wall-6", "wall-7",
+    "wall-8", "wall-9", "wall-10", "wall-11", "wall-12", "wall-13", "wall-14", "wall-15"
+  ]);
+  assert.deepEqual(n, NAMES);
 });
 
 // Intrinsic - keyed:
@@ -71,7 +82,23 @@ test("table: after load, each name's sprite has the EED table's sx, sy, sw 16, s
     potion: [64, 0],
     gold: [48, 80],
     sword: [64, 16],
-    armor: [64, 48]
+    armor: [64, 48],
+    "wall-0": [48, 0],
+    "wall-1": [0, 32],
+    "wall-2": [48, 32],
+    "wall-3": [32, 16],
+    "wall-4": [16, 32],
+    "wall-5": [64, 16],
+    "wall-6": [32, 0],
+    "wall-7": [0, 16],
+    "wall-8": [64, 32],
+    "wall-9": [48, 16],
+    "wall-10": [48, 0],
+    "wall-11": [16, 16],
+    "wall-12": [64, 0],
+    "wall-13": [16, 0],
+    "wall-14": [0, 0],
+    "wall-15": [80, 0]
   };
   for (const name of NAMES) {
     const sp = sprite(name);
