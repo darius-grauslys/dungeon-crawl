@@ -25,7 +25,7 @@ export function camera(...args) {
 }
 
 // __nirnroot_begin__ draw
-// `draw(world, me, paused)`. Draws the world for the player `me`, as above, onto the canvas given to `init` (throws an `Error` if none was given), with the paused band when `paused` is true.
+// `draw(world, me, paused, now)`. Draws the world for the player `me`, as above, onto the canvas given to `init` (throws an `Error` if none was given), with the paused band when `paused` is true. `now` is the world time to animate at, a number of 0 or more (left out: the world's `time`): the page draws every frame, with `now` running on from the last world's `time` between two worlds.
 // __nirnroot_end__
 export function draw(...args) {
   return target.draw(...args);
