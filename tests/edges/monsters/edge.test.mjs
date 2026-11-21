@@ -113,15 +113,28 @@ test("actor/valid", () => {
   assert.strictEqual(a.pos.x, 1);
   assert.strictEqual(a.pos.y, 2);
   assert.strictEqual(a.stats.hp, 5);
+  assert.strictEqual(a.ready, 0);
   assert.ok(Object.isFrozen(a));
+
+  const a2 = actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, ready: 250 });
+  assert.strictEqual(a2.ready, 250);
 
   const b = a.with({ pos: point.of(3, 3) });
   assert.strictEqual(b.pos.x, 3);
   assert.strictEqual(b.pos.y, 3);
   assert.strictEqual(b.id, 0);
   assert.strictEqual(b.kind, "hero");
+  assert.strictEqual(b.stats.hp, 5);
+  assert.strictEqual(b.ready, 0);
   assert.strictEqual(a.pos.x, 1);
   assert.strictEqual(a.pos.y, 2);
+
+  assert.strictEqual(a.with({ ready: 400 }).ready, 400);
+
+  const c = actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s });
+  assert.deepStrictEqual(a, c);
+
+  assert.ok(!Object.hasOwn(a, "with"));
 
   assert.deepEqual(actor.KINDS, ["hero", "bat", "slime", "snake", "skeleton", "demon"]);
 
@@ -129,6 +142,8 @@ test("actor/valid", () => {
   assert.throws(() => actor.of({ id: -1, kind: "hero", pos: point.of(1, 2), stats: s }), TypeError);
   assert.throws(() => actor.of({ id: 0, kind: "hero", pos: { x: 1, y: 2 }, stats: s }), TypeError);
   assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2) }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, ready: -1 }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, ready: 1.5 }), TypeError);
 });
 
 test("point/valid", () => {
@@ -178,23 +193,26 @@ test("intent/valid", () => {
   assert.strictEqual(m.dy, -1);
   assert.ok(Object.isFrozen(m));
 
+  const a = intent.attack(1, 0);
+  assert.strictEqual(a.kind, "attack");
+  assert.strictEqual(a.dx, 1);
+  assert.strictEqual(a.dy, 0);
+
+  const u = intent.use();
+  assert.strictEqual(u.kind, "use");
+  assert.strictEqual(u.dx, 0);
+  assert.strictEqual(u.dy, 0);
+
   const w = intent.wait();
   assert.strictEqual(w.kind, "wait");
   assert.strictEqual(w.dx, 0);
   assert.strictEqual(w.dy, 0);
 
-  const d = intent.descend();
-  assert.strictEqual(d.kind, "descend");
-  assert.strictEqual(d.dx, 0);
-  assert.strictEqual(d.dy, 0);
-
-  const r = intent.restart();
-  assert.strictEqual(r.kind, "restart");
-  assert.strictEqual(r.dx, 0);
-  assert.strictEqual(r.dy, 0);
+  assert.deepEqual(intent.KINDS, ["move", "attack", "use", "wait"]);
 
   assert.throws(() => intent.move(1, 1), TypeError);
   assert.throws(() => intent.move(0, 0), TypeError);
   assert.throws(() => intent.move(2, 0), TypeError);
   assert.throws(() => intent.move("1", 0), TypeError);
+  assert.throws(() => intent.attack(0, 0), TypeError);
 });
