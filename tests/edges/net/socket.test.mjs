@@ -2,7 +2,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { move } from "../../../shapes/intent/index.mjs";
+import * as intent from "../../../shapes/intent/index.mjs";
 import { fromRows } from "../../../shapes/tile-grid/index.mjs";
 import { of as pointOf } from "../../../shapes/point/index.mjs";
 import { of as statsOf } from "../../../shapes/stats/index.mjs";
@@ -87,7 +87,7 @@ test("drains: three texts come out as three messages in order", async () => {
   const f = makeFakeSocketFactory();
   const conn = connect("ws://x/ws", f.open);
   f.socket.onopen();
-  const texts = [mMod.pause(false).text(), mMod.requestSave().text(), mMod.act(move(1, 0)).text()];
+  const texts = [mMod.pause(false).text(), mMod.requestSave().text(), mMod.act(intent.move(1, 0)).text()];
   for (const t of texts) {
     f.socket.onmessage({ data: t });
   }
@@ -104,7 +104,7 @@ test("drains: a fourth unparsable text is dropped, next drain empty", async () =
   const f = makeFakeSocketFactory();
   const conn = connect("ws://x/ws", f.open);
   f.socket.onopen();
-  const texts = [mMod.pause(false).text(), mMod.requestSave().text(), mMod.act(move(1, 0)).text()];
+  const texts = [mMod.pause(false).text(), mMod.requestSave().text(), mMod.act(intent.move(1, 0)).text()];
   for (const t of texts) {
     f.socket.onmessage({ data: t });
   }
@@ -142,7 +142,7 @@ test("status: send after close sends nothing, close calls socket close", async (
 
 test("message/valid: constructors answer frozen messages with correct upward", async () => {
   const m = await messageModule();
-  assert.strictEqual(m.act(move(1, 0)).upward, true);
+  assert.strictEqual(m.act(intent.move(1, 0)).upward, true);
   assert.strictEqual(m.refused("full").upward, false);
 });
 
@@ -182,8 +182,17 @@ test("message/round-trip: parse(m.text()) is deepStrictEqual to m for all ten ki
   const mJoin = m.join("sess", "pass", "Ann");
   assert.deepStrictEqual(m.parse(mJoin.text()), mJoin);
 
-  const mAct = m.act(move(1, 0));
-  assert.deepStrictEqual(m.parse(mAct.text()), mAct);
+  const intentKinds = [
+    intent.move(1, 0),
+    intent.attack(1, 0),
+    intent.use(),
+    intent.wait(),
+    intent.descend(),
+  ];
+  for (const it of intentKinds) {
+    const mAct = m.act(it);
+    assert.deepStrictEqual(m.parse(mAct.text()), mAct);
+  }
 
   const mPause = m.pause(false);
   assert.deepStrictEqual(m.parse(mPause.text()), mPause);
@@ -203,7 +212,15 @@ test("message/round-trip: parse(m.text()) is deepStrictEqual to m for all ten ki
   const tileGrid = fromRows(["#####", "#...#", "#####"]);
   const heroPoint = pointOf(1, 1);
   const heroStats = statsOf({ hp: 10, maxHp: 30, attack: 6, defense: 2 });
-  const heroActor = actorOf({ id: 0, kind: "hero", pos: heroPoint, stats: heroStats });
+  const heroActor = actorOf({
+    id: 0,
+    kind: "hero",
+    pos: heroPoint,
+    stats: heroStats,
+    held: 300,
+    facing: "left",
+    last: { kind: "attack", dx: -1, dy: 0, at: 50 },
+  });
   const hero = heroOf({ name: "Ann", actor: heroActor });
   const monsterActor = actorOf({
     id: 1,

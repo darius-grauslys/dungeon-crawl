@@ -40,9 +40,21 @@ class MockEvent {
 test("intentFor: invalid keys return null", () => {
   assert.strictEqual(intentFor("x"), null);
   assert.strictEqual(intentFor("Escape"), null);
+  assert.strictEqual(intentFor("."), null);
   assert.strictEqual(intentFor(""), null);
   assert.strictEqual(intentFor(null), null);
   assert.strictEqual(intentFor(5), null);
+});
+
+test("intentFor: '>' answers descend() with and without Shift", () => {
+  let noShift = intentFor(">");
+  assert.strictEqual(noShift.kind, "descend");
+  assert.strictEqual(noShift.dx, 0);
+  assert.strictEqual(noShift.dy, 0);
+  let withShift = intentFor(">", true);
+  assert.strictEqual(withShift.kind, "descend");
+  assert.strictEqual(withShift.dx, 0);
+  assert.strictEqual(withShift.dy, 0);
 });
 
 test("intentFor: valid keys answer their intent without and with Shift", () => {
@@ -223,6 +235,22 @@ test("listen: keyup doesn't trigger", () => {
   const ev = new MockEvent("keyup", { key: "w" });
   t.dispatch(ev);
   assert.strictEqual(called, 0);
+});
+
+test("listen: keydown with '>' and shift calls f once with descend", () => {
+  const t = new MockTarget();
+  let called = 0;
+  let lastIntent = null;
+  const f = (intentArg) => { called++; lastIntent = intentArg; };
+  const g = () => {};
+  const stop = listen(t, { intent: f, command: g });
+  const ev = new MockEvent("keydown", { key: ">", shiftKey: true });
+  t.dispatch(ev);
+  assert.strictEqual(called, 1);
+  assert.strictEqual(lastIntent.kind, "descend");
+  assert.strictEqual(lastIntent.dx, 0);
+  assert.strictEqual(lastIntent.dy, 0);
+  assert.strictEqual(ev.defaultPrevented, true);
 });
 
 test("listen: stop removes listener and calling stop again doesn't throw", () => {

@@ -146,9 +146,9 @@ test("world/valid", () => {
 
 test("world/data", () => {
   const grid = tileGrid.fromRows(['#####', '#...#', '#####']);
-  const annActor = actor.of({ id: 0, kind: 'hero', pos: point.of(1, 1), stats: stats.of({ hp: 10, maxHp: 20, attack: 2, defense: 2 }) });
+  const annActor = actor.of({ id: 0, kind: 'hero', pos: point.of(1, 1), stats: stats.of({ hp: 10, maxHp: 20, attack: 2, defense: 2 }), held: 300, facing: 'left', last: { kind: 'attack', dx: -1, dy: 0, at: 50 } });
   const annHero = hero.of({ name: 'Ann', actor: annActor, pending: intent.move(1, 0), alive: true });
-  const monster = actor.of({ id: 1, kind: 'slime', pos: point.of(2, 2), stats: stats.of({ hp: 10, maxHp: 20, attack: 2, defense: 2 }) });
+  const monster = actor.of({ id: 1, kind: 'slime', pos: point.of(2, 2), stats: stats.of({ hp: 10, maxHp: 20, attack: 2, defense: 2 }), last: { kind: 'move', dx: 0, dy: 1, at: 20 } });
   const itemGold = item.of({ id: 0, kind: 'gold', pos: point.of(3, 1), amount: 1 });
   const visible = mask.of(5, 3, [false, false, false, false, false, false, true, false, false, false, false, false, false, false, false]);
   const explored = mask.empty(5, 3);
