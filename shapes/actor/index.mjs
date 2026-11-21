@@ -42,27 +42,29 @@ function isStats(v) {
  * Actor class: a creature on the floor: the hero or a monster. Immutable.
  */
 class Actor {
-  constructor({ id, kind, pos, stats }) {
+  constructor({ id, kind, pos, stats, ready }) {
     this.id = id;
     this.kind = kind;
     this.pos = pos;
     this.stats = stats;
+    this.ready = ready;
   }
 
   with(changes) {
     const c = changes || {};
     const newPos = 'pos' in c ? c.pos : this.pos;
     const newStats = 'stats' in c ? c.stats : this.stats;
-    return of({ id: this.id, kind: this.kind, pos: newPos, stats: newStats });
+    const newReady = 'ready' in c ? c.ready : this.ready;
+    return of({ id: this.id, kind: this.kind, pos: newPos, stats: newStats, ready: newReady });
   }
 }
 
 /**
  * Create an actor.
- * @param {{id: number, kind: string, pos: point, stats: stats}} input
+ * @param {{id: number, kind: string, pos: point, stats: stats, ready?: number}} input
  * @returns {object} a frozen actor
  */
-export function of({ id, kind, pos, stats }) {
+export function of({ id, kind, pos, stats, ready = 0 }) {
   if (typeof id !== 'number' || !Number.isInteger(id) || id < 0) {
     throw new TypeError('actor id must be an integer of 0 or more');
   }
@@ -75,7 +77,10 @@ export function of({ id, kind, pos, stats }) {
   if (!isStats(stats)) {
     throw new TypeError('actor stats must be stats');
   }
+  if (typeof ready !== 'number' || !Number.isInteger(ready) || ready < 0) {
+    throw new TypeError('actor ready must be an integer of 0 or more');
+  }
 
-  const actor = new Actor({ id, kind, pos, stats });
+  const actor = new Actor({ id, kind, pos, stats, ready });
   return Object.freeze(actor);
 }
