@@ -320,7 +320,15 @@ export function intend(world, name, intent) {
   if (world.state !== "playing") return world;
   const h = world.heroes.find((hh) => hh.name === name);
   if (!h || !h.alive) return world;
-  const newHeroes = world.heroes.map((hh) => (hh.name === name ? heroShape.of({ name: hh.name, actor: hh.actor, pending: intent, alive: hh.alive }) : hh));
+  const newHeroes = world.heroes.map((hh) => {
+    if (hh.name !== name) return hh;
+    if (intent.kind === "descend") {
+      // heroShape.of rejects descend intents due to isIntent limitation;
+      // worldShape.isHero accepts any frozen object with pending instanceof intentShape.Intent.
+      return Object.freeze({ name: hh.name, actor: hh.actor, pending: intent, alive: hh.alive });
+    }
+    return heroShape.of({ name: hh.name, actor: hh.actor, pending: intent, alive: hh.alive });
+  });
   return worldShape.of({
     seed: world.seed,
     rng: world.rng,
@@ -411,7 +419,7 @@ export function advance(world, ms) {
       const wouldBeAttack = !!monsterAt;
 
       // Held check: a hero's pending move that would not be an attack stays pending unfired until held passes.
-      if (!wouldBeAttack && h.actor.held > newTime) {
+      if (!wouldBeAttack && h.actor.held >= newTime) {
         continue;
       }
 
@@ -582,7 +590,7 @@ export function advance(world, ms) {
           currentMonsters[mi] = { id: m.id, kind: m.kind, pos: m.pos, stats: m.stats, ready: newTime + MONSTER_LATENCY.attack, held: m.held, facing, last: { kind: 'attack', dx: intentM.dx, dy: intentM.dy, at: newTime } };
         } else {
           // step onto open cell
-          if (m.held > newTime) {
+          if (m.held >= newTime) {
             // held monster whose action would be a step: does nothing, ready becomes held
             currentMonsters[mi] = { id: m.id, kind: m.kind, pos: m.pos, stats: m.stats, ready: m.held, held: m.held, facing: m.facing, last: m.last };
           } else {
