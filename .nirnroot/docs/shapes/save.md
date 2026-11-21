@@ -13,8 +13,10 @@ The module (`shapes/save/index.mjs`) exports:
 
 - `of({seed, depth, players})`: `seed` an integer from 0 to 4294967295;
   `depth` an integer from 1 to 5; `players` an array of 0 to 4 entries,
-  each `{name, stats}`, `name` a name, `stats` a `stats`, no two names
-  equal. Answers a frozen save; `players` is copied and answered frozen,
+  each `{name, stats}`, `name` a name, `stats` the four values of a
+  `stats` (a `stats`, or a plain `{hp, maxHp, attack, defense}`: each is
+  made a `stats` with `stats.of`, and refused as `stats.of` refuses it),
+  no two names equal. Answers a frozen save; `players` is copied and answered frozen,
   each entry a frozen `{name, stats}`. Any other input is refused with a
   `TypeError`.
 - `fromData(data)`: the save whose `data()` is `data` (the format below),
@@ -53,10 +55,11 @@ has those values, is frozen, and `s.players` is frozen.
 `parse(s.text())` passes `assert.deepStrictEqual` with `s`, and
 `s.data().format` is `'crawl-save'`. `depth: 6`, `seed: -1`, five
 players, two players named `'Cy'`, a name `''`, a name of 17 characters,
-a name `' Cy'`, a name holding `'\n'`, and stats given as a plain object
+a name `' Cy'`, a name holding `'\n'`, and stats of `{}` or `{hp: 5, maxHp: 3, attack: 0, defense: 0}`
 each throw a `TypeError`; so do `parse('nope')`, `parse('{}')` and the
 text of `s` with `version` 2. `isName('Ann')` is true; `isName('')`,
-`isName('Ann ')` and `isName(5)` are false. `players: []` is accepted.
+`isName('Ann ')` and `isName(5)` are false. `players: []` is accepted, and so are stats given as a plain
+`{hp: 10, maxHp: 30, attack: 6, defense: 2}` (the save then holds them as a `stats`).
 
 # Callbacks:
 None
