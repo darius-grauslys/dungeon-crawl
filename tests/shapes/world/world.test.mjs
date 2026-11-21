@@ -209,8 +209,25 @@ test('world: intrinsic valid - with and data are shared methods, not own propert
 });
 
 test('world: intrinsic data - fromData(data()) round trip passes deepStrictEqual', () => {
-  const { grid, hero, monster, item, visible, explored, entry } = makeValidComponents();
+  const { grid, item, visible, explored, entry } = makeValidComponents();
+  const heroActor = actorShape.of({
+    id: 0,
+    kind: 'hero',
+    pos: pointShape.of(1, 1),
+    stats: statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 }),
+    held: 300,
+    facing: 'left',
+    last: { kind: 'attack', dx: -1, dy: 0, at: 50 }
+  });
+  const hero = heroShape.of({ name: 'Ann', actor: heroActor });
   const heroWithPending = hero.with({ pending: intentShape.move(1, 0) });
+  const monster = actorShape.of({
+    id: 1,
+    kind: 'slime',
+    pos: pointShape.of(2, 0),
+    stats: statsShape.of({ hp: 5, maxHp: 10, attack: 2, defense: 1 }),
+    last: { kind: 'move', dx: 0, dy: 1, at: 20 }
+  });
   const visibleWithOne = maskShape.of(5, 3, [false, false, false, false, false, false, true, false, false, false, false, false, false, false, false]);
   const fields = {
     seed: 123, rng: 456, depth: 2, time: 0, state: 'playing',
@@ -223,8 +240,25 @@ test('world: intrinsic data - fromData(data()) round trip passes deepStrictEqual
 });
 
 test('world: intrinsic data - data().grid and data().visible[1]', () => {
-  const { grid, hero, monster, item, visible, explored, entry } = makeValidComponents();
+  const { grid, item, visible, explored, entry } = makeValidComponents();
+  const heroActor = actorShape.of({
+    id: 0,
+    kind: 'hero',
+    pos: pointShape.of(1, 1),
+    stats: statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 }),
+    held: 300,
+    facing: 'left',
+    last: { kind: 'attack', dx: -1, dy: 0, at: 50 }
+  });
+  const hero = heroShape.of({ name: 'Ann', actor: heroActor });
   const heroWithPending = hero.with({ pending: intentShape.move(1, 0) });
+  const monster = actorShape.of({
+    id: 1,
+    kind: 'slime',
+    pos: pointShape.of(2, 0),
+    stats: statsShape.of({ hp: 5, maxHp: 10, attack: 2, defense: 1 }),
+    last: { kind: 'move', dx: 0, dy: 1, at: 20 }
+  });
   const visibleWithOne = maskShape.of(5, 3, [false, false, false, false, false, false, true, false, false, false, false, false, false, false, false]);
   const fields = {
     seed: 123, rng: 456, depth: 2, time: 0, state: 'playing',

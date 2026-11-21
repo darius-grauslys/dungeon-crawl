@@ -20,6 +20,10 @@ const CMD_MAP = new Map([
 /** `intentFor(key, shift) -> intent`. The first table's intent for a `KeyboardEvent.key` value, with Shift held when `shift` is true; `null` for any other key (and for anything not a string). */
 export function intentFor(key, shift) {
   if (typeof key !== "string") return null;
+  // > -> descend() regardless of shift.
+  if (key === ">") {
+    return intent.descend();
+  }
   // e, E, space -> use() regardless of shift.
   if (key === "e" || key === "E" || key === " ") {
     return intent.use();

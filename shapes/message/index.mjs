@@ -242,6 +242,7 @@ export function parse(text) {
       else if (obj.intent.kind === "attack") intent = intentShape.attack(obj.intent.dx, obj.intent.dy);
       else if (obj.intent.kind === "use") intent = intentShape.use();
       else if (obj.intent.kind === "wait") intent = intentShape.wait();
+      else if (obj.intent.kind === "descend") intent = intentShape.descend();
       else throw new TypeError("parse: act invalid intent kind");
       return act(intent);
     }
