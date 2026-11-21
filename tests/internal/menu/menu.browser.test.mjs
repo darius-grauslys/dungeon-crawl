@@ -18,6 +18,8 @@ test("menu: closed state after mount, open and close", () => {
   menu.close();
   assert.strictEqual(getComputedStyle(menuEl).display, "none", "not displayed after close");
   assert.strictEqual(menu.isOpen(), false, "isOpen() false after close");
+
+  menu.remove();
 });
 
 test("menu: buttons call handlers", () => {
@@ -45,6 +47,8 @@ test("menu: buttons call handlers", () => {
   document.getElementById("menu-back").click();
   assert.strictEqual(backCalls, 1, "back called once");
   assert.strictEqual(menu.isOpen(), false, "menu closed after back");
+
+  menu.remove();
 });
 
 test("menu: paused text and pause click", () => {
@@ -67,6 +71,8 @@ test("menu: paused text and pause click", () => {
 
   menu.setPaused(false);
   assert.strictEqual(pauseBtn.textContent, "Pause", "pause button reads Pause after setPaused(false)");
+
+  menu.remove();
 });
 
 test("menu: session line and remove", () => {
