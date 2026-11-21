@@ -114,6 +114,9 @@ test("actor/valid", () => {
   assert.strictEqual(a.pos.y, 2);
   assert.strictEqual(a.stats.hp, 5);
   assert.strictEqual(a.ready, 0);
+  assert.strictEqual(a.held, 0);
+  assert.strictEqual(a.facing, "right");
+  assert.strictEqual(a.last, null);
   assert.ok(Object.isFrozen(a));
 
   const a2 = actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, ready: 250 });
@@ -126,13 +129,22 @@ test("actor/valid", () => {
   assert.strictEqual(b.kind, "hero");
   assert.strictEqual(b.stats.hp, 5);
   assert.strictEqual(b.ready, 0);
+  assert.strictEqual(b.held, 0);
+  assert.strictEqual(b.facing, "right");
+  assert.strictEqual(b.last, null);
   assert.strictEqual(a.pos.x, 1);
   assert.strictEqual(a.pos.y, 2);
 
   assert.strictEqual(a.with({ ready: 400 }).ready, 400);
 
-  const c = actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s });
-  assert.deepStrictEqual(a, c);
+  const c = a.with({ held: 300, facing: "left", last: { kind: "attack", dx: -1, dy: 0, at: 50 } });
+  assert.strictEqual(c.held, 300);
+  assert.strictEqual(c.facing, "left");
+  assert.ok(Object.isFrozen(c.last));
+  assert.deepStrictEqual(c.last, { kind: "attack", dx: -1, dy: 0, at: 50 });
+
+  const d = actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s });
+  assert.deepStrictEqual(a, d);
 
   assert.ok(!Object.hasOwn(a, "with"));
 
@@ -144,6 +156,20 @@ test("actor/valid", () => {
   assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2) }), TypeError);
   assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, ready: -1 }), TypeError);
   assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, ready: 1.5 }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, held: -1 }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, facing: "up" }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, last: { kind: "use", dx: 0, dy: 0, at: 0 } }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, last: { kind: "move", dx: 1, dy: 1, at: 0 } }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, last: { kind: "move", dx: 1, dy: 0, at: -5 } }), TypeError);
+});
+
+test("actor/facing", () => {
+  assert.strictEqual(actor.facingFor(-1, 0), "left");
+  assert.strictEqual(actor.facingFor(0, 1), "left");
+  assert.strictEqual(actor.facingFor(1, 0), "right");
+  assert.strictEqual(actor.facingFor(0, -1), "right");
+  assert.throws(() => actor.facingFor(0, 0), TypeError);
+  assert.throws(() => actor.facingFor(1, 1), TypeError);
 });
 
 test("point/valid", () => {
@@ -208,7 +234,13 @@ test("intent/valid", () => {
   assert.strictEqual(w.dx, 0);
   assert.strictEqual(w.dy, 0);
 
-  assert.deepEqual(intent.KINDS, ["move", "attack", "use", "wait"]);
+  const d = intent.descend();
+  assert.strictEqual(d.kind, "descend");
+  assert.strictEqual(d.dx, 0);
+  assert.strictEqual(d.dy, 0);
+  assert.ok(Object.isFrozen(d));
+
+  assert.deepEqual(intent.KINDS, ["move", "attack", "use", "wait", "descend"]);
 
   assert.throws(() => intent.move(1, 1), TypeError);
   assert.throws(() => intent.move(0, 0), TypeError);
