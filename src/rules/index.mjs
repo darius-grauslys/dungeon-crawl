@@ -488,7 +488,7 @@ export function advance(world, ms) {
         if (h.alive) blocked.push(h.actor.pos);
       }
 
-      const intentM = monstersNode.decide(m, target, world.grid, blocked, Math.floor(newTime / 400));
+      const intentM = monstersNode.decide(actorShape.of({ id: m.id, kind: m.kind, pos: m.pos, stats: m.stats, ready: m.ready }), target, world.grid, blocked, Math.floor(newTime / 400));
 
       if (intentM.kind === "move") {
         const nx = m.pos.x + intentM.dx;
