@@ -1,14 +1,14 @@
 # item
 
-A thing lying on the floor that the hero picks up by stepping on it.
+A thing lying on the floor that a hero picks up by stepping on it.
 Immutable.
 
 | kind | what picking it up does |
 |---|---|
 | `potion` | heals 8 hit points, never above `maxHp` |
-| `gold` | adds `amount` to the hero's gold |
-| `sword` | adds 2 to the hero's `attack` |
-| `armor` | adds 1 to the hero's `defense` |
+| `gold` | adds `amount` to the party's gold |
+| `sword` | adds 2 to that hero's `attack` |
+| `armor` | adds 1 to that hero's `defense` |
 
 The module (`shapes/item/index.mjs`) exports `of({id, kind, pos, amount})`:
 `id` an integer of 0 or more; `kind` one of the four; `pos` a `point`;

@@ -1,31 +1,38 @@
 # input
 
-The keyboard: which key means which intent, and a listener that turns key
-presses into intents.
+The keyboard: which key means which intent or command, and a listener that
+turns key presses into them. A held key repeats (the browser's key
+repeat): each repeat is one more press.
 
-| keys | intent |
+| keys | without Shift | with Shift |
+|---|---|---|
+| `ArrowUp`, `w`, `W`, `k`, `K` | `move(0, -1)` | `attack(0, -1)` |
+| `ArrowDown`, `s`, `S`, `j`, `J` | `move(0, 1)` | `attack(0, 1)` |
+| `ArrowLeft`, `a`, `A`, `h`, `H` | `move(-1, 0)` | `attack(-1, 0)` |
+| `ArrowRight`, `d`, `D`, `l`, `L` | `move(1, 0)` | `attack(1, 0)` |
+| `e`, `E`, ` ` (space) | `use()` | `use()` |
+
+| keys | command |
 |---|---|
-| `ArrowUp`, `w`, `W`, `k`, `K` | `move(0, -1)` |
-| `ArrowDown`, `s`, `S`, `j`, `J` | `move(0, 1)` |
-| `ArrowLeft`, `a`, `A`, `h`, `H` | `move(-1, 0)` |
-| `ArrowRight`, `d`, `D`, `l`, `L` | `move(1, 0)` |
-| `.`, ` ` (space), `z`, `Z` | `wait()` |
-| `>`, `Enter` | `descend()` |
-| `r`, `R` | `restart()` |
+| `Escape` | `menu` |
+| `p`, `P` | `pause` |
 
 # API Shapes:
 - [shape:intent](../../shapes/intent.md)
 
 # Functions:
 ## Function - intent-for:
-`intentFor(key) -> intent`. The table's intent for a `KeyboardEvent.key` value; `null` for any other key (and for anything not a string).
+`intentFor(key, shift) -> intent`. The first table's intent for a `KeyboardEvent.key` value, with Shift held when `shift` is true; `null` for any other key (and for anything not a string).
+
+## Function - command-for:
+`commandFor(key) -> string`. The second table's command (`menu` or `pause`) for a key; `null` for any other.
 
 ## Function - listen:
-`listen(target, onIntent) -> function`. Adds a `keydown` listener to `target` (any `EventTarget`): for an event whose `key` has an intent and with none of `ctrlKey`, `altKey`, `metaKey` true, it calls `event.preventDefault()` and then `onIntent(intent)`, once; other events are left alone. Answers `stop`, a function that removes the listener (calling it again does nothing).
+`listen(target, {intent, command}) -> function`. Adds a `keydown` listener to `target` (any `EventTarget`): for an event with none of `ctrlKey`, `altKey`, `metaKey` true, whose `key` has an intent (by `intentFor(key, shiftKey)`) or a command, it calls `event.preventDefault()` and then `intent(i)` or `command(c)`, once; other events are left alone. Answers `stop`, a function that removes the listener (calling it again does nothing).
 
 # Intrinsics:
 ## Intrinsic - keys:
-Every key of the table answers its intent (`kind`, `dx`, `dy`); `'x'`, `'Escape'`, `''`, `null` and `5` answer `null`.
+Every key of the first table answers its intent (`kind`, `dx`, `dy`) without and with Shift; `'x'`, `'Escape'`, `''`, `null` and `5` answer `null`. `commandFor('Escape')` is `menu`, `commandFor('P')` `pause`, `commandFor('w')` `null`.
 
 ## Intrinsic - listens:
-With `stop = listen(t, f)` on a fresh `EventTarget` `t`: a cancelable `keydown` event with `key` `'ArrowLeft'` calls `f` once with `move(-1, 0)` and is `defaultPrevented`; one with `key` `'x'` doesn't call `f` and isn't; one with `key` `'w'` and `ctrlKey` true doesn't call `f`; a `keyup` with `key` `'w'` doesn't call `f`. After `stop()`, a `keydown` with `key` `'w'` doesn't call `f`; `stop()` again doesn't throw.
+With `stop = listen(t, {intent: f, command: g})` on a fresh `EventTarget` `t`: a cancelable `keydown` with `key` `'ArrowLeft'` calls `f` once with `move(-1, 0)` and is `defaultPrevented`; with `shiftKey` true too, `attack(-1, 0)`; one with `key` `'Escape'` calls `g` once with `'menu'`; one with `key` `'x'` calls neither and isn't prevented; one with `key` `'w'` and `ctrlKey` true calls neither; a `keyup` with `key` `'w'` calls neither. After `stop()`, a `keydown` with `key` `'w'` calls neither; `stop()` again doesn't throw.

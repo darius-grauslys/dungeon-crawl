@@ -1,9 +1,10 @@
 # crawl: `entry`
 
-`main` reads `process.env.PORT`, calls `serve.serve({port, root:
+`main` reads `process.env.PORT` (`Number.parseInt`; anything that isn't an
+integer from 0 to 65535 gives 8000), calls `server.start({port, root:
 process.cwd()})`, awaits it, logs the line with `console.log`, and
-returns. If `serve` rejects, the rejection propagates (the launcher shows
-it). `play` is the server's to bundle for the browser: the root never
+returns. If `start` rejects, the rejection propagates (the launcher shows
+it). `play` is what the server bundles for the browser: the root never
 calls it.
 
 This Node's edge:
@@ -12,7 +13,7 @@ This Node's edge:
 
 Children this specification reaches:
 
-- [eed:serve](../../serve/EED.md)
+- [eed:server](../../server/EED.md)
 - [eed:play](../../play/EED.md)
 
 # API Shapes:

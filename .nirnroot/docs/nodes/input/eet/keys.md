@@ -3,9 +3,9 @@
 Plain `node:test` tests in Node. Node has `EventTarget` and `Event` but no
 `KeyboardEvent`: make the events with `new Event('keydown', {cancelable:
 true})` and give them the properties they need with
-`Object.defineProperty(event, 'key', {value: 'w'})` (and `ctrlKey` the
-same way). The code under test reads only `key`, `ctrlKey`, `altKey`,
-`metaKey` and calls `preventDefault`.
+`Object.defineProperty(event, 'key', {value: 'w'})` (and `shiftKey`,
+`ctrlKey` the same way). The code under test reads only `key`,
+`shiftKey`, `ctrlKey`, `altKey`, `metaKey` and calls `preventDefault`.
 
 The edge under test:
 

@@ -2,8 +2,10 @@
 
 Plain `node:test` tests in Node: `serve({port: 0, root: process.cwd()})`
 (tests run from the project's root), requests with `fetch` or
-`node:http`, and `close()` at the end of each test. The asset's bytes
-come from `node:fs` reading the file listed below.
+`node:http`, WebSocket clients with Node's global `WebSocket` at
+`ws://127.0.0.1:<port>/ws`, and `close()` at the end of each test. The
+asset's bytes come from `node:fs` reading the file listed below. `drain`
+and `closed` are polled: wait up to a second for what a step expects.
 
 The edge under test:
 
@@ -26,6 +28,12 @@ As the EED states.
 As the EED states.
 
 ## Intrinsic - not-found:
+As the EED states.
+
+## Intrinsic - connections:
+As the EED states.
+
+## Intrinsic - closed:
 As the EED states.
 
 ## Intrinsic - closes:

@@ -1,13 +1,17 @@
 # serve
 
-The game's web server: it answers the page, the game's code bundled for
-the browser, and the asset area. Runs in Node.
+The game's one port: over HTTP it answers the page, the game's code
+bundled for the browser, and the asset area; at `/ws` it holds the pages'
+WebSocket connections, text frames in and text frames out. It knows
+nothing of what the texts mean: its parent drains what arrived and sends
+what it has to. Runs in Node.
 
 | path | answer |
 |---|---|
 | `/` | 200, `text/html; charset=utf-8`: the page (below) |
 | `/game.js` | 200, `text/javascript; charset=utf-8`: the bundle |
 | `/assets/<path>` | 200, the file `<root>/assets/<path>`, typed by its extension (`.png` `image/png`, `.json` `application/json`, `.txt` `text/plain; charset=utf-8`, anything else `application/octet-stream`) |
+| `/ws`, as a WebSocket upgrade | 101: a new connection |
 | anything else, a missing file, or a path that would leave `<root>/assets/` | 404 |
 
 Only `GET` (and `HEAD`) are answered; any other method is 405.
@@ -21,12 +25,15 @@ The bundle is `<root>/edges/edge_to_play.mjs` with all it imports,
 bundled by `esbuild` (`bundle: true, format: 'esm', platform: 'browser'`)
 when the server starts, so it exports `start`.
 
+Connections are numbered from 1 in the order they are accepted, and a
+number is never used again by the same server.
+
 # API Shapes:
 None
 
 # Functions:
 ## Function - serve:
-`serve({port, root}) -> promise`. `port` an integer from 0 to 65535 (0: any free port); `root` the project's directory. Listens on `127.0.0.1`. Resolves, once listening, to `{port, url, close}`: the port it listens on, `url` `http://127.0.0.1:<port>/`, and `close()`, answering a promise that resolves once the server has stopped. Rejects if the bundle fails to build or the port can't be had.
+`serve({port, root}) -> promise`. `port` an integer from 0 to 65535 (0: any free port); `root` the project's directory. Listens on every interface (so other machines of the network can play). Resolves, once listening, to a handle: `port`, the port it listens on; `url`, `http://127.0.0.1:<port>/`; `drain()`, every text frame received since the last `drain`, in arrival order, as `[connection, text]` pairs; `closed()`, the connections that closed since the last call, for any reason, each once; `send(connection, text)`, one text frame to that connection (a no-op for one that is closed or unknown); `end(connection)`, closing that connection (close code 1000; it then appears in `closed()`; a no-op for one not open); and `close()`, answering a promise that resolves once every connection (close code 1001) and the listener have closed. Rejects if the bundle fails to build or the port can't be had.
 
 # Intrinsics:
 ## Intrinsic - page:
@@ -41,5 +48,11 @@ None
 ## Intrinsic - not-found:
 `GET /nope`, `GET /assets/none.png`, `GET /assets/../package.json` (sent as written, not normalised: use `http.request` with that `path`) and `GET /assets/%2e%2e/package.json` answer 404; `POST /` answers 405.
 
+## Intrinsic - connections:
+Two WebSocket clients connecting to `/ws` are connections 1 and 2; a text `hello` sent by the second comes out of `drain()` as `[2, 'hello']` (and the next `drain()` is empty); `send(1, 'hi')` arrives at the first client as `hi` and at the second not at all. A text of 70000 characters sent either way arrives whole.
+
+## Intrinsic - closed:
+A client that closes appears in `closed()` exactly once; one closed with `end` too, and its client sees the socket close.
+
 ## Intrinsic - closes:
-After `close()` resolves, a request to the port fails to connect.
+After `close()` resolves, an open client has seen its socket close, and a request to the port fails to connect.

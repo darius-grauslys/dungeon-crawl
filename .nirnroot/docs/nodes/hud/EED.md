@@ -1,15 +1,16 @@
 # hud
 
-The status panel under the map: the hero's hit points as a bar, the
-numbers that matter, and the latest lines of the log. Runs in a browser
-(it draws on a 2D context).
+The status panel under the map: the player's hit points as a bar, the
+numbers that matter, the party, and the latest lines of the log. Runs in
+a browser (it draws on a 2D context).
 
 The panel's look:
 
 - background rgb(40, 26, 34), filling the panel's rectangle;
-- the hit-point bar at the panel's left plus 8 and top plus 8, 200 wide
-  and 12 high: its left `Math.round(200 * hp / maxHp)` pixels rgb(200, 40, 40),
-  the rest rgb(60, 20, 20);
+- the hit-point bar of `me`'s hero at the panel's left plus 8 and top
+  plus 8, 200 wide and 12 high: its left `Math.round(200 * hp / maxHp)`
+  pixels rgb(200, 40, 40), the rest rgb(60, 20, 20) (all of it with no
+  hero of that name);
 - the lines (below) in rgb(230, 220, 200), `16px monospace`, the first
   with its baseline at the panel's top plus 44, each next 22 lower, from
   the panel's left plus 8. Lines that would fall below the panel are not
@@ -20,17 +21,17 @@ The panel's look:
 
 # Functions:
 ## Function - lines:
-`lines(world) -> array of strings`. First the status line, `HP <hp>/<maxHp>   ATK <attack>   DEF <defense>   Gold <gold>   Depth <depth>/5` (three spaces between the parts), then the last three lines of the world's log, oldest first (fewer when the log is shorter).
+`lines(world, me) -> array of strings`. First the status line of `me`'s hero, `<name>   HP <hp>/<maxHp>   ATK <attack>   DEF <defense>   Gold <gold>   Depth <depth>/5` (three spaces between the parts; ` (fallen)` after the HP part of a hero not alive), or `Watching   Gold <gold>   Depth <depth>/5` with no hero of that name; then the party line, `Party: ` and each hero in order as `<name> <hp>/<maxHp>`, or `<name> fallen` for one not alive, joined by `, ` (`Party: none` with no heroes); then the last two lines of the world's log, oldest first (fewer when the log is shorter).
 
 ## Function - draw:
-`draw(ctx, x, y, width, height, world)`. Draws the panel into the rectangle (`x`, `y`, `width`, `height`) of the 2D context `ctx`, and nothing outside it (it clips to it). `x`, `y` integers, `width` and `height` integers of 1 or more; anything else, or a `world` that isn't one, throws a `TypeError`.
+`draw(ctx, x, y, width, height, world, me)`. Draws the panel for the player `me` into the rectangle (`x`, `y`, `width`, `height`) of the 2D context `ctx`, and nothing outside it (it clips to it). `x`, `y` integers, `width` and `height` integers of 1 or more, `me` a string; anything else, or a `world` that isn't one, throws a `TypeError`.
 
 # Intrinsics:
 ## Intrinsic - lines:
-For a world with the hero at 18 of 24 hit points, attack 4, defense 1, gold 7, depth 2 and the log `['a', 'b', 'c', 'd']`, `lines` is `['HP 18/24   ATK 4   DEF 1   Gold 7   Depth 2/5', 'b', 'c', 'd']`; with the log `['a']`, the status line and `'a'`.
+For a world with `Ann` at 18 of 24 hit points, attack 4, defense 1, and `Bob` not alive (0 of 28), gold 7, depth 2 and the log `['a', 'b', 'c', 'd']`: `lines(w, 'Ann')` is `['Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Depth 2/5', 'Party: Ann 18/24, Bob fallen', 'c', 'd']`; `lines(w, 'Bob')[0]` is `'Bob   HP 0/28 (fallen)   ATK 4   DEF 1   Gold 7   Depth 2/5'`; `lines(w, 'Eve')[0]` is `'Watching   Gold 7   Depth 2/5'`; with the log `['a']`, three lines, the last `'a'`.
 
 ## Intrinsic - bar:
-On an 800 by 600 canvas filled with pure green, `draw(ctx, 0, 480, 800, 120, w)` with the hero at 12 of 24: the pixel (58, 494) is rgb(200, 40, 40) and (158, 494) is rgb(60, 20, 20); at 24 of 24, (206, 494) is rgb(200, 40, 40). The pixel (4, 476), outside the panel, is still pure green, and (796, 596) is rgb(40, 26, 34).
+On an 800 by 600 canvas filled with pure green, `draw(ctx, 0, 480, 800, 120, w, 'Ann')` with Ann at 12 of 24: the pixel (58, 494) is rgb(200, 40, 40) and (158, 494) is rgb(60, 20, 20); at 24 of 24, (206, 494) is rgb(200, 40, 40). The pixel (4, 476), outside the panel, is still pure green, and (796, 596) is rgb(40, 26, 34). For `'Eve'` (no such hero), (58, 494) is rgb(60, 20, 20).
 
 ## Intrinsic - refuses:
-`draw(ctx, 0, 0, 0, 10, w)`, `draw(ctx, 0.5, 0, 10, 10, w)` and `draw(ctx, 0, 0, 10, 10, {})` throw a `TypeError`.
+`draw(ctx, 0, 0, 0, 10, w, 'Ann')`, `draw(ctx, 0.5, 0, 10, 10, w, 'Ann')`, `draw(ctx, 0, 0, 10, 10, {}, 'Ann')` and `draw(ctx, 0, 0, 10, 10, w, 5)` throw a `TypeError`.

@@ -1,8 +1,9 @@
 # input: `keys`
 
-A frozen map from key to intent, built once from the table with
-`intent`'s constructors. `listen` keeps the handler function so `stop` can
-remove exactly it. A missing modifier property counts as false.
+Two constant tables (a `Map` from key to direction, and one from key to
+command), and the intent built with `intent`'s constructors at each call
+(they are frozen, so sharing them would also do). `listen` keeps the
+handler it added so that `stop` removes exactly it.
 
 This Node's edge:
 
@@ -12,7 +13,7 @@ This Node's edge:
 - [shape:intent](../../../shapes/intent.md)
 
 # Inbound Side-Effects:
-`keydown` events from the target given to `listen`.
+`keydown` events on the target.
 
 # Outbound Side-Effects:
-`preventDefault` on the events it maps; the `onIntent` calls.
+`preventDefault` on the events it handles; the callbacks it is given.

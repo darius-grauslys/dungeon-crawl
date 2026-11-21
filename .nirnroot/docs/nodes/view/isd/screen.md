@@ -9,7 +9,8 @@ outside the grid are left as background), draws each as the EED says
 for `s = atlas.sprite(name)`, the name being the tile's kind, the item's
 kind or the creature's kind), then the veil for explored cells not
 visible (`rgba(0, 0, 0, 0.6)` over the cell), then
-`hud.draw(ctx, 0, rows * 48, W, H - rows * 48, world)`.
+`hud.draw(ctx, 0, rows * 48, W, H - rows * 48, world, me)`, then the
+paused band.
 
 This Node's edge:
 
@@ -25,6 +26,7 @@ Children this specification reaches:
 - [shape:point](../../../shapes/point.md)
 - [shape:sprite](../../../shapes/sprite.md)
 - [shape:tile-grid](../../../shapes/tile-grid.md)
+- [shape:hero](../../../shapes/hero.md)
 - [shape:actor](../../../shapes/actor.md)
 - [shape:item](../../../shapes/item.md)
 - [shape:mask](../../../shapes/mask.md)

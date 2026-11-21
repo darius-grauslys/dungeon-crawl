@@ -1,7 +1,7 @@
 # hud: `panel`
 
 `draw`: `ctx.save()`, clip to the rectangle, fill the background, the
-bar, then `fillText` each of `lines(world)` as the EED places them,
+bar, then `fillText` each of `lines(world, me)` as the EED places them,
 `ctx.restore()`. Integer coordinates only, so the bar's pixels are exact.
 
 This Node's edge:
@@ -10,6 +10,7 @@ This Node's edge:
 
 # API Shapes:
 - [shape:world](../../../shapes/world.md)
+- [shape:hero](../../../shapes/hero.md)
 
 # Inbound Side-Effects:
 None.
