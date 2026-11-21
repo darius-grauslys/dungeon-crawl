@@ -366,3 +366,40 @@ test("framing-pingpong", async () => {
     await srv.close();
   }
 });
+
+test("framing-64bit", async () => {
+  const root = await makeFixture();
+  const srv = await serve({ port: 0, root });
+  try {
+    const { socket } = await rawConnect(srv.port);
+    const text = "a".repeat(70000);
+    rawSendText(socket, text);
+    const drained = await collectDrain(srv);
+    assert.deepEqual(drained, [[1, text]]);
+    socket.destroy();
+  } finally {
+    await srv.close();
+  }
+});
+
+test("framing-masked", async () => {
+  const root = await makeFixture();
+  const srv = await serve({ port: 0, root });
+  try {
+    const { socket } = await rawConnect(srv.port);
+    const text = "masked text";
+    const payload = Buffer.from(text, "utf8");
+    const header = Buffer.alloc(2);
+    header[0] = 0x80 | 1;
+    header[1] = payload.length | 0x80;
+    const mask = crypto.randomBytes(4);
+    const masked = Buffer.allocUnsafe(payload.length);
+    for (let i = 0; i < payload.length; i++) masked[i] = payload[i] ^ mask[i % 4];
+    socket.write(Buffer.concat([header, mask, masked]));
+    const drained = await collectDrain(srv);
+    assert.deepEqual(drained, [[1, text]]);
+    socket.destroy();
+  } finally {
+    await srv.close();
+  }
+});
