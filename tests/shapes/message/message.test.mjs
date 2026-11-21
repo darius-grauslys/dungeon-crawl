@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { move, attack, use, wait } from "../../../shapes/intent/index.mjs";
+import { move, attack, use, wait, descend } from "../../../shapes/intent/index.mjs";
 import { of as saveOf, isName } from "../../../shapes/save/index.mjs";
 import { of as statsOf } from "../../../shapes/stats/index.mjs";
 import { of as pointOf } from "../../../shapes/point/index.mjs";
@@ -64,6 +64,9 @@ test("message round-trip: all ten kinds", () => {
     kind: "hero",
     pos: pointOf(1, 1),
     stats: statsOf({ hp: 5, maxHp: 10, attack: 3, defense: 1 }),
+    held: 300,
+    facing: 'left',
+    last: { kind: 'attack', dx: -1, dy: 0, at: 50 },
   });
   const h = heroOf({ name: "Ann", actor: heroActor, pending: move(1, 0), alive: true });
   const monsterActor = actorOf({
@@ -92,6 +95,10 @@ test("message round-trip: all ten kinds", () => {
     create(saveOne),
     join("sess1", "pass1", "Ann"),
     act(move(1, 0)),
+    act(attack(1, 0)),
+    act(use()),
+    act(wait()),
+    act(descend()),
     pause(false),
     requestSave(),
     created("sess1", "pass1"),
