@@ -484,9 +484,6 @@ export function advance(world, ms) {
       for (let j = 0; j < currentMonsters.length; j++) {
         if (j !== mi) blocked.push(currentMonsters[j].pos);
       }
-      for (const h of heroes) {
-        if (h.alive) blocked.push(h.actor.pos);
-      }
 
       const intentM = monstersNode.decide(actorShape.of({ id: m.id, kind: m.kind, pos: m.pos, stats: m.stats, ready: m.ready }), target, world.grid, blocked, Math.floor(newTime / 400));
 
