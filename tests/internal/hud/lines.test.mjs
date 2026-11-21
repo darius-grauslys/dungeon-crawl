@@ -2,32 +2,43 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { lines } from "../../../src/hud/index.mjs";
 
-test("lines: status line and last three log lines, oldest first", () => {
-  const world = {
-    hero: { stats: { hp: 18, maxHp: 24, attack: 4, defense: 1 } },
-    gold: 7,
-    depth: 2,
-    log: ['a', 'b', 'c', 'd']
-  };
-  assert.deepStrictEqual(lines(world), ['HP 18/24   ATK 4   DEF 1   Gold 7   Depth 2/5', 'b', 'c', 'd']);
+function makeWorld(gold, depth, log, heroes) {
+  return { gold, depth, log, heroes };
+}
+
+test("lines: status line for a hero, party line, last two log lines", () => {
+  const world = makeWorld(7, 2, ["a", "b", "c", "d"], [
+    { name: "Ann", alive: true, actor: { stats: { hp: 18, maxHp: 24, attack: 4, defense: 1 } } },
+    { name: "Bob", alive: false, actor: { stats: { hp: 0, maxHp: 28, attack: 4, defense: 1 } } }
+  ]);
+  assert.deepStrictEqual(lines(world, "Ann"), ["Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Depth 2/5", "Party: Ann 18/24, Bob fallen", "c", "d"]);
 });
 
-test("lines: short log gives status line and that line", () => {
-  const world = {
-    hero: { stats: { hp: 12, maxHp: 24, attack: 3, defense: 2 } },
-    gold: 0,
-    depth: 1,
-    log: ['a']
-  };
-  assert.deepStrictEqual(lines(world), ['HP 12/24   ATK 3   DEF 2   Gold 0   Depth 1/5', 'a']);
+test("lines: status line for a fallen hero", () => {
+  const world = makeWorld(7, 2, ["a", "b", "c", "d"], [
+    { name: "Ann", alive: true, actor: { stats: { hp: 18, maxHp: 24, attack: 4, defense: 1 } } },
+    { name: "Bob", alive: false, actor: { stats: { hp: 0, maxHp: 28, attack: 4, defense: 1 } } }
+  ]);
+  assert.strictEqual(lines(world, "Bob")[0], "Bob   HP 0/28 (fallen)   ATK 4   DEF 1   Gold 7   Depth 2/5");
 });
 
-test("lines: empty log gives just the status line", () => {
-  const world = {
-    hero: { stats: { hp: 0, maxHp: 10, attack: 0, defense: 0 } },
-    gold: 0,
-    depth: 3,
-    log: []
-  };
-  assert.deepStrictEqual(lines(world), ['HP 0/10   ATK 0   DEF 0   Gold 0   Depth 3/5']);
+test("lines: no hero of that name gives Watching line", () => {
+  const world = makeWorld(7, 2, ["a", "b", "c", "d"], [
+    { name: "Ann", alive: true, actor: { stats: { hp: 18, maxHp: 24, attack: 4, defense: 1 } } },
+    { name: "Bob", alive: false, actor: { stats: { hp: 0, maxHp: 28, attack: 4, defense: 1 } } }
+  ]);
+  assert.strictEqual(lines(world, "Eve")[0], "Watching   Gold 7   Depth 2/5");
+});
+
+test("lines: short log gives status, party, and one log line", () => {
+  const world = makeWorld(7, 2, ["a"], [
+    { name: "Ann", alive: true, actor: { stats: { hp: 18, maxHp: 24, attack: 4, defense: 1 } } },
+    { name: "Bob", alive: false, actor: { stats: { hp: 0, maxHp: 28, attack: 4, defense: 1 } } }
+  ]);
+  assert.deepStrictEqual(lines(world, "Ann"), ["Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Depth 2/5", "Party: Ann 18/24, Bob fallen", "a"]);
+});
+
+test("lines: no heroes gives Party: none", () => {
+  const world = makeWorld(7, 2, ["a", "b"], []);
+  assert.deepStrictEqual(lines(world, "Eve"), ["Watching   Gold 7   Depth 2/5", "Party: none", "a", "b"]);
 });
