@@ -530,7 +530,7 @@ export function advance(world, ms) {
     const blocked = newMonsters
       .filter((o) => o.id !== m.id)
       .map((o) => o.pos)
-      .concat(newHeroes.filter((h) => h.alive).map((h) => h.actor.pos));
+      .concat(newHeroes.filter((h) => h.alive && !(h.actor.pos.x === target.x && h.actor.pos.y === target.y)).map((h) => h.actor.pos));
     const intentM = monsters.decide(m, target, world.grid, blocked, turn);
     if (intentM.kind === "move") {
       const nx = m.pos.x + intentM.dx;
