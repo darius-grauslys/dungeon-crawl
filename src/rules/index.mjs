@@ -36,21 +36,6 @@ const MONSTER_STATS = {
 
 const HERO_START_STATS = { hp: 24, maxHp: 24, attack: 4, defense: 1 };
 
-// Latency per action (world milliseconds). The EED's table, one constant table.
-const HERO_LATENCY = {
-  step: 200,
-  attack: 350,
-  use: 250,
-  wait: 200,
-  descend: 200,
-};
-
-const MONSTER_LATENCY = {
-  step: 400,
-  attack: 600,
-  wait: 400,
-};
-
 function mulberryDraw(rng) {
   rng = (rng + 0x6d2b79f5) >>> 0;
   let t = rng;
@@ -320,15 +305,7 @@ export function intend(world, name, intent) {
   if (world.state !== "playing") return world;
   const h = world.heroes.find((hh) => hh.name === name);
   if (!h || !h.alive) return world;
-  const newHeroes = world.heroes.map((hh) => {
-    if (hh.name !== name) return hh;
-    if (intent.kind === "descend") {
-      // heroShape.of rejects descend intents due to isIntent limitation;
-      // worldShape.isHero accepts any frozen object with pending instanceof intentShape.Intent.
-      return Object.freeze({ name: hh.name, actor: hh.actor, pending: intent, alive: hh.alive });
-    }
-    return heroShape.of({ name: hh.name, actor: hh.actor, pending: intent, alive: hh.alive });
-  });
+  const newHeroes = world.heroes.map((hh) => (hh.name === name ? heroShape.of({ name: hh.name, actor: hh.actor, pending: intent, alive: hh.alive }) : hh));
   return worldShape.of({
     seed: world.seed,
     rng: world.rng,
@@ -396,143 +373,92 @@ export function advance(world, ms) {
   let rng = world.rng;
 
   // 1. Heroes fire
-  let descendRequested = false;
-  let descendValid = false;
+  for (const h of heroes) {
+    if (h.alive && h.actor.ready <= newTime && h.pending) {
+      const intent = h.pending;
+      const hi = heroes.findIndex((hh) => hh.name === h.name);
+      heroes[hi] = heroShape.of({ name: h.name, actor: actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime + 200 }), pending: null, alive: h.alive });
 
-  for (let hi = 0; hi < heroes.length; hi++) {
-    const h = heroes[hi];
-    if (!h.alive || !h.pending) continue;
-    if (h.actor.ready > newTime) continue;
-
-    const intent = h.pending;
-    let latency;
-    let needsUpdate = false;
-    let newActor;
-
-    if (intent.kind === "move") {
-      const nx = h.actor.pos.x + intent.dx;
-      const ny = h.actor.pos.y + intent.dy;
-      const cell = world.grid.at(nx, ny);
-      const monsterAt = monstersList.find((m) => m.pos.x === nx && m.pos.y === ny);
-      const aliveHeroAt = heroes.find((hh) => hh.alive && hh.name !== h.name && hh.actor.pos.x === nx && hh.actor.pos.y === ny);
-
-      const wouldBeAttack = !!monsterAt;
-
-      // Held check: a hero's pending move that would not be an attack stays pending unfired until held passes.
-      if (!wouldBeAttack && h.actor.held >= newTime) {
-        continue;
-      }
-
-      needsUpdate = true;
-      latency = wouldBeAttack ? HERO_LATENCY.attack : HERO_LATENCY.step;
-      const facing = actorShape.facingFor(intent.dx, intent.dy);
-
-      if (cell === "wall" || aliveHeroAt) {
-        // step goes nowhere: facing updated, last unchanged
-        newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime + latency, held: h.actor.held, facing, last: h.actor.last });
-      } else if (monsterAt) {
-        // attack on monster
-        const { roll, rng: nr } = d20(rng);
-        rng = nr;
-        const strike = combat.resolve(h.actor.stats, monsterAt.stats, roll);
-        if (strike.critical) log.push(`Critical! ${h.name} hits the ${monsterAt.kind} for ${strike.damage}.`);
-        else if (strike.hit) log.push(`${h.name} hits the ${monsterAt.kind} for ${strike.damage}.`);
-        else log.push(`${h.name} misses the ${monsterAt.kind}.`);
-        const monsterHeld = Math.max(monsterAt.held || 0, newTime + 300);
-        const newHp = Math.max(0, monsterAt.stats.hp - strike.damage);
-        if (newHp === 0) {
-          log.push(`The ${monsterAt.kind} is slain.`);
-          monstersList = monstersList.filter((m) => m.id !== monsterAt.id);
+      if (intent.kind === "move") {
+        const nx = h.actor.pos.x + intent.dx;
+        const ny = h.actor.pos.y + intent.dy;
+        const cell = world.grid.at(nx, ny);
+        if (cell === "wall") {
+          // nothing
         } else {
-          monstersList = monstersList.map((m) => (m.id === monsterAt.id ? actorShape.of({ id: m.id, kind: m.kind, pos: m.pos, stats: statsShape.of({ hp: newHp, maxHp: m.stats.maxHp, attack: m.stats.attack, defense: m.stats.defense }), ready: m.ready, held: monsterHeld }) : m));
-        }
-        newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime + latency, held: h.actor.held, facing, last: { kind: 'attack', dx: intent.dx, dy: intent.dy, at: newTime } });
-      } else if (world.grid.open(nx, ny)) {
-        // step onto open cell, pick up items
-        const itemsAt = items.filter((it) => it.pos.x === nx && it.pos.y === ny);
-        let pos = pointShape.of(nx, ny);
-        let heroStats = { hp: h.actor.stats.hp, maxHp: h.actor.stats.maxHp, attack: h.actor.stats.attack, defense: h.actor.stats.defense };
-        for (const it of itemsAt) {
-          if (it.kind === "potion") {
-            const healed = 8;
-            const newHp = Math.min(h.actor.stats.maxHp, h.actor.stats.hp + healed);
-            const actual = newHp - h.actor.stats.hp;
-            heroStats.hp = newHp;
-            log.push(`${h.name} drinks a potion (+${actual} HP).`);
-          } else if (it.kind === "gold") {
-            gold += it.amount;
-            log.push(`${h.name} picks up ${it.amount} gold.`);
-          } else if (it.kind === "sword") {
-            heroStats.attack += 2;
-            log.push(`${h.name} picks up a sword (+2 attack).`);
-          } else if (it.kind === "armor") {
-            heroStats.defense += 1;
-            log.push(`${h.name} puts on armor (+1 defense).`);
+          const aliveHeroAt = heroes.find((hh) => hh.alive && hh.name !== h.name && hh.actor.pos.x === nx && hh.actor.pos.y === ny);
+          if (aliveHeroAt) {
+            // nothing
+          } else {
+            const monsterAt = monstersList.find((m) => m.pos.x === nx && m.pos.y === ny);
+            if (monsterAt) {
+              const { roll, rng: nr } = d20(rng);
+              rng = nr;
+              const strike = combat.resolve(h.actor.stats, monsterAt.stats, roll);
+              if (strike.critical) log.push(`Critical! ${h.name} hits the ${monsterAt.kind} for ${strike.damage}.`);
+              else if (strike.hit) log.push(`${h.name} hits the ${monsterAt.kind} for ${strike.damage}.`);
+              else log.push(`${h.name} misses the ${monsterAt.kind}.`);
+              const newHp = Math.max(0, monsterAt.stats.hp - strike.damage);
+              if (newHp === 0) {
+                log.push(`The ${monsterAt.kind} is slain.`);
+                monstersList = monstersList.filter((m) => m.id !== monsterAt.id);
+              } else {
+                monstersList = monstersList.map((m) => (m.id === monsterAt.id ? actorShape.of({ id: m.id, kind: m.kind, pos: m.pos, stats: statsShape.of({ hp: newHp, maxHp: m.stats.maxHp, attack: m.stats.attack, defense: m.stats.defense }), ready: m.ready }) : m));
+              }
+            } else {
+              if (world.grid.open(nx, ny)) {
+                const itemsAt = items.filter((it) => it.pos.x === nx && it.pos.y === ny);
+                let pos = pointShape.of(nx, ny);
+                for (const it of itemsAt) {
+                  if (it.kind === "potion") {
+                    const healed = 8;
+                    const newHp = Math.min(h.actor.stats.maxHp, h.actor.stats.hp + healed);
+                    const actual = newHp - h.actor.stats.hp;
+                    heroes[hi] = heroShape.of({ name: h.name, actor: actorShape.of({ id: h.actor.id, kind: "hero", pos, stats: statsShape.of({ hp: newHp, maxHp: h.actor.stats.maxHp, attack: h.actor.stats.attack, defense: h.actor.stats.defense }), ready: newTime + 200 }), pending: null, alive: h.alive });
+                    log.push(`${h.name} drinks a potion (+${actual} HP).`);
+                  } else if (it.kind === "gold") {
+                    gold += it.amount;
+                    log.push(`${h.name} picks up ${it.amount} gold.`);
+                  } else if (it.kind === "sword") {
+                    heroes[hi] = heroShape.of({ name: h.name, actor: actorShape.of({ id: h.actor.id, kind: "hero", pos, stats: statsShape.of({ hp: h.actor.stats.hp, maxHp: h.actor.stats.maxHp, attack: h.actor.stats.attack + 2, defense: h.actor.stats.defense }), ready: newTime + 200 }), pending: null, alive: h.alive });
+                    log.push(`${h.name} picks up a sword (+2 attack).`);
+                  } else if (it.kind === "armor") {
+                    heroes[hi] = heroShape.of({ name: h.name, actor: actorShape.of({ id: h.actor.id, kind: "hero", pos, stats: statsShape.of({ hp: h.actor.stats.hp, maxHp: h.actor.stats.maxHp, attack: h.actor.stats.attack, defense: h.actor.stats.defense + 1 }), ready: newTime + 200 }), pending: null, alive: h.alive });
+                    log.push(`${h.name} puts on armor (+1 defense).`);
+                  }
+                }
+                items = items.filter((it) => !(it.pos.x === nx && it.pos.y === ny));
+                const hi2 = heroes.findIndex((hh) => hh.name === h.name);
+                heroes[hi2] = heroShape.of({ name: h.name, actor: actorShape.of({ id: h.actor.id, kind: "hero", pos, stats: heroes[hi2].actor.stats, ready: newTime + 200 }), pending: null, alive: h.alive });
+              }
+            }
           }
         }
-        items = items.filter((it) => !(it.pos.x === nx && it.pos.y === ny));
-        newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos, stats: statsShape.of(heroStats), ready: newTime + latency, held: h.actor.held, facing, last: { kind: 'move', dx: intent.dx, dy: intent.dy, at: newTime } });
-      } else {
-        // not open, no monster: step goes nowhere
-        newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime + latency, held: h.actor.held, facing, last: h.actor.last });
-      }
-    } else if (intent.kind === "attack") {
-      const nx = h.actor.pos.x + intent.dx;
-      const ny = h.actor.pos.y + intent.dy;
-      const monsterAt = monstersList.find((m) => m.pos.x === nx && m.pos.y === ny);
-
-      needsUpdate = true;
-      latency = HERO_LATENCY.attack;
-      const facing = actorShape.facingFor(intent.dx, intent.dy);
-
-      if (monsterAt) {
-        const { roll, rng: nr } = d20(rng);
-        rng = nr;
-        const strike = combat.resolve(h.actor.stats, monsterAt.stats, roll);
-        if (strike.critical) log.push(`Critical! ${h.name} hits the ${monsterAt.kind} for ${strike.damage}.`);
-        else if (strike.hit) log.push(`${h.name} hits the ${monsterAt.kind} for ${strike.damage}.`);
-        else log.push(`${h.name} misses the ${monsterAt.kind}.`);
-        const monsterHeld = Math.max(monsterAt.held || 0, newTime + 300);
-        const newHp = Math.max(0, monsterAt.stats.hp - strike.damage);
-        if (newHp === 0) {
-          log.push(`The ${monsterAt.kind} is slain.`);
-          monstersList = monstersList.filter((m) => m.id !== monsterAt.id);
-        } else {
-          monstersList = monstersList.map((m) => (m.id === monsterAt.id ? actorShape.of({ id: m.id, kind: m.kind, pos: m.pos, stats: statsShape.of({ hp: newHp, maxHp: m.stats.maxHp, attack: m.stats.attack, defense: m.stats.defense }), ready: m.ready, held: monsterHeld }) : m));
+      } else if (intent.kind === "attack") {
+        const nx = h.actor.pos.x + intent.dx;
+        const ny = h.actor.pos.y + intent.dy;
+        const monsterAt = monstersList.find((m) => m.pos.x === nx && m.pos.y === ny);
+        if (monsterAt) {
+          const { roll, rng: nr } = d20(rng);
+          rng = nr;
+          const strike = combat.resolve(h.actor.stats, monsterAt.stats, roll);
+          if (strike.critical) log.push(`Critical! ${h.name} hits the ${monsterAt.kind} for ${strike.damage}.`);
+          else if (strike.hit) log.push(`${h.name} hits the ${monsterAt.kind} for ${strike.damage}.`);
+          else log.push(`${h.name} misses the ${monsterAt.kind}.`);
+          const newHp = Math.max(0, monsterAt.stats.hp - strike.damage);
+          if (newHp === 0) {
+            log.push(`The ${monsterAt.kind} is slain.`);
+            monstersList = monstersList.filter((m) => m.id !== monsterAt.id);
+          } else {
+            monstersList = monstersList.map((m) => (m.id === monsterAt.id ? actorShape.of({ id: m.id, kind: m.kind, pos: m.pos, stats: statsShape.of({ hp: newHp, maxHp: m.stats.maxHp, attack: m.stats.attack, defense: m.stats.defense }), ready: m.ready }) : m));
+          }
         }
       }
-      newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime + latency, held: h.actor.held, facing, last: { kind: 'attack', dx: intent.dx, dy: intent.dy, at: newTime } });
-    } else if (intent.kind === "use") {
-      needsUpdate = true;
-      latency = HERO_LATENCY.use;
-      newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime + latency, held: h.actor.held, facing: h.actor.facing, last: h.actor.last });
-    } else if (intent.kind === "wait") {
-      needsUpdate = true;
-      latency = HERO_LATENCY.wait;
-      newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime + latency, held: h.actor.held, facing: h.actor.facing, last: h.actor.last });
-    } else if (intent.kind === "descend") {
-      needsUpdate = true;
-      latency = HERO_LATENCY.descend;
-      descendRequested = true;
-      const stairs = findStairs(world.grid);
-      if (stairs) {
-        const allWithin = heroes.filter((hh) => hh.alive).every((hh) => isWithin5(hh.actor.pos, stairs));
-        if (allWithin) {
-          descendValid = true;
-        } else {
-          log.push("All party members must be within 5 units of the exit!");
-        }
-      }
-      newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime + latency, held: h.actor.held, facing: h.actor.facing, last: h.actor.last });
-    }
-
-    if (needsUpdate) {
-      heroes[hi] = heroShape.of({ name: h.name, actor: newActor, pending: null, alive: h.alive });
     }
   }
 
   // 2. Monsters act
-  let currentMonsters = monstersList.map((m) => ({ id: m.id, kind: m.kind, pos: m.pos, stats: m.stats, ready: m.ready, held: m.held, facing: m.facing, last: m.last }));
+  let currentMonsters = monstersList.map((m) => ({ id: m.id, kind: m.kind, pos: m.pos, stats: m.stats, ready: m.ready }));
 
   for (let mi = 0; mi < currentMonsters.length; mi++) {
     const m = currentMonsters[mi];
@@ -549,25 +475,22 @@ export function advance(world, ms) {
         }
       }
 
+      if (!target) {
+        currentMonsters[mi] = { ...m, ready: newTime + 400 };
+        continue;
+      }
+
       const blocked = [];
       for (let j = 0; j < currentMonsters.length; j++) {
         if (j !== mi) blocked.push(currentMonsters[j].pos);
       }
-      for (let j = 0; j < heroes.length; j++) {
-        if (heroes[j].alive) blocked.push(heroes[j].actor.pos);
-      }
 
-      const monsterActor = actorShape.of({ id: m.id, kind: m.kind, pos: m.pos, stats: m.stats, ready: m.ready, held: m.held, facing: m.facing, last: m.last });
-      const intentM = monstersNode.decide(monsterActor, target, world.grid, blocked, Math.floor(newTime / 400));
+      const intentM = monstersNode.decide(actorShape.of({ id: m.id, kind: m.kind, pos: m.pos, stats: m.stats, ready: m.ready }), target, world.grid, blocked, Math.floor(newTime / 400));
 
-      if (intentM.kind === "wait") {
-        const newReady = newTime + MONSTER_LATENCY.wait;
-        currentMonsters[mi] = { id: m.id, kind: m.kind, pos: m.pos, stats: m.stats, ready: newReady, held: m.held, facing: m.facing, last: m.last };
-      } else if (intentM.kind === "attack" || intentM.kind === "move") {
+      if (intentM.kind === "move") {
         const nx = m.pos.x + intentM.dx;
         const ny = m.pos.y + intentM.dy;
-        const isAttack = !!(target && nx === target.x && ny === target.y);
-        if (isAttack) {
+        if (nx === target.x && ny === target.y) {
           const hero = heroes.find((hh) => hh.alive && hh.actor.pos.x === nx && hh.actor.pos.y === ny);
           if (hero) {
             const { roll, rng: nr } = d20(rng);
@@ -577,31 +500,31 @@ export function advance(world, ms) {
             else if (strike.hit) log.push(`The ${m.kind} hits ${hero.name} for ${strike.damage}.`);
             else log.push(`The ${m.kind} misses ${hero.name}.`);
             const newHeroHp = Math.max(0, hero.actor.stats.hp - strike.damage);
-            const heroHeld = Math.max(hero.actor.held || 0, newTime + 300);
             const hi = heroes.findIndex((hh) => hh.name === hero.name);
             if (newHeroHp === 0) {
-              heroes[hi] = heroShape.of({ name: hero.name, actor: actorShape.of({ id: hero.actor.id, kind: "hero", pos: hero.actor.pos, stats: statsShape.of({ hp: 0, maxHp: hero.actor.stats.maxHp, attack: hero.actor.stats.attack, defense: hero.actor.stats.defense }), ready: hero.actor.ready, held: heroHeld, facing: hero.actor.facing, last: hero.actor.last }), pending: hero.pending, alive: false });
+              heroes[hi] = heroShape.of({ name: hero.name, actor: actorShape.of({ id: hero.actor.id, kind: "hero", pos: hero.actor.pos, stats: statsShape.of({ hp: 0, maxHp: hero.actor.stats.maxHp, attack: hero.actor.stats.attack, defense: hero.actor.stats.defense }), ready: hero.actor.ready }), pending: hero.pending, alive: false });
               log.push(`${hero.name} falls.`);
             } else {
-              heroes[hi] = heroShape.of({ name: hero.name, actor: actorShape.of({ id: hero.actor.id, kind: "hero", pos: hero.actor.pos, stats: statsShape.of({ hp: newHeroHp, maxHp: hero.actor.stats.maxHp, attack: hero.actor.stats.attack, defense: hero.actor.stats.defense }), ready: hero.actor.ready, held: heroHeld, facing: hero.actor.facing, last: hero.actor.last }), pending: hero.pending, alive: true });
+              heroes[hi] = heroShape.of({ name: hero.name, actor: actorShape.of({ id: hero.actor.id, kind: "hero", pos: hero.actor.pos, stats: statsShape.of({ hp: newHeroHp, maxHp: hero.actor.stats.maxHp, attack: hero.actor.stats.attack, defense: hero.actor.stats.defense }), ready: hero.actor.ready }), pending: hero.pending, alive: true });
             }
           }
-          const facing = actorShape.facingFor(intentM.dx, intentM.dy);
-          currentMonsters[mi] = { id: m.id, kind: m.kind, pos: m.pos, stats: m.stats, ready: newTime + MONSTER_LATENCY.attack, held: m.held, facing, last: { kind: 'attack', dx: intentM.dx, dy: intentM.dy, at: newTime } };
-        } else {
-          // step onto open cell
-          if (m.held >= newTime) {
-            // held monster whose action would be a step: does nothing, ready becomes held
-            currentMonsters[mi] = { id: m.id, kind: m.kind, pos: m.pos, stats: m.stats, ready: m.held, held: m.held, facing: m.facing, last: m.last };
+          currentMonsters[mi] = { ...m, ready: newTime + 400 };
+        } else if (world.grid.open(nx, ny)) {
+          const blockedByOthers = currentMonsters.some((mo, j) => j !== mi && mo.pos.x === nx && mo.pos.y === ny) || heroes.some((h) => h.alive && h.actor.pos.x === nx && h.actor.pos.y === ny);
+          if (!blockedByOthers) {
+            currentMonsters[mi] = { id: m.id, kind: m.kind, pos: pointShape.of(nx, ny), stats: m.stats, ready: newTime + 400 };
           } else {
-            const facing = actorShape.facingFor(intentM.dx, intentM.dy);
-            currentMonsters[mi] = { id: m.id, kind: m.kind, pos: pointShape.of(nx, ny), stats: m.stats, ready: newTime + MONSTER_LATENCY.step, held: m.held, facing, last: { kind: 'move', dx: intentM.dx, dy: intentM.dy, at: newTime } };
+            currentMonsters[mi] = { ...m, ready: newTime + 400 };
           }
+        } else {
+          currentMonsters[mi] = { ...m, ready: newTime + 400 };
         }
+      } else {
+        currentMonsters[mi] = { ...m, ready: newTime + 400 };
       }
     }
   }
-  monstersList = currentMonsters.map((m) => actorShape.of({ id: m.id, kind: m.kind, pos: m.pos, stats: m.stats, ready: m.ready, held: m.held, facing: m.facing, last: m.last }));
+  monstersList = currentMonsters.map((m) => actorShape.of({ id: m.id, kind: m.kind, pos: m.pos, stats: m.stats, ready: m.ready }));
 
   // 3. Wipe
   const anyAlive = heroes.some((h) => h.alive);
@@ -628,12 +551,11 @@ export function advance(world, ms) {
     });
   }
 
-  // 4. Stairs (descend): only when a descend fired in step 1 with every alive hero within 5 of the stairs,
-  // and a hero is still alive and every alive hero is still within 5 of them after step 2.
+  // 4. Stairs
   const stairs = findStairs(world.grid);
-  if (descendValid && stairs && anyAlive) {
-    const allWithinAfter = heroes.filter((h) => h.alive).every((h) => isWithin5(h.actor.pos, stairs));
-    if (allWithinAfter) {
+  if (stairs && anyAlive) {
+    const allWithin = heroes.filter((h) => h.alive).every((h) => isWithin5(h.actor.pos, stairs));
+    if (allWithin) {
       if (world.depth === 5) {
         return worldShape.of({
           seed: world.seed,
@@ -683,8 +605,6 @@ export function advance(world, ms) {
         log: [...world.log, `The party descends to depth ${nextDepth}.`].slice(-50),
         entry: saveNew,
       });
-    } else {
-      log.push("All party members must be within 5 units of the exit!");
     }
   }
 
