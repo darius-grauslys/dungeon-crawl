@@ -17,7 +17,14 @@ test("actor of builds a frozen actor with the given values", () => {
   assert.strictEqual(a.pos.x, 1);
   assert.strictEqual(a.pos.y, 2);
   assert.strictEqual(a.stats.hp, 5);
+  assert.strictEqual(a.ready, 0);
   assert.strictEqual(Object.isFrozen(a), true);
+});
+
+test("actor of with ready: 250 has ready 250", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  const a = of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, ready: 250 });
+  assert.strictEqual(a.ready, 250);
 });
 
 test("actor KINDS is the six kind names in order and frozen", () => {
@@ -44,6 +51,16 @@ test("actor of refuses missing stats", () => {
   assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2) }), TypeError);
 });
 
+test("actor of refuses ready: -1", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, ready: -1 }), TypeError);
+});
+
+test("actor of refuses ready: 1.5", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, ready: 1.5 }), TypeError);
+});
+
 test("actor with returns a new actor with changed pos, leaving the original unchanged", () => {
   const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
   const a = of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s });
@@ -53,8 +70,18 @@ test("actor with returns a new actor with changed pos, leaving the original unch
   assert.strictEqual(b.id, 0);
   assert.strictEqual(b.kind, 'hero');
   assert.strictEqual(b.stats, a.stats);
+  assert.strictEqual(b.ready, a.ready);
   assert.strictEqual(a.pos.x, 1);
   assert.strictEqual(a.pos.y, 2);
+  assert.notStrictEqual(a, b);
+});
+
+test("actor with returns a new actor with changed ready, leaving the original unchanged", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  const a = of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, ready: 250 });
+  const b = a.with({ ready: 400 });
+  assert.strictEqual(b.ready, 400);
+  assert.strictEqual(a.ready, 250);
   assert.notStrictEqual(a, b);
 });
 
@@ -73,4 +100,5 @@ test("with is a shared method, not an own property of an actor", () => {
   assert.strictEqual(Object.hasOwn(a, 'kind'), true);
   assert.strictEqual(Object.hasOwn(a, 'pos'), true);
   assert.strictEqual(Object.hasOwn(a, 'stats'), true);
+  assert.strictEqual(Object.hasOwn(a, 'ready'), true);
 });

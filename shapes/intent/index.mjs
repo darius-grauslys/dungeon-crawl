@@ -22,7 +22,7 @@ export class Intent {
   }
 }
 
-function isValidMove(dx, dy) {
+function isValidOrthogonal(dx, dy) {
   if (typeof dx !== "number" || typeof dy !== "number") return false;
   const dxIsCardinal = dx === 1 || dx === -1;
   const dyIsCardinal = dy === 1 || dy === -1;
@@ -31,21 +31,26 @@ function isValidMove(dx, dy) {
   return (dxIsCardinal && dyIsZero) || (dyIsCardinal && dxIsZero);
 }
 
+export const KINDS = Object.freeze(["move", "attack", "use", "wait"]);
+
 export function move(dx, dy) {
-  if (!isValidMove(dx, dy)) {
+  if (!isValidOrthogonal(dx, dy)) {
     throw new TypeError(`invalid move: dx=${dx} dy=${dy}`);
   }
   return new Intent("move", dx, dy);
 }
 
+export function attack(dx, dy) {
+  if (!isValidOrthogonal(dx, dy)) {
+    throw new TypeError(`invalid attack: dx=${dx} dy=${dy}`);
+  }
+  return new Intent("attack", dx, dy);
+}
+
+export function use() {
+  return new Intent("use", 0, 0);
+}
+
 export function wait() {
   return new Intent("wait", 0, 0);
-}
-
-export function descend() {
-  return new Intent("descend", 0, 0);
-}
-
-export function restart() {
-  return new Intent("restart", 0, 0);
 }
