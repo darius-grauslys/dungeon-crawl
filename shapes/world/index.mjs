@@ -32,7 +32,18 @@ function isActor(v) {
   if (v.stats.hp < 0 || v.stats.hp > v.stats.maxHp) return false;
   if (v.stats.attack < 0 || v.stats.defense < 0) return false;
   if (typeof v.ready !== 'number' || !Number.isInteger(v.ready) || v.ready < 0) return false;
-  return Object.keys(v).length === 5;
+  if (typeof v.held !== 'number' || !Number.isInteger(v.held) || v.held < 0) return false;
+  if (v.facing !== 'left' && v.facing !== 'right') return false;
+  if (v.last !== null) {
+    if (!v.last || typeof v.last !== 'object' || !Object.isFrozen(v.last)) return false;
+    if (v.last.kind !== 'move' && v.last.kind !== 'attack') return false;
+    if (typeof v.last.dx !== 'number' || !Number.isInteger(v.last.dx)) return false;
+    if (typeof v.last.dy !== 'number' || !Number.isInteger(v.last.dy)) return false;
+    if (!((v.last.dx === 1 && v.last.dy === 0) || (v.last.dx === -1 && v.last.dy === 0) || (v.last.dx === 0 && v.last.dy === 1) || (v.last.dx === 0 && v.last.dy === -1))) return false;
+    if (typeof v.last.at !== 'number' || !Number.isInteger(v.last.at) || v.last.at < 0) return false;
+    if (Object.keys(v.last).length !== 4) return false;
+  }
+  return Object.keys(v).length === 8;
 }
 
 function isItem(v) {
@@ -149,6 +160,9 @@ class World {
           defense: h.actor.stats.defense,
         },
         ready: h.actor.ready,
+        held: h.actor.held,
+        facing: h.actor.facing,
+        last: h.actor.last ? { kind: h.actor.last.kind, dx: h.actor.last.dx, dy: h.actor.last.dy, at: h.actor.last.at } : null,
       },
     }));
 
@@ -163,6 +177,9 @@ class World {
         defense: m.stats.defense,
       },
       ready: m.ready,
+      held: m.held,
+      facing: m.facing,
+      last: m.last ? { kind: m.last.kind, dx: m.last.dx, dy: m.last.dy, at: m.last.at } : null,
     }));
 
     const itemsData = this.items.map((it) => ({
@@ -469,6 +486,9 @@ export function fromData(data) {
         defense: actorData.stats.defense,
       }),
       ready: actorData.ready,
+      held: actorData.held,
+      facing: actorData.facing,
+      last: actorData.last ? { kind: actorData.last.kind, dx: actorData.last.dx, dy: actorData.last.dy, at: actorData.last.at } : null,
     });
     const heroObj = heroShape.of({ name: h.name, actor: actorObj, pending, alive: h.alive });
     heroObjs.push(heroObj);
@@ -487,6 +507,9 @@ export function fromData(data) {
         defense: m.stats.defense,
       }),
       ready: m.ready,
+      held: m.held,
+      facing: m.facing,
+      last: m.last ? { kind: m.last.kind, dx: m.last.dx, dy: m.last.dy, at: m.last.at } : null,
     });
     if (monsterObj.kind === 'hero') {
       throw new TypeError('world: monsters must not be of kind hero');
