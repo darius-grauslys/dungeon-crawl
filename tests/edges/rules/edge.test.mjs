@@ -107,7 +107,7 @@ test("joins", () => {
 test("immutable", () => {
   const w = join(newGame(3), "Ann");
   const before = JSON.stringify(w.data());
-  const intents = [intent.move(1, 0), intent.attack(1, 0), intent.use(), intent.wait()];
+  const intents = [intent.move(1, 0), intent.attack(1, 0), intent.use(), intent.wait(), intent.descend()];
   for (const i of intents) {
     intend(w, "Ann", i);
     assert.strictEqual(JSON.stringify(w.data()), before);
@@ -168,6 +168,29 @@ test("latency", () => {
   assert.strictEqual(w.heroes[0].actor.ready, 650);
   assert.strictEqual(w.heroes[0].actor.pos.x, 1);
   assert.strictEqual(w.heroes[0].actor.pos.y, 1);
+
+  // attack, use, wait, descend latencies
+  const heroAnn2 = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(2, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  const wAttack = makeWorld({ grid, heroes: [heroAnn2], monsters: [], items: [] });
+  assert.strictEqual(advance(intend(wAttack, "Ann", intent.attack(1, 0)), 50).heroes[0].actor.ready, 400);
+  const wUse = makeWorld({ grid, heroes: [heroAnn2], monsters: [], items: [] });
+  assert.strictEqual(advance(intend(wUse, "Ann", intent.use()), 50).heroes[0].actor.ready, 300);
+  const wWait = makeWorld({ grid, heroes: [heroAnn2], monsters: [], items: [] });
+  assert.strictEqual(advance(intend(wWait, "Ann", intent.wait()), 50).heroes[0].actor.ready, 250);
+  const wDescend = makeWorld({ grid, heroes: [heroAnn2], monsters: [], items: [] });
+  assert.strictEqual(advance(intend(wDescend, "Ann", intent.descend()), 50).heroes[0].actor.ready, 250);
+
+  // two heroes keep their own clocks
+  const heroBob = hero.of({ name: "Bob", actor: actor.of({ id: 1, kind: "hero", pos: point.of(4, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  const wTwo = makeWorld({ grid, heroes: [heroAnn2, heroBob], monsters: [], items: [] });
+  const wTwoIntended = intend(intend(wTwo, "Ann", intent.attack(1, 0)), "Bob", intent.move(-1, 0));
+  const wTwo1 = advance(wTwoIntended, 50);
+  const annTwo = wTwo1.heroes.find((h) => h.name === "Ann");
+  const bobTwo = wTwo1.heroes.find((h) => h.name === "Bob");
+  assert.strictEqual(annTwo.actor.ready, 400);
+  assert.strictEqual(bobTwo.actor.ready, 250);
+  assert.strictEqual(bobTwo.actor.pos.x, 3);
+  assert.strictEqual(bobTwo.actor.pos.y, 1);
 });
 
 test("picks-up", () => {
@@ -216,9 +239,14 @@ test("attacks", () => {
     const w1 = advance(intend(w, "Ann", intent.move(1, 0)), 50);
     assert.strictEqual(w1.heroes[0].actor.pos.x, 1);
     assert.strictEqual(w1.heroes[0].actor.pos.y, 1);
+    assert.strictEqual(w1.heroes[0].actor.ready, 400);
     const batStill = w1.monsters.find((m) => m.kind === "bat");
     if (!batStill) goneCount++;
-    else if (batStill.stats.hp === 1) staysCount++;
+    else {
+      assert.strictEqual(batStill.stats.hp, 1);
+      assert.strictEqual(batStill.held, 350);
+      staysCount++;
+    }
   }
   assert.ok(goneCount >= 1);
   assert.ok(staysCount >= 1);
@@ -229,9 +257,14 @@ test("attacks", () => {
     const w = makeWorld({ grid, heroes: [heroAnn], monsters: [bat], rng });
     const w1 = advance(intend(w, "Ann", intent.attack(1, 0)), 50);
     assert.strictEqual(w1.heroes[0].actor.pos.x, 1);
+    assert.strictEqual(w1.heroes[0].actor.ready, 400);
     const batStill = w1.monsters.find((m) => m.kind === "bat");
     if (!batStill) goneCount++;
-    else if (batStill.stats.hp === 1) staysCount++;
+    else {
+      assert.strictEqual(batStill.stats.hp, 1);
+      assert.strictEqual(batStill.held, 350);
+      staysCount++;
+    }
   }
   assert.ok(goneCount >= 1);
   assert.ok(staysCount >= 1);
@@ -240,8 +273,120 @@ test("attacks", () => {
   const w1 = advance(intend(w, "Ann", intent.attack(-1, 0)), 50);
   assert.strictEqual(w1.heroes[0].actor.pos.x, 1);
   assert.strictEqual(w1.heroes[0].actor.pos.y, 1);
-  assert.strictEqual(w1.heroes[0].actor.ready, 250);
+  assert.strictEqual(w1.heroes[0].actor.ready, 400);
+  assert.strictEqual(w1.heroes[0].actor.facing, "left");
+  assert.deepStrictEqual(w1.heroes[0].actor.last, { kind: "attack", dx: -1, dy: 0, at: 50 });
   assert.strictEqual(w1.monsters.length, 1);
+});
+
+test("held", () => {
+  const grid = tileGrid.fromRows(["#######", "#.....#", "#######"]);
+  const heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(2, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  const skeleton = actor.of({ id: 10, kind: "skeleton", pos: point.of(3, 1), stats: stats.of({ hp: 5, maxHp: 5, attack: 4, defense: 0 }), ready: 0, held: 0, facing: "right", last: null });
+
+  let w = makeWorld({ grid, heroes: [heroAnn], monsters: [skeleton] });
+  w = advance(w, 50);
+  const ann1 = w.heroes[0];
+  assert.strictEqual(ann1.actor.held, 350);
+  const sk1 = w.monsters[0];
+  assert.strictEqual(sk1.ready, 650);
+  assert.strictEqual(sk1.facing, "left");
+  assert.deepStrictEqual(sk1.last, { kind: "attack", dx: -1, dy: 0, at: 50 });
+
+  w = intend(w, "Ann", intent.move(-1, 0));
+  for (let i = 0; i < 5; i++) {
+    w = advance(w, 50);
+  }
+  const ann2 = w.heroes[0];
+  assert.strictEqual(ann2.actor.pos.x, 2);
+  assert.strictEqual(ann2.actor.pos.y, 1);
+  assert.strictEqual(ann2.pending.kind, "move");
+  assert.strictEqual(ann2.pending.dx, -1);
+  assert.strictEqual(ann2.pending.dy, 0);
+  assert.strictEqual(w.time, 300);
+
+  w = advance(w, 50);
+  const ann3 = w.heroes[0];
+  assert.strictEqual(ann3.actor.pos.x, 1);
+  assert.strictEqual(ann3.actor.pos.y, 1);
+  assert.strictEqual(w.time, 350);
+
+  // Instead, at time 100, an attack(1, 0) fires at once (her ready 450 and the skeleton's held 400).
+  const heroAnnA = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(2, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  const skeletonA = actor.of({ id: 10, kind: "skeleton", pos: point.of(3, 1), stats: stats.of({ hp: 5, maxHp: 5, attack: 4, defense: 0 }), ready: 0, held: 0, facing: "right", last: null });
+  let wA = makeWorld({ grid, heroes: [heroAnnA], monsters: [skeletonA] });
+  wA = advance(wA, 50);
+  wA = intend(wA, "Ann", intent.attack(1, 0));
+  wA = advance(wA, 50);
+  const annA = wA.heroes[0];
+  assert.strictEqual(annA.actor.ready, 450);
+  const skA = wA.monsters[0];
+  assert.strictEqual(skA.held, 400);
+
+  // A held skeleton (held 1000, ready 0) at (4, 1) with Ann at (1, 1) does not step at time 50, and its ready is 1000.
+  const heroAnnH = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  const skeletonH = actor.of({ id: 10, kind: "skeleton", pos: point.of(4, 1), stats: stats.of({ hp: 5, maxHp: 5, attack: 4, defense: 0 }), ready: 0, held: 1000, facing: "right", last: null });
+  const wH = makeWorld({ grid, heroes: [heroAnnH], monsters: [skeletonH] });
+  const wH1 = advance(wH, 50);
+  const skH = wH1.monsters[0];
+  assert.strictEqual(skH.pos.x, 4);
+  assert.strictEqual(skH.pos.y, 1);
+  assert.strictEqual(skH.ready, 1000);
+});
+
+test("faces", () => {
+  const grid = tileGrid.fromRows(["#######", "#.....#", "#######"]);
+
+  // move(-1, 0) turns left
+  let heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(2, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  let w = makeWorld({ grid, heroes: [heroAnn], monsters: [], items: [] });
+  w = advance(intend(w, "Ann", intent.move(-1, 0)), 50);
+  assert.strictEqual(w.heroes[0].actor.facing, "left");
+
+  // move(0, 1) into wall turns left
+  heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(2, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  w = makeWorld({ grid, heroes: [heroAnn], monsters: [], items: [] });
+  w = advance(intend(w, "Ann", intent.move(0, 1)), 50);
+  assert.strictEqual(w.heroes[0].actor.facing, "left");
+
+  // move(1, 0) right
+  heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(2, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  w = makeWorld({ grid, heroes: [heroAnn], monsters: [], items: [] });
+  w = advance(intend(w, "Ann", intent.move(1, 0)), 50);
+  assert.strictEqual(w.heroes[0].actor.facing, "right");
+
+  // move(0, -1) right
+  heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(2, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  w = makeWorld({ grid, heroes: [heroAnn], monsters: [], items: [] });
+  w = advance(intend(w, "Ann", intent.move(0, -1)), 50);
+  assert.strictEqual(w.heroes[0].actor.facing, "right");
+
+  // After move(1, 0) fires at time 50, last is {kind: 'move', dx: 1, dy: 0, at: 50}
+  heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  w = makeWorld({ grid, heroes: [heroAnn], monsters: [], items: [] });
+  w = advance(intend(w, "Ann", intent.move(1, 0)), 50);
+  assert.deepStrictEqual(w.heroes[0].actor.last, { kind: "move", dx: 1, dy: 0, at: 50 });
+
+  // after a move(0, -1) into the wall, last is as it was
+  w = intend(w, "Ann", intent.move(0, -1));
+  w = advance(w, 50);
+  assert.deepStrictEqual(w.heroes[0].actor.last, { kind: "move", dx: 1, dy: 0, at: 50 });
+
+  // A hero who joins has held 0, facing right and last null
+  const wJoin = join(newGame(3), "Joined");
+  assert.strictEqual(wJoin.heroes[0].actor.held, 0);
+  assert.strictEqual(wJoin.heroes[0].actor.facing, "right");
+  assert.strictEqual(wJoin.heroes[0].actor.last, null);
+
+  // In the monsters-act world, the skeleton's first step leaves it facing left with last {kind: 'move', dx: -1, dy: 0, at: 50}
+  const mGrid = tileGrid.fromRows(["#########", "#.......#", "#########"]);
+  const mAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  const mskeleton = actor.of({ id: 10, kind: "skeleton", pos: point.of(4, 1), stats: stats.of(MONSTER_STATS), ready: 0 });
+  const mWorld = makeWorld({ grid: mGrid, heroes: [mAnn], monsters: [mskeleton] });
+  const mWorld1 = advance(mWorld, 50);
+  const ms1 = mWorld1.monsters[0];
+  assert.strictEqual(ms1.facing, "left");
+  assert.deepStrictEqual(ms1.last, { kind: "move", dx: -1, dy: 0, at: 50 });
 });
 
 test("monsters-act", () => {
@@ -333,6 +478,9 @@ test("descends", () => {
   });
 
   w = advance(w, 50);
+  assert.strictEqual(w.depth, 1);
+
+  w = advance(intend(w, "Ann", intent.descend()), 50);
   assert.strictEqual(w.depth, 2);
   assert.strictEqual(w.grid.width, 48);
   assert.strictEqual(w.grid.height, 32);
@@ -362,8 +510,22 @@ test("descends", () => {
     items: [],
     entry: save.of({ seed: 1, depth: 1, players: [{ name: "Ann", stats: stats.of({ hp: 20, maxHp: 24, attack: 4, defense: 1 }) }, { name: "Bob", stats: stats.of({ hp: 0, maxHp: 24, attack: 4, defense: 1 }) }] }),
   });
-  const w8after = advance(w8, 50);
+  const w8after = advance(intend(w8, "Ann", intent.descend()), 50);
   assert.strictEqual(w8after.depth, 1);
+  assert.strictEqual(w8after.log[w8after.log.length - 1], "All party members must be within 5 units of the exit!");
+
+  const heroAnnAlive5 = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(8, 1), stats: stats.of({ hp: 20, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, alive: true });
+  const heroBobAlive5 = hero.of({ name: "Bob", actor: actor.of({ id: 1, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, alive: true });
+  const wBobDescend = makeWorld({
+    grid,
+    heroes: [heroAnnAlive5, heroBobAlive5],
+    monsters: [],
+    items: [],
+    entry: save.of({ seed: 1, depth: 1, players: [{ name: "Ann", stats: stats.of({ hp: 20, maxHp: 24, attack: 4, defense: 1 }) }, { name: "Bob", stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) }] }),
+  });
+  const wBobDescendAfter = advance(intend(wBobDescend, "Bob", intent.descend()), 50);
+  assert.strictEqual(wBobDescendAfter.depth, 1);
+  assert.strictEqual(wBobDescendAfter.log[wBobDescendAfter.log.length - 1], "All party members must be within 5 units of the exit!");
 
   const heroAnn5 = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(2, 1), stats: stats.of({ hp: 20, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, alive: true });
   const w5 = makeWorld({
@@ -375,7 +537,7 @@ test("descends", () => {
     gold: 5,
     entry: save.of({ seed: 1, depth: 5, players: [{ name: "Ann", stats: stats.of({ hp: 20, maxHp: 24, attack: 4, defense: 1 }) }] }),
   });
-  const w5after = advance(w5, 50);
+  const w5after = advance(intend(w5, "Ann", intent.descend()), 50);
   assert.strictEqual(w5after.state, "won");
   assert.ok(w5after.log[w5after.log.length - 1].startsWith("The party escapes the dungeon with"));
   assert.ok(w5after.log[w5after.log.length - 1].endsWith("gold!"));
@@ -540,13 +702,18 @@ test("intent/valid", () => {
   assert.strictEqual(intent.wait().dx, 0);
   assert.strictEqual(intent.wait().dy, 0);
 
+  const d = intent.descend();
+  assert.strictEqual(d.kind, "descend");
+  assert.strictEqual(d.dx, 0);
+  assert.strictEqual(d.dy, 0);
+
   assert.throws(() => intent.move(1, 1), TypeError);
   assert.throws(() => intent.move(0, 0), TypeError);
   assert.throws(() => intent.move(2, 0), TypeError);
   assert.throws(() => intent.move("1", 0), TypeError);
   assert.throws(() => intent.attack(0, 0), TypeError);
 
-  assert.deepStrictEqual(intent.KINDS, ["move", "attack", "use", "wait"]);
+  assert.deepStrictEqual(intent.KINDS, ["move", "attack", "use", "wait", "descend"]);
 });
 
 test("save/valid", () => {
