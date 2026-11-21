@@ -31,7 +31,7 @@ function isValidOrthogonal(dx, dy) {
   return (dxIsCardinal && dyIsZero) || (dyIsCardinal && dxIsZero);
 }
 
-export const KINDS = Object.freeze(["move", "attack", "use", "wait"]);
+export const KINDS = Object.freeze(["move", "attack", "use", "wait", "descend"]);
 
 export function move(dx, dy) {
   if (!isValidOrthogonal(dx, dy)) {
@@ -53,4 +53,8 @@ export function use() {
 
 export function wait() {
   return new Intent("wait", 0, 0);
+}
+
+export function descend() {
+  return new Intent("descend", 0, 0);
 }

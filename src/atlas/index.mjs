@@ -16,11 +16,27 @@ const TABLE = [
   { name: "gold", sheet: "sheets/items.png", sx: 48, sy: 80 },
   { name: "sword", sheet: "sheets/items.png", sx: 64, sy: 16 },
   { name: "armor", sheet: "sheets/items.png", sx: 64, sy: 48 },
+  { name: "wall-0", sheet: "sheets/dungeon.png", sx: 48, sy: 0 },
+  { name: "wall-1", sheet: "sheets/dungeon.png", sx: 0, sy: 32 },
+  { name: "wall-2", sheet: "sheets/dungeon.png", sx: 48, sy: 32 },
+  { name: "wall-3", sheet: "sheets/dungeon.png", sx: 32, sy: 16 },
+  { name: "wall-4", sheet: "sheets/dungeon.png", sx: 16, sy: 32 },
+  { name: "wall-5", sheet: "sheets/dungeon.png", sx: 64, sy: 16 },
+  { name: "wall-6", sheet: "sheets/dungeon.png", sx: 32, sy: 0 },
+  { name: "wall-7", sheet: "sheets/dungeon.png", sx: 0, sy: 16 },
+  { name: "wall-8", sheet: "sheets/dungeon.png", sx: 64, sy: 32 },
+  { name: "wall-9", sheet: "sheets/dungeon.png", sx: 48, sy: 16 },
+  { name: "wall-10", sheet: "sheets/dungeon.png", sx: 48, sy: 0 },
+  { name: "wall-11", sheet: "sheets/dungeon.png", sx: 16, sy: 16 },
+  { name: "wall-12", sheet: "sheets/dungeon.png", sx: 64, sy: 0 },
+  { name: "wall-13", sheet: "sheets/dungeon.png", sx: 16, sy: 0 },
+  { name: "wall-14", sheet: "sheets/dungeon.png", sx: 0, sy: 0 },
+  { name: "wall-15", sheet: "sheets/dungeon.png", sx: 80, sy: 0 },
 ];
 
 const _names = TABLE.map((r) => r.name);
 
-/** `names() -> array`. The thirteen names, in the table's order, a fresh array each call. */
+/** `names() -> array`. The twenty-nine names, in the table's order, a fresh array each call. */
 export function names() {
   return [..._names];
 }
