@@ -78,7 +78,7 @@ export function start(document, options = {}) {
     },
   };
 
-  menuEdge.mount(document, menuHandlers);
+  const menu = menuEdge.mount(document, menuHandlers);
 
   let rememberedName = "";
   let rememberedPassword = "";
@@ -96,7 +96,7 @@ export function start(document, options = {}) {
     },
   };
 
-  landingEdge.show(document, landingHandlers);
+  const landing = landingEdge.show(document, landingHandlers);
 
   let stopKeys = null;
 
@@ -109,10 +109,10 @@ export function start(document, options = {}) {
     if (screen !== "game") return;
     if (command === "menu") {
       if (menuOpenFlag) {
-        menuEdge.close();
+        menu.close();
         menuOpenFlag = false;
       } else {
-        menuEdge.open();
+        menu.open();
         menuOpenFlag = true;
       }
     } else if (command === "pause") {
@@ -148,23 +148,23 @@ export function start(document, options = {}) {
         break;
       }
       case "joined": {
-        landingEdge.hide();
+        landing.hide();
         me = msg.name;
-        menuEdge.setSession(msg.session, sessionPassword);
+        menu.setSession(msg.session, sessionPassword);
         screen = "game";
         stopKeys = inputEdge.listen(document, { intent: handleIntent, command: handleCommand });
         break;
       }
       case "refused": {
         if (screen === "landing") {
-          landingEdge.error(reasonText(msg.reason));
+          landing.error(reasonText(msg.reason));
         }
         break;
       }
       case "state": {
         latestWorld = msg.world;
         paused = msg.paused;
-        menuEdge.setPaused(paused);
+        menu.setPaused(paused);
         newState = true;
         break;
       }
@@ -192,8 +192,8 @@ export function start(document, options = {}) {
         stopKeys = null;
       }
       conn.close();
-      landingEdge.hide();
-      menuEdge.remove();
+      landing.hide();
+      menu.remove();
     },
   };
 }
