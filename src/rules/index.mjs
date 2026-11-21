@@ -623,7 +623,7 @@ export function advance(world, ms) {
     state: world.state,
     grid: world.grid,
     heroes,
-    monsters,
+    monstersList,
     items,
     visible,
     explored,
