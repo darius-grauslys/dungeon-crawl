@@ -1,5 +1,5 @@
 {
-  "digest": "22f4c2669959b5a230b27f43f5e55ea1c65ffefb654685f79c5a8d9d71001fd8",
+  "digest": "f49cd7ceebe63facd6b17a1d9cd8d08e4a6e13be2e25fe41d13390029b61d8cf",
   "fixtures": {},
   "nodes": {
     "atlas": {
@@ -63,7 +63,7 @@
     "crawl": {
       "children": [
         "play",
-        "serve"
+        "server"
       ],
       "code": [
         "src/crawl/"
@@ -74,9 +74,13 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "hero",
+          "intent",
           "item",
           "mask",
+          "message",
           "point",
+          "save",
           "stats",
           "tile-grid",
           "world"
@@ -160,9 +164,12 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "hero",
+          "intent",
           "item",
           "mask",
           "point",
+          "save",
           "stats",
           "tile-grid",
           "world"
@@ -178,9 +185,12 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "hero",
+          "intent",
           "item",
           "mask",
           "point",
+          "save",
           "stats",
           "tile-grid",
           "world"
@@ -216,6 +226,60 @@
       },
       "internal-tests": [
         "tests/internal/input/"
+      ],
+      "parent": "play"
+    },
+    "landing": {
+      "children": [],
+      "code": [
+        "src/landing/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": [
+          "save",
+          "stats"
+        ]
+      },
+      "edge-tests": [
+        "tests/edges/landing/"
+      ],
+      "forwarder": [
+        "edges/edge_to_landing.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "save",
+          "stats"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/landing/"
+      ],
+      "parent": "play"
+    },
+    "menu": {
+      "children": [],
+      "code": [
+        "src/menu/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": []
+      },
+      "edge-tests": [
+        "tests/edges/menu/"
+      ],
+      "forwarder": [
+        "edges/edge_to_menu.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": []
+      },
+      "internal-tests": [
+        "tests/internal/menu/"
       ],
       "parent": "play"
     },
@@ -255,10 +319,60 @@
       ],
       "parent": "rules"
     },
+    "net": {
+      "children": [],
+      "code": [
+        "src/net/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "hero",
+          "intent",
+          "item",
+          "mask",
+          "message",
+          "point",
+          "save",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "edge-tests": [
+        "tests/edges/net/"
+      ],
+      "forwarder": [
+        "edges/edge_to_net.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "hero",
+          "intent",
+          "item",
+          "mask",
+          "message",
+          "point",
+          "save",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/net/"
+      ],
+      "parent": "play"
+    },
     "play": {
       "children": [
         "input",
-        "rules",
+        "landing",
+        "menu",
+        "net",
         "view"
       ],
       "code": [
@@ -268,9 +382,13 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "hero",
+          "intent",
           "item",
           "mask",
+          "message",
           "point",
+          "save",
           "stats",
           "tile-grid",
           "world"
@@ -286,10 +404,13 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "hero",
           "intent",
           "item",
           "mask",
+          "message",
           "point",
+          "save",
           "stats",
           "tile-grid",
           "world"
@@ -314,10 +435,12 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "hero",
           "intent",
           "item",
           "mask",
           "point",
+          "save",
           "stats",
           "tile-grid",
           "world"
@@ -334,10 +457,12 @@
         "shapes": [
           "actor",
           "floor-plan",
+          "hero",
           "intent",
           "item",
           "mask",
           "point",
+          "save",
           "stats",
           "strike",
           "tile-grid",
@@ -347,7 +472,7 @@
       "internal-tests": [
         "tests/internal/rules/"
       ],
-      "parent": "play"
+      "parent": "server"
     },
     "serve": {
       "children": [],
@@ -371,7 +496,83 @@
       "internal-tests": [
         "tests/internal/serve/"
       ],
+      "parent": "server"
+    },
+    "server": {
+      "children": [
+        "rules",
+        "serve",
+        "sessions"
+      ],
+      "code": [
+        "src/server/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "hero",
+          "intent",
+          "item",
+          "mask",
+          "message",
+          "point",
+          "save",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "edge-tests": [
+        "tests/edges/server/"
+      ],
+      "forwarder": [
+        "edges/edge_to_server.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "hero",
+          "intent",
+          "item",
+          "mask",
+          "message",
+          "point",
+          "save",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/server/"
+      ],
       "parent": "crawl"
+    },
+    "sessions": {
+      "children": [],
+      "code": [
+        "src/sessions/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": []
+      },
+      "edge-tests": [
+        "tests/edges/sessions/"
+      ],
+      "forwarder": [
+        "edges/edge_to_sessions.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": []
+      },
+      "internal-tests": [
+        "tests/internal/sessions/"
+      ],
+      "parent": "server"
     },
     "view": {
       "children": [
@@ -385,9 +586,12 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "hero",
+          "intent",
           "item",
           "mask",
           "point",
+          "save",
           "stats",
           "tile-grid",
           "world"
@@ -403,9 +607,12 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "hero",
+          "intent",
           "item",
           "mask",
           "point",
+          "save",
           "sprite",
           "stats",
           "tile-grid",
@@ -445,6 +652,22 @@
         "tests/shapes/floor-plan/"
       ]
     },
+    "hero": {
+      "closure": [
+        "actor",
+        "hero",
+        "intent",
+        "point",
+        "save",
+        "stats"
+      ],
+      "code": [
+        "shapes/hero/"
+      ],
+      "tests": [
+        "tests/shapes/hero/"
+      ]
+    },
     "intent": {
       "closure": [
         "intent"
@@ -479,6 +702,27 @@
         "tests/shapes/mask/"
       ]
     },
+    "message": {
+      "closure": [
+        "actor",
+        "hero",
+        "intent",
+        "item",
+        "mask",
+        "message",
+        "point",
+        "save",
+        "stats",
+        "tile-grid",
+        "world"
+      ],
+      "code": [
+        "shapes/message/"
+      ],
+      "tests": [
+        "tests/shapes/message/"
+      ]
+    },
     "point": {
       "closure": [
         "point"
@@ -488,6 +732,18 @@
       ],
       "tests": [
         "tests/shapes/point/"
+      ]
+    },
+    "save": {
+      "closure": [
+        "save",
+        "stats"
+      ],
+      "code": [
+        "shapes/save/"
+      ],
+      "tests": [
+        "tests/shapes/save/"
       ]
     },
     "sprite": {
@@ -537,9 +793,12 @@
     "world": {
       "closure": [
         "actor",
+        "hero",
+        "intent",
         "item",
         "mask",
         "point",
+        "save",
         "stats",
         "tile-grid",
         "world"

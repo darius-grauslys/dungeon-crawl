@@ -18,14 +18,14 @@ export function load(...args) {
 }
 
 // __nirnroot_begin__ camera
-// `camera(world, cols, rows) -> point`. The camera, as the layout says, for a view of `cols` by `rows` cells.
+// `camera(world, me, cols, rows) -> point`. The camera, as the layout says, for the player `me` (a string; any name) and a view of `cols` by `rows` cells.
 // __nirnroot_end__
 export function camera(...args) {
   return target.camera(...args);
 }
 
 // __nirnroot_begin__ draw
-// `draw(world)`. Draws the world, as above, onto the canvas given to `init` (throws an `Error` if none was given).
+// `draw(world, me, paused)`. Draws the world for the player `me`, as above, onto the canvas given to `init` (throws an `Error` if none was given), with the paused band when `paused` is true.
 // __nirnroot_end__
 export function draw(...args) {
   return target.draw(...args);

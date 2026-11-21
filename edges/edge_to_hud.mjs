@@ -4,14 +4,14 @@
 import * as target from "../src/hud/index.mjs";
 
 // __nirnroot_begin__ lines
-// `lines(world) -> array of strings`. First the status line, `HP <hp>/<maxHp>   ATK <attack>   DEF <defense>   Gold <gold>   Depth <depth>/5` (three spaces between the parts), then the last three lines of the world's log, oldest first (fewer when the log is shorter).
+// `lines(world, me) -> array of strings`. First the status line of `me`'s hero, `<name>   HP <hp>/<maxHp>   ATK <attack>   DEF <defense>   Gold <gold>   Depth <depth>/5` (three spaces between the parts; ` (fallen)` after the HP part of a hero not alive), or `Watching   Gold <gold>   Depth <depth>/5` with no hero of that name; then the party line, `Party: ` and each hero in order as `<name> <hp>/<maxHp>`, or `<name> fallen` for one not alive, joined by `, ` (`Party: none` with no heroes); then the last two lines of the world's log, oldest first (fewer when the log is shorter).
 // __nirnroot_end__
 export function lines(...args) {
   return target.lines(...args);
 }
 
 // __nirnroot_begin__ draw
-// `draw(ctx, x, y, width, height, world)`. Draws the panel into the rectangle (`x`, `y`, `width`, `height`) of the 2D context `ctx`, and nothing outside it (it clips to it). `x`, `y` integers, `width` and `height` integers of 1 or more; anything else, or a `world` that isn't one, throws a `TypeError`.
+// `draw(ctx, x, y, width, height, world, me)`. Draws the panel for the player `me` into the rectangle (`x`, `y`, `width`, `height`) of the 2D context `ctx`, and nothing outside it (it clips to it). `x`, `y` integers, `width` and `height` integers of 1 or more, `me` a string; anything else, or a `world` that isn't one, throws a `TypeError`.
 // __nirnroot_end__
 export function draw(...args) {
   return target.draw(...args);

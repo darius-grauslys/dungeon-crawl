@@ -4,24 +4,53 @@
 import * as target from "../src/rules/index.mjs";
 
 // __nirnroot_begin__ new-game
-// `newGame(seed) -> world`. `seed` an integer from 0 to 4294967295 (anything else throws a `TypeError`). Depth 1, turn 0, state `playing`, gold 0, the floor `dungeon` makes for this seed and depth 1, the hero (id 0, the starting stats) at its start, `2 + 2 * depth` monsters and the floor's items placed on its spots, `visible` what the hero sees from the start (radius 7), `explored` the same, and a log of one line: `Welcome to the dungeon. Find the stairs (>).`
+// `newGame(seed) -> world`. `seed` an integer from 0 to 4294967295 (anything else throws a `TypeError`). Depth 1, time 0, state `playing`, gold 0, no heroes, the floor `dungeon` makes for this seed and depth 1, `2 + 2 * depth` monsters and the floor's items placed on its spots, every monster's `ready` 0, `visible` and `explored` all false, `entry` the save of this seed, depth 1 and no players, and a log of one line: `Welcome to the dungeon. Find the stairs (>).`
 // __nirnroot_end__
 export function newGame(...args) {
   return target.newGame(...args);
 }
 
-// __nirnroot_begin__ step
-// `step(world, intent) -> world`. `world` a `world`, `intent` an `intent` (anything else throws a `TypeError`). When the world's state is not `playing`, only `restart` does anything; any other intent answers the world unchanged. Otherwise the hero acts:
-// - `move` into a `wall`: nothing happens; the world is answered unchanged (no turn passes).
-// - `move` into a monster: the hero attacks it (`combat`, a roll from the world's `rng`); a monster brought to 0 hit points is removed.
-// - `move` into an open cell with no monster: the hero steps there and picks up every item there (as the `item` shape says).
-// - `wait`: nothing.
-// - `descend` off the stairs: nothing happens but a log line, `There are no stairs here.`; no turn passes.
-// - `descend` on the stairs: on depth 5 the state becomes `won`; otherwise the next depth's floor, freshly placed, with the hero at its start, its `maxHp` 4 more and its `hp` 4 more (never above `maxHp`).
-// - `restart`: answers `newGame` of the next seed (`(seed + 1) % 4294967296`), whatever the state.
-//
-// After the hero's action (unless no turn passes, the game was won, or the hero descended), each monster, in the order of `monsters`, takes its turn (`monsters.decide`): a move onto the hero is an attack on it (`combat`); a move onto an open cell no creature holds is a step there; anything else, nothing. The hero brought to 0 hit points makes the state `dead`, and no monster after acts. Then `turn` is one more, `visible` is computed again from the hero's cell (radius 7), and `explored` takes in `visible`. Every event adds a line to the log (the 50 most recent are kept).
+// __nirnroot_begin__ from-save
+// `fromSave(save) -> world`. `save` a `save` (anything else throws a `TypeError`). As `newGame(save.seed)`, but on the floor of `save.depth`, freshly placed, with the save's players as its heroes, in their order, each alive with the saved stats (a saved `hp` of 0 is 1), `pending` null, `ready` 0, on the floor's start cells (the ISD); `visible` what they see, `explored` the same; `entry` the save (with any `hp` of 0 made 1); the log the welcome line.
 // __nirnroot_end__
-export function step(...args) {
-  return target.step(...args);
+export function fromSave(...args) {
+  return target.fromSave(...args);
+}
+
+// __nirnroot_begin__ to-save
+// `toSave(world) -> save`. The world's seed and depth, and its heroes, in order, each `{name, stats}` with its stats as they are now, but a hero that is not alive saved at 1 hit point.
+// __nirnroot_end__
+export function toSave(...args) {
+  return target.toSave(...args);
+}
+
+// __nirnroot_begin__ join
+// `join(world, name) -> world | null`. `name` a name (`save`'s `isName`; anything else throws a `TypeError`). A hero of that name already in the world: the same world (`===`). Else, with 4 heroes: `null`. Else the world with a new hero of that name at the end of `heroes`: the starting stats, alive, `pending` null, `ready` the world's `time`, on the first free start cell, its actor's `id` the smallest of 0 to 3 no hero has; added to `entry`'s players too (with the starting stats); `visible` and `explored` taking in what it sees; the log line `<name> joins the party.`
+// __nirnroot_end__
+export function join(...args) {
+  return target.join(...args);
+}
+
+// __nirnroot_begin__ intend
+// `intend(world, name, intent) -> world`. `intent` an `intent` (anything else throws a `TypeError`). The world with that hero's `pending` the intent. A name no hero has, a hero not alive, or a world whose state is not `playing`: the same world (`===`).
+// __nirnroot_end__
+export function intend(...args) {
+  return target.intend(...args);
+}
+
+// __nirnroot_begin__ advance
+// `advance(world, ms) -> world`. `ms` an integer from 1 to 1000 (anything else throws a `TypeError`). The world `ms` later: `time` is `ms` more. A world whose state is not `playing` changes no more than that. Otherwise, in this order:
+// 1. **Heroes**, in their order: each alive hero whose `ready` is at most the new `time` and that has a `pending` intent fires it:
+//    - `move` into a `wall`, or onto another alive hero: nothing happens.
+//    - `move` onto a monster, or `attack` toward a cell: an attack on the monster standing there (`combat`, a roll from the world's `rng`); `attack` toward a cell no monster holds: nothing happens. A monster brought to 0 hit points is removed.
+//    - `move` onto an open cell no creature holds: the hero steps there and picks up every item there (as the `item` shape says, the gold the party's).
+//    - `use`, `wait`: nothing happens (yet).
+// 2. **Monsters**, in the order of `monsters`: each whose `ready` is at most the new `time` takes its action (`monsters.decide`, going for the nearest alive hero; with none alive it waits): a move onto an alive hero is an attack on it (`combat`); a move onto an open cell no creature holds is a step there; anything else, nothing. A hero brought to 0 hit points is no longer alive (its actor stays where it fell, and no one else sees it there: it blocks nothing and is not drawn).
+// 3. **A wipe**: with at least one hero and none alive, the floor starts again from `entry`: the world `fromSave(entry)` would give, but keeping `time`, `gold` and the log (every `ready` the current `time`), with the line `The party has fallen. Depth <d> begins again.`
+// 4. **The stairs** (a grid with no `stairs` cell never has them): with at least one hero alive and every alive hero within 5 of the stairs: on depth 5 the state becomes `won` (log `The party escapes the dungeon with <g> gold!`); otherwise the next depth's floor, freshly placed (monsters' `ready` the current `time`), every hero on its start cells, alive, each `maxHp` 4 more, `hp` 4 more for one that was alive (never above `maxHp`) and 1 for one that wasn't, `ready` the current `time`, `pending` null; `explored` reset; `entry` the save of the new floor and the heroes as they now are; log `The party descends to depth <d>.`
+// 5. `visible` is computed again from every alive hero's cell (radius 7), and `explored` takes in `visible`.
+// Every event adds a line to the log (the 50 most recent are kept).
+// __nirnroot_end__
+export function advance(...args) {
+  return target.advance(...args);
 }
