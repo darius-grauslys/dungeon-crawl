@@ -39,6 +39,9 @@ As the EED states.
 ## Intrinsic - actor/valid:
 As the shape states.
 
+## Intrinsic - actor/facing:
+As the shape states.
+
 ## Intrinsic - point/valid:
 As the shape states.
 

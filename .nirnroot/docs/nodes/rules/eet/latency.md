@@ -7,7 +7,7 @@ stats as the intrinsic says, else `{hp: 24, maxHp: 24, attack: 4,
 defense: 1}`; `ready` 0 unless said), monsters with `actor`'s `of` (ids
 10, 11, ...; stats as the intrinsic says, else `{hp: 5, maxHp: 5,
 attack: 2, defense: 0}`; `ready` 10000 unless said, so they stay out of
-the way), items with `item`'s `of`, `mask`'s `empty` for both masks, seed
+the way; `held` 0, `facing` `right` and `last` null unless said), items with `item`'s `of`, `mask`'s `empty` for both masks, seed
 1, rng 1 (unless the intrinsic varies it), depth 1, time 0, state
 `playing`, gold 0, an empty log, and `entry` the save of seed 1, depth 1
 and the heroes' names and stats. Intents come from `intent`'s
@@ -40,7 +40,7 @@ As the EED states.
 As the EED states.
 
 ## Intrinsic - immutable:
-As the EED states: for `join(newGame(3), 'Ann')` with each of the four moves, `attack`, `use` and `wait` intended and then advanced by 50, 200 and 1000.
+As the EED states: for `join(newGame(3), 'Ann')` with each of the four moves, `attack`, `use`, `wait` and `descend` intended and then advanced by 50, 200 and 1000.
 
 ## Intrinsic - latency:
 As the EED states.
@@ -49,6 +49,12 @@ As the EED states.
 As the EED states, one world per item kind.
 
 ## Intrinsic - attacks:
+As the EED states.
+
+## Intrinsic - held:
+As the EED states.
+
+## Intrinsic - faces:
 As the EED states.
 
 ## Intrinsic - monsters-act:

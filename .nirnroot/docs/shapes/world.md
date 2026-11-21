@@ -45,7 +45,8 @@ the constructors of the shapes it holds.
 | `items` | `[{id, kind, pos: {x, y}, amount}]` |
 | `entry` | the save's `data()` |
 
-An actor's data is `{id, kind, pos: {x, y}, stats: {hp, maxHp, attack, defense}, ready}`.
+An actor's data is `{id, kind, pos: {x, y}, stats: {hp, maxHp, attack, defense}, ready, held, facing, last}`,
+`last` `null` or `{kind, dx, dy, at}`.
 
 # Fields:
 ## Field - seed:
@@ -115,8 +116,10 @@ named `Ann`, a `log` of 51 strings, a missing `gold` and a missing
 `assert.deepStrictEqual`; neither `with` nor `data` is an own property.
 
 ## Intrinsic - data:
-For that world `w` (with Ann's `pending` `move(1, 0)` and a `visible`
-true at (1, 1) alone): `fromData(JSON.parse(JSON.stringify(w.data())))`
+For that world `w` (with Ann's `pending` `move(1, 0)`, her actor's
+`held` 300, `facing` `'left'` and `last` `{kind: 'attack', dx: -1, dy: 0,
+at: 50}`, the slime's `last` `{kind: 'move', dx: 0, dy: 1, at: 20}`, and
+a `visible` true at (1, 1) alone): `fromData(JSON.parse(JSON.stringify(w.data())))`
 passes `assert.deepStrictEqual` with `w`; `w.data().grid` is
 `['#####', '#...#', '#####']` for `fromRows` of those rows, and
 `w.data().visible[1]` is `'01000'`. `fromData({})`, and `w.data()` with

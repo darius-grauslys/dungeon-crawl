@@ -16,25 +16,69 @@ map's top left: `x = clamp(focus.x - Math.floor(cols / 2), 0, max(0, grid.width 
 and `y` the same with `rows` and the height. The cell `(cx, cy)` is drawn
 at canvas `((cx - camera.x) * 48, (cy - camera.y) * 48)`.
 
-**What is drawn**, after the whole canvas is filled with the background
-rgb(22, 13, 19):
+**What is drawn**, in this order, after the whole canvas is filled with
+the background rgb(22, 13, 19):
 
-- a cell in `visible`: its tile, then an item lying there, then a
-  creature standing there (a monster, or an alive hero: heroes on top);
-- a cell in `explored` but not `visible`: its tile alone, under a black
-  veil of alpha 0.6 (no items, no creatures);
-- any other cell: nothing (the background).
+1. the tile of every cell in `visible` or `explored` (any other cell:
+   nothing, the background);
+2. a black veil of alpha 0.6 over every cell in `explored` but not
+   `visible`;
+3. the items lying on `visible` cells;
+4. the creatures standing on `visible` cells: the monsters, then the
+   alive heroes (heroes on top), each where its animation puts it.
 
-A hero that is not alive is not drawn.
+So an explored cell out of sight shows its tile alone, veiled (no items,
+no creatures). A hero that is not alive is not drawn.
+
+**Walls.** A `wall` cell **stands** when at least one of its eight
+neighbours (orthogonal and diagonal) is open (`floor` or `stairs`); a
+wall that does not stand (deep in the rock) is never drawn, not even
+when visible or explored: its cell is left as the background. A
+standing wall is drawn as the join that fits its neighbours: the sprite
+`wall-<m>`, `m` the sum of 1 (the cell above), 2 (right), 4 (below) and
+8 (left) for each of those four neighbours that is itself a standing
+wall (a cell outside the grid is not). Whether a wall stands depends on
+the grid alone, never on what is seen.
+
+**Facing.** A creature whose actor's `facing` is `left` is drawn
+mirrored left to right (its sprite flipped about its own vertical
+middle); `right` is the sprite as it is on the sheet.
+
+**Animations.** A creature is drawn at its cell, moved by an offset
+`(ox, oy)` in canvas pixels and scaled by `k` about its own centre (its
+48-pixel square, or the inset square in flat colours, keeps its centre
+at the cell's centre plus the offset). At rest, `(0, 0)` and `k` 1. Its
+actor's `last` (`{kind, dx, dy, at}`) animates it while `t = now - at`
+is from 0 up to the animation's length (the world time `now` is the
+draw's, below):
+
+- a **move** (a hop, 160 ms: the sudden step onto the new cell is the
+  world's, the hop is drawn on top of it): `h = sin(π t / 160)`, the
+  offset `(0, -12 h)`; for a step up (`dy` -1) also `k = 1 + 0.15 h`.
+- an **attack** (300 ms), toward `(dx, dy)`:
+  - the rise, `t` below 150: `p = t / 150`, `e = p * p * (3 - 2 p)`; the
+    offset `(0, -16 e)`; for an attack up (`dy` -1) also `k = 1 +
+    0.25 e` (it grows as it rises: it comes toward the eye);
+  - the strike, `t` from 150 below 210: `p = (t - 150) / 60`; the offset
+    goes in a straight line from `(0, -16)` to `(18 dx, 18 dy)`, as `p`
+    goes from 0 to 1; for an attack up, `k` goes from 1.25 to 1 (it
+    shrinks back as it lunges into the cell above);
+  - the return, `t` from 210 below 300: `p = (t - 210) / 90`; the offset
+    from `(18 dx, 18 dy)` back to `(0, 0)`; `k` 1.
+
+`t` below 0 or past the length: at rest. A creature's outline (below)
+moves and scales with it.
 
 **Before the sprites have loaded** (until `load` resolves, or for good if
 it rejects) everything is drawn as flat colour: a tile fills its cell
-(`wall` rgb(90, 80, 90), `floor` rgb(50, 36, 44), `stairs`
-rgb(230, 200, 60)); a creature is a square inset 8 pixels within its cell
+(a standing `wall` rgb(90, 80, 90), `floor` rgb(50, 36, 44), `stairs`
+rgb(230, 200, 60)); a creature is a square inset 8 pixels within its
+cell
 (`me`'s hero rgb(60, 120, 255), any other hero rgb(60, 200, 120), any
 monster rgb(220, 50, 50)); an item a square inset 16 pixels
 (rgb(240, 180, 40)). Once loaded, each is its sprite of the same name
-(`atlas`; every hero is `hero`), drawn over the whole cell; then every
+(`atlas`; every hero is `hero`; a standing wall its `wall-<m>`), drawn
+over the whole cell; then every
 hero but `me`'s gets a 3-pixel outline of rgb(60, 200, 120) inside its
 cell, so the player tells their own hero apart.
 
@@ -57,7 +101,7 @@ with `PAUSED` in rgb(230, 220, 200), `bold 24px monospace`, centred in it.
 `camera(world, me, cols, rows) -> point`. The camera, as the layout says, for the player `me` (a string; any name) and a view of `cols` by `rows` cells.
 
 ## Function - draw:
-`draw(world, me, paused)`. Draws the world for the player `me`, as above, onto the canvas given to `init` (throws an `Error` if none was given), with the paused band when `paused` is true.
+`draw(world, me, paused, now)`. Draws the world for the player `me`, as above, onto the canvas given to `init` (throws an `Error` if none was given), with the paused band when `paused` is true. `now` is the world time to animate at, a number of 0 or more (left out: the world's `time`): the page draws every frame, with `now` running on from the last world's `time` between two worlds.
 
 # Intrinsics:
 ## Intrinsic - camera:
@@ -72,5 +116,14 @@ In that world with only Ann's cell `visible` and every cell `explored`, the mons
 ## Intrinsic - paused:
 `draw(w, 'Ann', true)` of that world on the 800 by 600 canvas (10 rows: the map's middle is pixel row 240): the pixel (4, 240) is rgb(0, 0, 0), and so is (4, 218); `draw(w, 'Ann', false)` leaves (4, 240) not rgb(0, 0, 0) (row 240 is in the cell row 5, outside the 3-row grid: the background).
 
+## Intrinsic - walls:
+On the 800 by 600 canvas, before any `load`, a world on `['#######', '#.>...#', '#######', '#######']` with every cell `visible` and `explored`: the centre pixel of (3, 2) is the wall's rgb(90, 80, 90) (it stands: (2, 1), (3, 1) and (4, 1) are open), and of (3, 3) the background rgb(22, 13, 19) (it does not stand).
+
+## Intrinsic - animates:
+On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, the monster and the gold left out, at time 0, and Ann's `last` as said:
+- `{kind: 'attack', dx: 1, dy: 0, at: 0}`: `draw(w, 'Ann', false, 150)` makes the pixel (72, 44) rgb(60, 120, 255) (Ann risen 16 pixels, into the cell above); `draw(w, 'Ann', false, 210)` makes (100, 72) rgb(60, 120, 255) (lunged 18 pixels right, into the stairs' cell); `draw(w, 'Ann', false, 400)` leaves (72, 44) the wall's rgb(90, 80, 90) and (100, 72) the stairs' rgb(230, 200, 60); so does `draw(w, 'Ann', false)` (`now` the world's time 0, at rest).
+- `{kind: 'move', dx: 1, dy: 0, at: 0}`: at `now` 80, (72, 46) is rgb(60, 120, 255) (hopped 12 pixels); at 200, it is rgb(90, 80, 90).
+- `{kind: 'attack', dx: 0, dy: -1, at: 0}`: at `now` 150, (54, 56) is rgb(60, 120, 255) (risen and grown to 40 pixels); at `now` 0, (54, 56) is the floor's rgb(50, 36, 44).
+
 ## Intrinsic - sprites:
-After `load('/assets/')` resolves and a `draw(w, 'Ann', false)` of the `flat-colours` world, Ann's cell (48 by 48 pixels) holds at least 3 different colours, and its centre pixel is not rgb(60, 120, 255); the pixel 1 in from the top-left corner of Bob's cell is rgb(60, 200, 120).
+After `load('/assets/')` resolves and a `draw(w, 'Ann', false)` of the `flat-colours` world, Ann's cell (48 by 48 pixels) holds at least 3 different colours, and its centre pixel is not rgb(60, 120, 255); the pixel 1 in from the top-left corner of Bob's cell is rgb(60, 200, 120). With the monster a `snake` facing `right`, and then the same world with it facing `left`: at least 10 pixels of the monster's cell differ between the two (the floor under it is not mirrored, so compare no more than that), and the first is pixel for pixel the drawing of the snake with `facing` left out. The wall cells (2, 0) and (4, 0) (both `wall-10`) are pixel for pixel the same, and (0, 0) (`wall-6`) differs from (2, 0) in at least 10 pixels.

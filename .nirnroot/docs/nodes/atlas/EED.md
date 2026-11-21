@@ -22,6 +22,30 @@ transparent, so a sprite drawn over the floor shows the floor around it.
 | `gold` | `sheets/items.png` | 48 | 80 |
 | `sword` | `sheets/items.png` | 64 | 16 |
 | `armor` | `sheets/items.png` | 64 | 48 |
+| `wall-0` | `sheets/dungeon.png` | 48 | 0 |
+| `wall-1` | `sheets/dungeon.png` | 0 | 32 |
+| `wall-2` | `sheets/dungeon.png` | 48 | 32 |
+| `wall-3` | `sheets/dungeon.png` | 32 | 16 |
+| `wall-4` | `sheets/dungeon.png` | 16 | 32 |
+| `wall-5` | `sheets/dungeon.png` | 64 | 16 |
+| `wall-6` | `sheets/dungeon.png` | 32 | 0 |
+| `wall-7` | `sheets/dungeon.png` | 0 | 16 |
+| `wall-8` | `sheets/dungeon.png` | 64 | 32 |
+| `wall-9` | `sheets/dungeon.png` | 48 | 16 |
+| `wall-10` | `sheets/dungeon.png` | 48 | 0 |
+| `wall-11` | `sheets/dungeon.png` | 16 | 16 |
+| `wall-12` | `sheets/dungeon.png` | 64 | 0 |
+| `wall-13` | `sheets/dungeon.png` | 16 | 0 |
+| `wall-14` | `sheets/dungeon.png` | 0 | 0 |
+| `wall-15` | `sheets/dungeon.png` | 80 | 0 |
+
+The sixteen `wall-<m>` are the wall's joins, for drawing walls as
+connected pieces: `m` (0 to 15) says which of the wall's four
+neighbours are walls too, as the sum of 1 (up), 2 (right), 4 (down) and
+8 (left). So `wall-6` is a top-left corner (walls right and down),
+`wall-10` a straight piece from left to right, `wall-5` one from top to
+bottom, `wall-15` a crossing, `wall-14` a T (walls left, right and down), `wall-1` the
+bottom end of a wall that goes up, and `wall-0` a lone pillar.
 
 Every sprite is 16 by 16.
 
@@ -36,11 +60,11 @@ Every sprite is 16 by 16.
 `sprite(name) -> sprite`. The `sprite` for a name of the table: its `image` the keyed sheet (a canvas), its rectangle the table's, 16 by 16. Before a `load` has resolved, answers `null`. A name not in the table throws a `TypeError`, loaded or not.
 
 ## Function - names:
-`names() -> array`. The thirteen names, in the table's order, a fresh array each call.
+`names() -> array`. The twenty-nine names, in the table's order, a fresh array each call.
 
 # Intrinsics:
 ## Intrinsic - table:
-`names()` is the table's names in order. Before any `load`, `sprite('hero')` is `null`; `sprite('dragon')` throws a `TypeError`. After `load('/assets/')` resolves, each name's sprite has the table's `sx`, `sy`, `sw` 16 and `sh` 16.
+`names()` is the table's names in order. Before any `load`, `sprite('hero')` is `null`; `sprite('dragon')` throws a `TypeError`. After `load('/assets/')` resolves, each name's sprite has the table's `sx`, `sy`, `sw` 16 and `sh` 16. `names()` has 29 names, `wall-0` to `wall-15` the last sixteen in order; `sprite('wall-6')` has `sx` 32 and `sy` 0, `sprite('wall-9')` `sx` 48 and `sy` 16; `sprite('wall-16')` throws a `TypeError`.
 
 ## Intrinsic - keyed:
 After `load('/assets/')`, on a canvas filled with pure green (0, 255, 0), drawing `sprite('hero')` at (0, 0) at its own size leaves the pixel (0, 0) pure green (the sheet's background there is transparent), and leaves at least 20 of the 256 pixels not pure green (the hero is drawn).

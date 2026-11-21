@@ -50,7 +50,11 @@ on.
 
 ## The clock
 
-`advance` as the EED says. A monster's action: `monsters.decide(monster,
+`advance` as the EED says: each actor's `ready` moves on by the latency of
+the action it fired (the EED's table: keep it as one constant table), and
+every attack sets the defender's `held` (`Math.max(held, time + 300)`).
+Turn and stamp actors with `actor.facingFor` and `last` as the EED says. A
+monster's action: `monsters.decide(monster,
 target, grid, blocked, turn)`, `target` the cell of the nearest alive hero
 (by Manhattan distance; a tie, the first in `heroes`), `blocked` the other
 monsters' cells and the other alive heroes' cells as they stand at that
@@ -73,6 +77,7 @@ Exactly these lines (`<h>` the hero's name, `<m>` the monster's kind):
 - `<h> drinks a potion (+<healed> HP).` / `<h> picks up <n> gold.` /
   `<h> picks up a sword (+2 attack).` / `<h> puts on armor (+1 defense).`
 - `<h> joins the party.`
+- `All party members must be within 5 units of the exit!`
 - `The party descends to depth <d>.` /
   `The party has fallen. Depth <d> begins again.` /
   `The party escapes the dungeon with <g> gold!`

@@ -8,8 +8,9 @@ depth 1, time 0, state `playing`, gold 0, log `['hello']`, `entry` the
 save of seed 1, depth 1 and no players; each hero with `hero`'s `of`
 around an `actor` of kind `hero`, `{hp: 24, maxHp: 24, attack: 4,
 defense: 1}`, or 0 hit points and `alive: false` for one not alive; a
-monster a `slime` of any stats). Read pixels back with `getImageData`.
-Write the `flat-colours`, `fog` and `paused` tests before the `sprites`
+monster a `slime` of any stats, unless the intrinsic says another kind;
+actors' `held` 0, `facing` and `last` left out unless said). Read pixels back with `getImageData`.
+Write the `flat-colours`, `fog`, `paused`, `walls` and `animates` tests before the `sprites`
 one, in the same file or in files whose names sort before it: once
 loaded, the sprites are used for good.
 
@@ -39,6 +40,12 @@ As the EED states.
 As the EED states.
 
 ## Intrinsic - paused:
+As the EED states.
+
+## Intrinsic - walls:
+As the EED states.
+
+## Intrinsic - animates:
 As the EED states.
 
 ## Intrinsic - sprites:

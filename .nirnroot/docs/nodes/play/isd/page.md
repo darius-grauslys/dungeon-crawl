@@ -14,7 +14,9 @@
    command})`; `stop` calls `stopKeys` if it was set.
 3. A frame loop (`requestAnimationFrame` of the document's `defaultView`, or the global one for a document with none): each
    frame, `conn.drain()` and handle each message as the EED's flow says;
-   draw only when a new `state` came (`view.draw(world, me, paused)`).
+   remember the `performance.now()` at which the latest `state` came; once
+there is a world, draw every frame (`view.draw(world, me, paused, now)`,
+`now` as the EED says).
 4. `created(session, password)`: remember the password, send the `join`.
    `joined`: `landing.hide()`, `menu.setSession(session, password)`,
    screen `game`, start listening to the keys.

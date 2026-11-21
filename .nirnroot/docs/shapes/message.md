@@ -78,8 +78,9 @@ Each constructor answers a frozen message of its kind with its fields;
 `TypeError`.
 
 ## Intrinsic - round-trip:
-For one message of each of the ten kinds (a `state` holding a small world
-with one hero, a `create` and a `saved` holding a save of one player, a
+For one message of each of the ten kinds (an `act` of each of the five
+intent kinds, `descend()` among them; a `state` holding a small world
+with one hero whose actor has `held` 300, `facing` `'left'` and a `last`, a `create` and a `saved` holding a save of one player, a
 `create(null)`), `parse(m.text())` passes `assert.deepStrictEqual` with
 `m`.
 
