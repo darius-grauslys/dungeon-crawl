@@ -133,18 +133,24 @@ export function start(document, options = {}) {
   const raf = win.requestAnimationFrame.bind(win);
   const caf = win.cancelAnimationFrame.bind(win);
   let rafId = raf(frame);
-  let newState = false;
+  let stateArrivalTime = null;
 
   function frame() {
     const messages = conn.drain();
     for (const msg of messages) {
       handleMessage(msg);
     }
-    if (newState) {
-      newState = false;
-      if (latestWorld && screen === "game") {
-        viewEdge.draw(latestWorld, me, paused);
+    if (latestWorld && screen === "game") {
+      let now;
+      if (paused) {
+        now = latestWorld.time;
+      } else if (stateArrivalTime !== null) {
+        const elapsed = performance.now() - stateArrivalTime;
+        now = Math.min(latestWorld.time + elapsed, latestWorld.time + 100);
+      } else {
+        now = latestWorld.time;
       }
+      viewEdge.draw(latestWorld, me, paused, now);
     }
     rafId = raf(frame);
   }
@@ -174,7 +180,7 @@ export function start(document, options = {}) {
         latestWorld = msg.world;
         paused = msg.paused;
         menu.setPaused(paused);
-        newState = true;
+        stateArrivalTime = performance.now();
         break;
       }
       case "saved": {
