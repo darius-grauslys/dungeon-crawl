@@ -209,10 +209,48 @@ test("attacks: hero stays, bat sometimes gone sometimes stays", () => {
   const wWall2 = rules.advance(rules.intend(wWall, "Ann", intentShape.attack(-1, 0)), 50);
   assert.equal(wWall2.heroes[0].actor.pos.x, 1);
   assert.equal(wWall2.heroes[0].actor.pos.y, 1);
-  assert.equal(wWall2.heroes[0].actor.ready, 250);
+  assert.equal(wWall2.heroes[0].actor.ready, 400);
   assert.equal(wWall2.heroes[0].pending, null);
+  assert.equal(wWall2.heroes[0].actor.facing, "left");
+  assert.deepEqual(wWall2.heroes[0].actor.last, { kind: "attack", dx: -1, dy: 0, at: 50 });
   assert.ok(wWall2.monsters.some((m) => m.kind === "bat"));
   assert.equal(wWall2.monsters.find((m) => m.kind === "bat").stats.hp, 1);
+});
+
+test("held: attack sets defender held, held hero's non-attack move stays pending, held monster step does nothing", () => {
+  const grid = tileGridShape.fromRows(["#######", "#.....#", "#######"]);
+  const visible = maskShape.empty(7, 3);
+  const explored = maskShape.empty(7, 3);
+  const mkWorld = (heroes, monsters, rng) => worldShape.of({ seed: 1, rng, depth: 1, time: 0, state: "playing", grid, heroes, monsters, items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 1, players: [] }) });
+
+  const annActor = actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(2, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0, held: 0, facing: "right", last: null });
+  const ann = heroShape.of({ name: "Ann", actor: annActor, pending: null, alive: true });
+  const skeleton = actorShape.of({ id: 1, kind: "skeleton", pos: pointShape.of(3, 1), stats: statsShape.of({ hp: 9, maxHp: 9, attack: 4, defense: 2 }), ready: 0, held: 0, facing: "right", last: null });
+  const w = mkWorld([ann], [skeleton], 1);
+  const w2 = rules.advance(w, 50);
+  assert.equal(w2.heroes[0].actor.held, 350);
+  assert.equal(w2.monsters[0].ready, 650);
+  assert.equal(w2.monsters[0].facing, "left");
+  assert.deepEqual(w2.monsters[0].last, { kind: "attack", dx: -1, dy: 0, at: 50 });
+
+  const wPending = rules.intend(w2, "Ann", intentShape.move(-1, 0));
+  let wAdv = wPending;
+  for (let t = 0; t < 6; t++) {
+    wAdv = rules.advance(wAdv, 50);
+  }
+  assert.equal(wAdv.heroes[0].actor.pos.x, 2);
+  assert.equal(wAdv.heroes[0].pending.kind, "move");
+  assert.equal(wAdv.heroes[0].pending.dx, -1);
+  wAdv = rules.advance(wAdv, 50);
+  assert.equal(wAdv.heroes[0].actor.pos.x, 1);
+
+  const skeletonHeld = actorShape.of({ id: 1, kind: "skeleton", pos: pointShape.of(4, 1), stats: statsShape.of({ hp: 9, maxHp: 9, attack: 4, defense: 2 }), ready: 0, held: 1000, facing: "right", last: null });
+  const annActor2 = actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0, held: 0, facing: "right", last: null });
+  const ann2 = heroShape.of({ name: "Ann", actor: annActor2, pending: null, alive: true });
+  const wHeldMonster = mkWorld([ann2], [skeletonHeld], 1);
+  const wHeldMonster2 = rules.advance(wHeldMonster, 50);
+  assert.equal(wHeldMonster2.monsters[0].pos.x, 4);
+  assert.equal(wHeldMonster2.monsters[0].ready, 1000);
 });
 
 test("monsters-act: skeleton moves toward hero", () => {
@@ -305,25 +343,33 @@ test("descends: within 5 chebyshev descends, beyond stays; depth 5 wins", () => 
   const bobActor = actorShape.of({ id: 1, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 0, maxHp: 24, attack: 4, defense: 1 }), ready: 0 });
   const bob = heroShape.of({ name: "Bob", actor: bobActor, pending: null, alive: false });
   const w = mkWorld([ann, bob], 1);
-  const w2 = rules.advance(w, 50);
-  assert.equal(w2.depth, 2);
-  assert.equal(w2.grid.width, 48);
-  assert.equal(w2.grid.height, 32);
-  const ann2 = w2.heroes.find((h) => h.name === "Ann");
-  const bob2 = w2.heroes.find((h) => h.name === "Bob");
+
+  // no descend intent: stays depth 1
+  const wNoDescend = rules.advance(w, 50);
+  assert.equal(wNoDescend.depth, 1);
+
+  // descend intent, all within 5: descends to depth 2
+  const wDescend = rules.advance(rules.intend(w, "Ann", intentShape.descend()), 50);
+  assert.equal(wDescend.depth, 2);
+  assert.equal(wDescend.grid.width, 48);
+  assert.equal(wDescend.grid.height, 32);
+  const ann2 = wDescend.heroes.find((h) => h.name === "Ann");
+  const bob2 = wDescend.heroes.find((h) => h.name === "Bob");
   assert.ok(ann2.alive);
   assert.equal(ann2.actor.stats.hp, 24);
   assert.equal(ann2.actor.stats.maxHp, 28);
   assert.ok(bob2.alive);
   assert.equal(bob2.actor.stats.hp, 1);
   assert.equal(bob2.actor.stats.maxHp, 28);
-  assert.equal(w2.log[w2.log.length - 1], "The party descends to depth 2.");
+  assert.equal(wDescend.log[wDescend.log.length - 1], "The party descends to depth 2.");
 
+  // Ann at (8, 1): 6 from stairs, beyond 5: stays depth 1, logs the line
   const annActorFar = actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(8, 1), stats: statsShape.of({ hp: 20, maxHp: 24, attack: 4, defense: 1 }), ready: 0 });
   const annFar = heroShape.of({ name: "Ann", actor: annActorFar, pending: null, alive: true });
   const wFar = mkWorld([annFar], 1);
-  const wFar2 = rules.advance(wFar, 50);
+  const wFar2 = rules.advance(rules.intend(wFar, "Ann", intentShape.descend()), 50);
   assert.equal(wFar2.depth, 1);
+  assert.equal(wFar2.log[wFar2.log.length - 1], "All party members must be within 5 units of the exit!");
 });
 
 test("saves: toSave and fromSave round-trip, hp 0 becomes 1", () => {
