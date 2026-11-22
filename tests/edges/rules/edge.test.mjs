@@ -76,8 +76,11 @@ test("joins", () => {
   assert.strictEqual(h.name, "Ann");
   assert.strictEqual(h.alive, true);
   assert.strictEqual(h.pending, null);
+  assert.strictEqual(h.colour, 0);
+  assert.strictEqual(h.group, 0);
   assert.deepStrictEqual(h.actor.stats, { hp: 24, maxHp: 24, attack: 4, defense: 1, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
   assert.strictEqual(h.actor.ready, 0);
+  assert.strictEqual(h.actor.gesture, null);
   assert.ok(w.grid.open(h.actor.pos.x, h.actor.pos.y));
   for (const m of w.monsters) {
     assert.notStrictEqual(`${m.pos.x},${m.pos.y}`, `${h.actor.pos.x},${h.actor.pos.y}`);
@@ -98,6 +101,7 @@ test("joins", () => {
   assert.strictEqual(w2.heroes.length, 2);
   const bob = w2.heroes[1];
   assert.notStrictEqual(`${bob.actor.pos.x},${bob.actor.pos.y}`, `${h.actor.pos.x},${h.actor.pos.y}`);
+  assert.strictEqual(bob.colour, 1);
 
   const w3 = join(w2, "Charlie");
   const w4 = join(w3, "Delta");
@@ -251,29 +255,38 @@ test("picks-up", () => {
   w = advance(intend(w, "Ann", intent.move(1, 0)), 50);
   assert.strictEqual(w.items.length, 0);
   assert.strictEqual(w.gold, 7);
+  assert.strictEqual(w.heroes[0].actor.gesture, null);
 
   heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 10, maxHp: 24, attack: 4, defense: 1, range: 1 }), ready: 0 }), pending: null, alive: true });
   let pItem = item.of({ id: 1, kind: "potion", pos: point.of(2, 1), amount: 0 });
   w = makeWorld({ grid, heroes: [heroAnn], monsters: [], items: [pItem] });
   w = advance(intend(w, "Ann", intent.move(1, 0)), 50);
   assert.strictEqual(w.heroes[0].actor.stats.hp, 18);
+  assert.deepStrictEqual(w.heroes[0].actor.gesture, { kind: "power", at: 50 });
+  assert.deepStrictEqual(w.heroes[0].actor.last, { kind: "move", dx: 1, dy: 0, at: 50, reach: 1 });
 
   heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 20, maxHp: 24, attack: 4, defense: 1, range: 1 }), ready: 0 }), pending: null, alive: true });
   w = makeWorld({ grid, heroes: [heroAnn], monsters: [], items: [pItem] });
   w = advance(intend(w, "Ann", intent.move(1, 0)), 50);
   assert.strictEqual(w.heroes[0].actor.stats.hp, 24);
+  assert.deepStrictEqual(w.heroes[0].actor.gesture, { kind: "power", at: 50 });
+  assert.deepStrictEqual(w.heroes[0].actor.last, { kind: "move", dx: 1, dy: 0, at: 50, reach: 1 });
 
   heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
   let sItem = item.of({ id: 1, kind: "sword", pos: point.of(2, 1), amount: 0 });
   w = makeWorld({ grid, heroes: [heroAnn], monsters: [], items: [sItem] });
   w = advance(intend(w, "Ann", intent.move(1, 0)), 50);
   assert.strictEqual(w.heroes[0].actor.stats.attack, 6);
+  assert.deepStrictEqual(w.heroes[0].actor.gesture, { kind: "power", at: 50 });
+  assert.deepStrictEqual(w.heroes[0].actor.last, { kind: "move", dx: 1, dy: 0, at: 50, reach: 1 });
 
   heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
   let aItem = item.of({ id: 1, kind: "armor", pos: point.of(2, 1), amount: 0 });
   w = makeWorld({ grid, heroes: [heroAnn], monsters: [], items: [aItem] });
   w = advance(intend(w, "Ann", intent.move(1, 0)), 50);
   assert.strictEqual(w.heroes[0].actor.stats.defense, 2);
+  assert.deepStrictEqual(w.heroes[0].actor.gesture, { kind: "power", at: 50 });
+  assert.deepStrictEqual(w.heroes[0].actor.last, { kind: "move", dx: 1, dy: 0, at: 50, reach: 1 });
 
   heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
   let rItem = item.of({ id: 1, kind: "ring", pos: point.of(2, 1), amount: 0 });
@@ -858,7 +871,8 @@ test("buys", () => {
   assert.strictEqual(h1.offer, 12);
   assert.strictEqual(h1.actor.ready, 400);
   assert.strictEqual(h1.actor.facing, "right");
-  assert.deepStrictEqual(h1.actor.last, { kind: "attack", dx: 1, dy: 0, at: 50, reach: 1 });
+  assert.strictEqual(h1.actor.last, null);
+  assert.deepStrictEqual(h1.actor.gesture, { kind: "use", at: 50 });
   assert.strictEqual(w.items.length, 1);
   assert.strictEqual(w.gold, 50);
   assert.strictEqual(w.log[w.log.length - 1], "Ann looks at a sword: 30 gold. Bump it again to buy.");
@@ -870,6 +884,7 @@ test("buys", () => {
   assert.strictEqual(w.items.length, 0);
   assert.strictEqual(w.gold, 20);
   assert.strictEqual(w.log[w.log.length - 1], "Ann buys a sword for 30 gold.");
+  assert.deepStrictEqual(h2.actor.gesture, { kind: "power", at: 400 });
 
   const heroAnn10 = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
   const w10 = makeWorld({ grid, heroes: [heroAnn10], monsters: [], items: [swordItem], gold: 10 });
@@ -985,7 +1000,8 @@ test("levers", () => {
   assert.strictEqual(w1.heroes[0].actor.pos.x, 1);
   assert.strictEqual(w1.heroes[0].actor.pos.y, 1);
   assert.strictEqual(w1.heroes[0].actor.ready, 400);
-  assert.deepStrictEqual(w1.heroes[0].actor.last, { kind: "attack", dx: 1, dy: 0, at: 50, reach: 1 });
+  assert.strictEqual(w1.heroes[0].actor.last, null);
+  assert.deepStrictEqual(w1.heroes[0].actor.gesture, { kind: "use", at: 50 });
   const lever1p = w1.items.find((it) => it.id === 20);
   assert.strictEqual(lever1p.pulled, true);
   const golem1 = w1.monsters[0];
@@ -1021,6 +1037,8 @@ test("levers", () => {
   assert.strictEqual(w4.heroes[0].actor.pos.x, 1);
   assert.strictEqual(w4.heroes[0].actor.pos.y, 1);
   assert.strictEqual(w4.heroes[0].actor.ready, 1450);
+  assert.strictEqual(w4.heroes[0].actor.last, null);
+  assert.deepStrictEqual(w4.heroes[0].actor.gesture, { kind: "use", at: 1100 });
 });
 
 test("wakes", () => {
