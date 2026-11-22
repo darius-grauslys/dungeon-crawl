@@ -99,6 +99,30 @@ test("starts", () => {
   h.stop();
 });
 
+test("lobby", async () => {
+  const open = makeSocketFactory();
+  const h = start(document, { open });
+
+  const socket = open.socket();
+  socket.onopen();
+
+  await waitUntil(() => open.recordedTexts().length >= 1);
+  assert.equal(open.recordedTexts()[0], message.list().text());
+
+  await waitUntil(() => open.recordedTexts().length >= 2);
+  assert.equal(open.recordedTexts()[1], message.list().text());
+
+  socket.onmessage({ data: message.lobby([{ session: 'ABCDEF', players: ['Bob'], depth: 2 }]).text() });
+  await waitUntil(() => document.querySelector("#landing-lobby button.landing-join[data-session='ABCDEF']") !== null);
+
+  document.getElementById("landing-name").value = "Ann";
+  document.querySelector("#landing-lobby button.landing-join[data-session='ABCDEF']").click();
+  await waitUntil(() => open.recordedTexts().length >= 3);
+  assert.equal(open.recordedTexts()[open.recordedTexts().length - 1], message.join('ABCDEF', 'Ann').text());
+
+  h.stop();
+});
+
 test("creates", async () => {
   const open = makeSocketFactory();
   const h = start(document, { open });
@@ -112,15 +136,19 @@ test("creates", async () => {
   await waitUntil(() => open.recordedTexts().length >= 1);
   assert.equal(open.recordedTexts()[0], message.create(null).text());
 
-  socket.onmessage({ data: message.created('ABCDEF', 'xyz234').text() });
+  socket.onmessage({ data: message.created('ABCDEF').text() });
   await waitUntil(() => open.recordedTexts().length >= 2);
-  assert.equal(open.recordedTexts()[1], message.join('ABCDEF', 'xyz234', 'Ann').text());
+  assert.equal(open.recordedTexts()[1], message.join('ABCDEF', 'Ann').text());
 
   socket.onmessage({ data: message.joined('ABCDEF', 'Ann').text() });
   await waitUntil(() => h.screen() === "game");
   assert.equal(h.screen(), "game");
   assert.equal(h.me(), "Ann");
   assert.equal(document.getElementById("landing"), null);
+
+  const textsAfterJoined = open.recordedTexts().length;
+  await waitUntil(() => false, 2500);
+  assert.equal(open.recordedTexts().length, textsAfterJoined);
 
   const w = makeWorld();
   socket.onmessage({ data: message.state(w, false).text() });
@@ -136,10 +164,10 @@ test("refused", async () => {
 
   const socket = open.socket();
   socket.onopen();
-  socket.onmessage({ data: message.refused('bad-password').text() });
-  await waitUntil(() => document.getElementById("landing-error")?.textContent === "Wrong password.");
+  socket.onmessage({ data: message.refused('no-session').text() });
+  await waitUntil(() => document.getElementById("landing-error")?.textContent === "No such session.");
 
-  assert.equal(document.getElementById("landing-error").textContent, "Wrong password.");
+  assert.equal(document.getElementById("landing-error").textContent, "No such session.");
   assert.equal(h.screen(), "landing");
 
   h.stop();
@@ -158,9 +186,9 @@ test("keys", async () => {
   await waitUntil(() => open.recordedTexts().length >= 1);
   assert.equal(open.recordedTexts()[0], message.create(null).text());
 
-  socket.onmessage({ data: message.created('ABCDEF', 'xyz234').text() });
+  socket.onmessage({ data: message.created('ABCDEF').text() });
   await waitUntil(() => open.recordedTexts().length >= 2);
-  assert.equal(open.recordedTexts()[1], message.join('ABCDEF', 'xyz234', 'Ann').text());
+  assert.equal(open.recordedTexts()[1], message.join('ABCDEF', 'Ann').text());
 
   socket.onmessage({ data: message.joined('ABCDEF', 'Ann').text() });
   await waitUntil(() => h.screen() === "game");
@@ -207,9 +235,9 @@ test("menu", async () => {
   await waitUntil(() => open.recordedTexts().length >= 1);
   assert.equal(open.recordedTexts()[0], message.create(null).text());
 
-  socket.onmessage({ data: message.created('ABCDEF', 'xyz234').text() });
+  socket.onmessage({ data: message.created('ABCDEF').text() });
   await waitUntil(() => open.recordedTexts().length >= 2);
-  assert.equal(open.recordedTexts()[1], message.join('ABCDEF', 'xyz234', 'Ann').text());
+  assert.equal(open.recordedTexts()[1], message.join('ABCDEF', 'Ann').text());
 
   socket.onmessage({ data: message.joined('ABCDEF', 'Ann').text() });
   await waitUntil(() => h.screen() === "game");
@@ -223,8 +251,7 @@ test("menu", async () => {
   assert.equal(document.getElementById("menu").style.display !== "none", true);
   assert.equal(h.menuOpen(), true);
   const sessionText = document.getElementById("menu-session").textContent;
-  assert.ok(sessionText.includes("ABCDEF"));
-  assert.ok(sessionText.includes("xyz234"));
+  assert.equal(sessionText, "Session ABCDEF");
 
   ev = new KeyboardEvent("keydown", { key: "ArrowLeft", cancelable: true });
   document.dispatchEvent(ev);
@@ -315,7 +342,7 @@ test("world/valid", () => {
   assert.ok(Object.isFrozen(w.log));
 
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'dead', grid, heroes: [heroShape], monsters: [monsterActor], items: [goldItem], visible, explored, gold: 0, log: [], entry }), TypeError);
-  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 6, time: 0, state: 'playing', grid, heroes: [heroShape], monsters: [monsterActor], items: [goldItem], visible, explored, gold: 0, log: [], entry }), TypeError);
+  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 30, time: 0, state: 'playing', grid, heroes: [heroShape], monsters: [monsterActor], items: [goldItem], visible, explored, gold: 0, log: [], entry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: -1, state: 'playing', grid, heroes: [heroShape], monsters: [monsterActor], items: [goldItem], visible, explored, gold: 0, log: [], entry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid, heroes: [heroShape], monsters: [monsterActor], items: [goldItem], visible: mask.empty(4, 3), explored, gold: 0, log: [], entry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid, heroes: [heroShape], monsters: [heroActor], items: [goldItem], visible, explored, gold: 0, log: [], entry }), TypeError);
@@ -367,14 +394,27 @@ test("world/data", () => {
 });
 
 test("message/valid", () => {
+  assert.equal(message.list().upward, true);
   assert.equal(message.create(null).upward, true);
-  assert.equal(message.created('s', 'p').upward, false);
+  assert.equal(message.created('s').upward, false);
+  assert.equal(message.lobby([]).upward, false);
+  assert.equal(message.refused('full').upward, false);
   assert.throws(() => message.refused('nope'), TypeError);
-  assert.throws(() => message.join('', 'x', 'Ann'), TypeError);
-  assert.throws(() => message.join('ABCDEF', 'x', ''), TypeError);
+  assert.throws(() => message.refused('bad-password'), TypeError);
+  assert.throws(() => message.join('', 'Ann'), TypeError);
+  assert.throws(() => message.join('ABCDEF', ''), TypeError);
+  assert.throws(() => message.lobby([{ session: 'ABCDEF', players: ['Ann'], depth: 30 }]), TypeError);
+  assert.throws(() => message.lobby([{ session: 'A', players: ['A'], depth: 1 }, { session: 'B', players: ['A'], depth: 1 }, { session: 'C', players: ['A'], depth: 1 }, { session: 'D', players: ['A'], depth: 1 }, { session: 'E', players: ['A'], depth: 1 }]), TypeError);
+  assert.throws(() => message.created(''), TypeError);
   assert.throws(() => message.act({ kind: 'move', dx: 1, dy: 0 }), TypeError);
   assert.throws(() => message.pause('yes'), TypeError);
   assert.throws(() => message.create({}), TypeError);
+
+  const lobby = message.lobby([{ session: 'ABCDEF', players: ['Ann', 'Bob'], depth: 3 }]);
+  assert.equal(lobby.sessions[0].players[1], 'Bob');
+  assert.ok(Object.isFrozen(lobby.sessions));
+  assert.ok(Object.isFrozen(lobby.sessions[0]));
+  assert.ok(Object.isFrozen(lobby.sessions[0].players));
 
   assert.throws(() => message.parse('nope'), TypeError);
   assert.throws(() => message.parse('{}'), TypeError);
@@ -400,13 +440,13 @@ test("message/round-trip", () => {
 
   const sOnePlayer = save.of({ seed: 1, depth: 1, players: [{ name: 'Cy', stats: stats.of({ hp: 10, maxHp: 30, attack: 6, defense: 2 }) }] });
 
-  const m1 = message.create(sOnePlayer);
+  const m1 = message.list();
   assert.deepStrictEqual(message.parse(m1.text()), m1);
 
-  const m2 = message.create(null);
+  const m2 = message.lobby([{ session: 'ABCDEF', players: ['Bob'], depth: 2 }, { session: 'GHIJKL', players: ['Cat'], depth: 3 }]);
   assert.deepStrictEqual(message.parse(m2.text()), m2);
 
-  const m3 = message.join('ABCDEF', 'xyz234', 'Ann');
+  const m3 = message.lobby([]);
   assert.deepStrictEqual(message.parse(m3.text()), m3);
 
   const m4 = message.act(intent.move(1, 0));
@@ -424,24 +464,15 @@ test("message/round-trip", () => {
   const m8 = message.act(intent.descend());
   assert.deepStrictEqual(message.parse(m8.text()), m8);
 
-  const m9 = message.pause(false);
+  const m9 = message.state(w, false);
   assert.deepStrictEqual(message.parse(m9.text()), m9);
 
-  const m10 = message.requestSave();
+  const m10 = message.create(sOnePlayer);
   assert.deepStrictEqual(message.parse(m10.text()), m10);
 
-  const m11 = message.created('ABCDEF', 'xyz234');
+  const m11 = message.saved(sOnePlayer);
   assert.deepStrictEqual(message.parse(m11.text()), m11);
 
-  const m12 = message.joined('ABCDEF', 'Ann');
+  const m12 = message.create(null);
   assert.deepStrictEqual(message.parse(m12.text()), m12);
-
-  const m13 = message.refused('full');
-  assert.deepStrictEqual(message.parse(m13.text()), m13);
-
-  const m14 = message.state(w, false);
-  assert.deepStrictEqual(message.parse(m14.text()), m14);
-
-  const m15 = message.saved(sOnePlayer);
-  assert.deepStrictEqual(message.parse(m15.text()), m15);
 });
