@@ -266,6 +266,20 @@ test('world: intrinsic data - fromData(data()) round trip passes deepStrictEqual
   const w = worldOf(fields);
   const round = worldFromData(JSON.parse(JSON.stringify(w.data())));
   assert.deepStrictEqual(round, w);
+
+  for (const pendingIntent of [
+    intentShape.move(1, 1),
+    intentShape.attack(),
+    intentShape.attack(-1, 0),
+    intentShape.use(),
+    intentShape.wait(),
+    intentShape.descend(),
+    intentShape.face(0, 1)
+  ]) {
+    const w2 = worldOf({ ...fields, heroes: [heroWithPending.with({ pending: pendingIntent })] });
+    const round2 = worldFromData(JSON.parse(JSON.stringify(w2.data())));
+    assert.deepStrictEqual(round2, w2);
+  }
 });
 
 test('world: intrinsic data - data().grid and data().visible[1]', () => {
@@ -357,4 +371,94 @@ test('world: items may be ring or necklace', () => {
   assert.strictEqual(w.items[1].price, 0);
   const round = worldFromData(JSON.parse(JSON.stringify(w.data())));
   assert.deepStrictEqual(round, w);
+});
+
+test('world: data carries colour, group, gesture fields', () => {
+  const { world } = makeWorld();
+  const d = world.data();
+  assert.strictEqual(d.heroes[0].colour, 0);
+  assert.strictEqual(d.heroes[0].group, 0);
+  assert.strictEqual(d.monsters[0].gesture, null);
+});
+
+test('world: intrinsic data - older data without colour/group/gesture loads with defaults', () => {
+  const { grid, item, visible, explored, entry } = makeValidComponents();
+  const heroActor = actorShape.of({
+    id: 0,
+    kind: 'hero',
+    pos: pointShape.of(1, 1),
+    stats: statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 })
+  });
+  const hero = heroShape.of({ name: 'Ann', actor: heroActor, offer: 12 });
+  const monster = actorShape.of({
+    id: 1,
+    kind: 'slime',
+    pos: pointShape.of(2, 0),
+    stats: statsShape.of({ hp: 5, maxHp: 10, attack: 2, defense: 1 })
+  });
+  const fields = {
+    seed: 123, rng: 456, depth: 2, time: 0, state: 'playing',
+    grid, heroes: [hero], monsters: [monster], items: [item],
+    visible, explored, gold: 7, log: ['start'], entry
+  };
+  const w = worldOf(fields);
+  const d = w.data();
+  delete d.heroes[0].colour;
+  delete d.heroes[0].group;
+  delete d.monsters[0].gesture;
+  const round = worldFromData(JSON.parse(JSON.stringify(d)));
+  assert.deepStrictEqual(round, w);
+});
+
+test('world: data - hero gesture survives data()/fromData() round trip', () => {
+  const { grid, item, visible, explored, entry } = makeValidComponents();
+  const heroActor = actorShape.of({
+    id: 0,
+    kind: 'hero',
+    pos: pointShape.of(1, 1),
+    stats: statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 }),
+    gesture: { kind: 'power', at: 50 }
+  });
+  const hero = heroShape.of({ name: 'Ann', actor: heroActor, colour: 2, group: 1 });
+  const monster = actorShape.of({
+    id: 1,
+    kind: 'slime',
+    pos: pointShape.of(2, 0),
+    stats: statsShape.of({ hp: 5, maxHp: 10, attack: 2, defense: 1 })
+  });
+  const fields = {
+    seed: 123, rng: 456, depth: 2, time: 0, state: 'playing',
+    grid, heroes: [hero], monsters: [monster], items: [item],
+    visible, explored, gold: 7, log: ['start'], entry
+  };
+  const w = worldOf(fields);
+  const round = worldFromData(JSON.parse(JSON.stringify(w.data())));
+  assert.deepStrictEqual(round, w);
+  assert.deepStrictEqual(round.heroes[0].actor.gesture, { kind: 'power', at: 50 });
+});
+
+test('world: intrinsic data - fromData with invalid hero gesture throws TypeError', () => {
+  const { grid, item, visible, explored, entry } = makeValidComponents();
+  const heroActor = actorShape.of({
+    id: 0,
+    kind: 'hero',
+    pos: pointShape.of(1, 1),
+    stats: statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 })
+  });
+  const hero = heroShape.of({ name: 'Ann', actor: heroActor, offer: 12 });
+  const monster = actorShape.of({
+    id: 1,
+    kind: 'slime',
+    pos: pointShape.of(2, 0),
+    stats: statsShape.of({ hp: 5, maxHp: 10, attack: 2, defense: 1 })
+  });
+  const fields = {
+    seed: 123, rng: 456, depth: 2, time: 0, state: 'playing',
+    grid, heroes: [hero], monsters: [monster], items: [item],
+    visible, explored, gold: 7, log: ['start'], entry
+  };
+  const w = worldOf(fields);
+  const d = w.data();
+  d.heroes[0].actor.gesture = { kind: 'wave', at: 0 };
+  assert.throws(() => worldFromData(JSON.parse(JSON.stringify(d))), TypeError);
 });

@@ -94,3 +94,37 @@ test("fov: refuses origin outside grid", () => {
   const grid = gridOf(3, 3, Array(9).fill("floor"));
   assert.throws(() => compute(grid, pointOf(-1, 0), 3), TypeError);
 });
+
+test("fov: wall-edges, 5x7 grid from (3,2) radius 1 gives 11 cells", () => {
+  const grid = fromRows(["#######", "#.....#", "#.....#", "#.....#", "#######"]);
+  const m = compute(grid, pointOf(3, 2), 1);
+  assert.equal(m.count(), 11);
+  // in sight
+  assert.equal(m.at(3, 2), true);
+  assert.equal(m.at(2, 2), true);
+  assert.equal(m.at(4, 2), true);
+  assert.equal(m.at(3, 1), true);
+  assert.equal(m.at(3, 3), true);
+  // walls revealed by open neighbours (corners included)
+  assert.equal(m.at(2, 0), true);
+  assert.equal(m.at(3, 0), true);
+  assert.equal(m.at(4, 0), true);
+  assert.equal(m.at(2, 4), true);
+  assert.equal(m.at(3, 4), true);
+  assert.equal(m.at(4, 4), true);
+  // walls not seen
+  assert.equal(m.at(1, 0), false);
+  assert.equal(m.at(5, 0), false);
+  assert.equal(m.at(0, 2), false);
+  assert.equal(m.at(6, 2), false);
+  // floor cells out of radius not seen
+  assert.equal(m.at(2, 1), false);
+  assert.equal(m.at(1, 1), false);
+});
+
+test("fov: wall-edges, corridor grid from (1,1) radius 10: (4,0) seen, (3,4) not", () => {
+  const grid = fromRows(["#####", "#...#", "###.#", "###.#", "#####"]);
+  const m = compute(grid, pointOf(1, 1), 10);
+  assert.equal(m.at(4, 0), true);
+  assert.equal(m.at(3, 4), false);
+});
