@@ -6,13 +6,16 @@ test("names returns the table's names in order, fresh array each call", () => {
   const n = names();
   assert.deepStrictEqual(n, [
     "wall", "floor", "stairs", "hero", "skeleton", "slime", "snake",
-    "bat", "demon", "potion", "gold", "sword", "armor",
+    "bat", "demon", "potion", "gold", "sword", "armor", "archer",
+    "blue-slime", "blue-snake", "golem", "beetle", "mummy", "cultist",
+    "spider", "ghost", "reaper", "worm", "fire-slime", "imp", "lever",
+    "lever-pulled",
     "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5", "wall-6",
     "wall-7", "wall-8", "wall-9", "wall-10", "wall-11", "wall-12",
     "wall-13", "wall-14", "wall-15"
   ]);
   assert.notStrictEqual(names(), n);
-  assert.strictEqual(n.length, 29);
+  assert.strictEqual(n.length, 44);
 });
 
 test("before load, sprite('hero') is null and sprite('dragon') throws TypeError", () => {
@@ -20,14 +23,15 @@ test("before load, sprite('hero') is null and sprite('dragon') throws TypeError"
   assert.throws(() => sprite("dragon"), TypeError);
 });
 
-test("wall-0 to wall-15 are the last sixteen names; wall-16 throws TypeError", () => {
+test("wall-0 to wall-15 are the last sixteen names; lever-pulled just before wall-0; wall-16 throws TypeError", () => {
   const n = names();
-  const last16 = n.slice(13);
+  const last16 = n.slice(28);
   assert.deepStrictEqual(last16, [
     "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5", "wall-6",
     "wall-7", "wall-8", "wall-9", "wall-10", "wall-11", "wall-12",
     "wall-13", "wall-14", "wall-15"
   ]);
+  assert.strictEqual(n[27], "lever-pulled");
   assert.throws(() => sprite("wall-16"), TypeError);
 });
 
@@ -48,6 +52,19 @@ test("after load, wall-6 and wall-9 have correct rects", async () => {
   const w9 = sprite("wall-9");
   assert.strictEqual(w9.sx, 48);
   assert.strictEqual(w9.sy, 16);
+});
+
+test("after load, golem, slime rects and blue-snake image distinct from snake", async () => {
+  await load("/assets/");
+  const golem = sprite("golem");
+  assert.strictEqual(golem.sx, 64);
+  assert.strictEqual(golem.sy, 112);
+  const slime = sprite("slime");
+  assert.strictEqual(slime.sx, 64);
+  assert.strictEqual(slime.sy, 48);
+  const blueSnake = sprite("blue-snake");
+  const snake = sprite("snake");
+  assert.notStrictEqual(blueSnake.image, snake.image);
 });
 
 test("load rejects with sheets/ in message when it fails", async () => {
