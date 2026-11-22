@@ -9,6 +9,9 @@ import * as spriteShape from "../../../shapes/sprite/index.mjs";
 const NAMES = [
   "wall", "floor", "stairs", "hero", "skeleton", "slime", "snake",
   "bat", "demon", "potion", "gold", "sword", "armor",
+  "archer", "blue-slime", "blue-snake", "golem", "beetle", "mummy",
+  "cultist", "spider", "ghost", "reaper", "worm", "fire-slime", "imp",
+  "lever", "lever-pulled",
   "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5",
   "wall-6", "wall-7", "wall-8", "wall-9", "wall-10", "wall-11",
   "wall-12", "wall-13", "wall-14", "wall-15"
@@ -26,18 +29,19 @@ test("themes: before load, tile('frozen','floor') is null and sprite('hero') is 
 
 // Intrinsic - table:
 // `names()` is the table's names in order. Before any `load`, `sprite('hero')` is `null`;
-// `sprite('dragon')` throws a `TypeError`. `names()` has 29 names, `wall-0` to `wall-15` the last sixteen in order;
+// `sprite('dragon')` throws a `TypeError`. `names()` has 44 names, `wall-0` to `wall-15` the last sixteen in order, `lever-pulled` just before `wall-0`;
 // `sprite('wall-16')` throws a `TypeError`.
-test("table: before load, sprite('hero') is null; sprite('dragon') and sprite('wall-16') throw; names() has 29 names with wall-0..wall-15 last", () => {
+test("table: before load, sprite('hero') is null; sprite('dragon') and sprite('wall-16') throw; names() has 44 names with lever-pulled before wall-0..wall-15 last", () => {
   assert.equal(sprite("hero"), null);
   assert.throws(() => sprite("dragon"), TypeError);
   assert.throws(() => sprite("wall-16"), TypeError);
   const n = names();
-  assert.equal(n.length, 29);
+  assert.equal(n.length, 44);
   assert.deepEqual(n.slice(-16), [
     "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5", "wall-6", "wall-7",
     "wall-8", "wall-9", "wall-10", "wall-11", "wall-12", "wall-13", "wall-14", "wall-15"
   ]);
+  assert.equal(n[n.length - 17], "lever-pulled");
   assert.deepEqual(n, NAMES);
 });
 
@@ -85,7 +89,7 @@ test("table: after load, each name's sprite has the EED table's sx, sy, sw 16, s
     stairs: [0, 96],
     hero: [0, 0],
     skeleton: [0, 0],
-    slime: [0, 48],
+    slime: [64, 48],
     snake: [0, 64],
     bat: [128, 0],
     demon: [128, 32],
@@ -93,6 +97,21 @@ test("table: after load, each name's sprite has the EED table's sx, sy, sw 16, s
     gold: [48, 80],
     sword: [64, 16],
     armor: [64, 48],
+    archer: [64, 0],
+    "blue-slime": [0, 48],
+    "blue-snake": [0, 16],
+    golem: [64, 112],
+    beetle: [0, 0],
+    mummy: [0, 48],
+    cultist: [0, 32],
+    spider: [128, 16],
+    ghost: [64, 32],
+    reaper: [128, 32],
+    worm: [0, 48],
+    "fire-slime": [64, 48],
+    imp: [64, 32],
+    lever: [16, 80],
+    "lever-pulled": [32, 80],
     "wall-0": [48, 0],
     "wall-1": [0, 32],
     "wall-2": [48, 32],
