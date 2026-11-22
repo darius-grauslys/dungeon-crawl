@@ -427,12 +427,12 @@ test("shop floors: no monsters, six wares with prices, every cell visible and ex
   assert.equal(wShop.monsters.length, 0);
   assert.equal(wShop.items.length, 6);
   for (const it of wShop.items) {
-    assert.ok(["potion", "sword", "armor"].includes(it.kind));
+    assert.ok(["potion", "sword", "armor", "ring", "necklace"].includes(it.kind));
     assert.equal(it.price > 0, true);
     assert.ok(wShop.grid.open(it.pos.x, it.pos.y));
   }
   const kinds = wShop.items.map((it) => it.kind);
-  assert.deepEqual(kinds, ["potion", "sword", "armor", "potion", "sword", "armor"]);
+  assert.deepEqual(kinds, ["potion", "sword", "armor", "ring", "necklace", "potion"]);
   assert.equal(wShop.visible.count(), 48 * 32);
   assert.equal(wShop.explored.count(), 48 * 32);
 });
@@ -451,7 +451,7 @@ test("bumping and buying: offer, three log lines, wares block steps, other actio
   const wShopBuy = worldShape.of({ seed: 5, rng: 5, depth: 6, time: 0, state: "playing", grid: wShop.grid, heroes: [heroOffer], monsters: wShop.monsters, items: wShop.items, visible: wShop.visible, explored: wShop.explored, gold: 50, log: wShop.log, entry: wShop.entry });
   const wBuy = rules.advance(rules.intend(wShopBuy, "Ann", intentShape.move(1, 0)), 50);
   assert.equal(wBuy.heroes[0].offer, null);
-  assert.equal(wBuy.items.filter((it) => it.kind === "sword").length, 1);
+  assert.equal(wBuy.items.filter((it) => it.kind === "sword").length, 0);
   assert.equal(wBuy.log[wBuy.log.length - 1], `Ann buys a sword for ${swordWare.price} gold.`);
 
   const heroOfferLow = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(18, 13), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, offer: swordWare.id, alive: true });
