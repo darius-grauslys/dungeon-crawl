@@ -59,6 +59,23 @@ test("server: page answers 200 with text/html", async () => {
   }
 });
 
+test("server: list answers lobby", async () => {
+  const mod = await import("../../../src/server/index.mjs");
+  const s = await mod.start({ port: 0, root: process.cwd() });
+  try {
+    const ws = makeWs(s.url);
+    await waitOpen(ws);
+    ws.send(JSON.stringify({ kind: "list" }));
+    const lobby = await waitMessage(ws, (m) => m.kind === "lobby");
+    const msg = JSON.parse(lobby);
+    assert.strictEqual(msg.kind, "lobby");
+    assert.ok(Array.isArray(msg.sessions));
+    ws.close();
+  } finally {
+    await s.close();
+  }
+});
+
 test("server: create-join flow", async () => {
   const mod = await import("../../../src/server/index.mjs");
   const s = await mod.start({ port: 0, root: process.cwd() });
@@ -70,8 +87,8 @@ test("server: create-join flow", async () => {
     const msg = JSON.parse(created);
     assert.strictEqual(msg.kind, "created");
     assert.strictEqual(typeof msg.session, "string");
-    assert.strictEqual(typeof msg.password, "string");
-    ws.send(JSON.stringify({ kind: "join", session: msg.session, password: msg.password, name: "Ann" }));
+    assert.strictEqual(msg.password, undefined);
+    ws.send(JSON.stringify({ kind: "join", session: msg.session, name: "Ann" }));
     const joined = await waitMessage(ws, (m) => m.kind === "joined");
     assert.strictEqual(JSON.parse(joined).kind, "joined");
     ws.close();
@@ -124,7 +141,7 @@ test("server: pause and resume", async () => {
     ws.send(JSON.stringify({ kind: "create", save: null }));
     const created = await waitMessage(ws, (m) => m.kind === "created");
     const msg = JSON.parse(created);
-    ws.send(JSON.stringify({ kind: "join", session: msg.session, password: msg.password, name: "Ann" }));
+    ws.send(JSON.stringify({ kind: "join", session: msg.session, name: "Ann" }));
     await waitMessage(ws, (m) => m.kind === "joined");
     ws.send(JSON.stringify({ kind: "pause", paused: true }));
     const st = await waitMessage(ws, (m) => m.kind === "state" && m.paused === true);
