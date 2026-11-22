@@ -31,6 +31,13 @@ test("wall-0 to wall-15 are the last sixteen names; wall-16 throws TypeError", (
   assert.throws(() => sprite("wall-16"), TypeError);
 });
 
+test("before load, tile('frozen', 'floor') is null; bad theme/name throw TypeError", () => {
+  assert.strictEqual(tile("frozen", "floor"), null);
+  assert.throws(() => tile("lava", "floor"), TypeError);
+  assert.throws(() => tile("frozen", "wall-16"), TypeError);
+  assert.throws(() => tile("frozen", "hero"), TypeError);
+});
+
 test("after load, wall-6 and wall-9 have correct rects", async () => {
   await load("/assets/");
   const w6 = sprite("wall-6");
@@ -72,13 +79,6 @@ test("keyed: colour key after load", async () => {
     if (!(data[i] === 0 && data[i + 1] === 255 && data[i + 2] === 0)) notGreen++;
   }
   assert.ok(notGreen >= 20);
-});
-
-test("before load, tile('frozen', 'floor') is null; bad theme/name throw TypeError", () => {
-  assert.strictEqual(tile("frozen", "floor"), null);
-  assert.throws(() => tile("lava", "floor"), TypeError);
-  assert.throws(() => tile("frozen", "wall-16"), TypeError);
-  assert.throws(() => tile("frozen", "hero"), TypeError);
 });
 
 test("after load, dungeon tiles match table sprites", async () => {
