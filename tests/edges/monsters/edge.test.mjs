@@ -8,6 +8,7 @@ import * as point from "../../../shapes/point/index.mjs";
 import * as tileGrid from "../../../shapes/tile-grid/index.mjs";
 import * as intent from "../../../shapes/intent/index.mjs";
 import * as stats from "../../../shapes/stats/index.mjs";
+import * as bestiary from "../../../shapes/bestiary/index.mjs";
 import { decide } from "../../../edges/edge_to_monsters.mjs";
 
 const monsterStats = { hp: 5, maxHp: 5, attack: 2, defense: 0 };
@@ -16,40 +17,53 @@ test("adjacent-attacks", () => {
   const grid = tileGrid.of(7, 7, Array(49).fill("floor"));
   const skeleton = actor.of({ id: 1, kind: "skeleton", pos: point.of(3, 3), stats: stats.of(monsterStats) });
 
-  let i = decide(skeleton, point.of(3, 2), grid, [], 0);
+  let i = decide(skeleton, grid, [point.of(3, 2)], [], [], 0);
   assert.strictEqual(i.kind, "move");
   assert.strictEqual(i.dx, 0);
   assert.strictEqual(i.dy, -1);
 
-  i = decide(skeleton, point.of(2, 3), grid, [], 0);
+  i = decide(skeleton, grid, [point.of(2, 3)], [], [], 0);
   assert.strictEqual(i.kind, "move");
   assert.strictEqual(i.dx, -1);
   assert.strictEqual(i.dy, 0);
 
-  i = decide(skeleton, point.of(4, 4), grid, [], 0);
+  i = decide(skeleton, grid, [point.of(4, 4)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 1);
+  assert.strictEqual(i.dy, 1);
+
+  i = decide(skeleton, grid, [point.of(5, 1)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 1);
+  assert.strictEqual(i.dy, -1);
+
+  const g2 = tileGrid.fromRows(["#####", "#...#", "#...#", "#####"]);
+  const skeleton2 = actor.of({ id: 1, kind: "skeleton", pos: point.of(1, 2), stats: stats.of(monsterStats) });
+  i = decide(skeleton2, g2, [point.of(2, 1)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 1);
+  assert.strictEqual(i.dy, -1);
+
+  const g3 = tileGrid.fromRows(["#####", "##..#", "#...#", "#####"]);
+  i = decide(skeleton2, g3, [point.of(2, 1)], [], [], 0);
   assert.strictEqual(i.kind, "move");
   assert.strictEqual(i.dx, 1);
   assert.strictEqual(i.dy, 0);
-
-  i = decide(skeleton, point.of(4, 2), grid, [], 0);
-  assert.strictEqual(i.kind, "move");
-  assert.strictEqual(i.dx, 0);
-  assert.strictEqual(i.dy, -1);
 });
 
 test("chases", () => {
   const grid = tileGrid.fromRows(["#######", "#.....#", "#.###.#", "#.....#", "#######"]);
   const snake = actor.of({ id: 1, kind: "snake", pos: point.of(1, 3), stats: stats.of(monsterStats) });
 
-  let i = decide(snake, point.of(5, 1), grid, [], 0);
-  assert.strictEqual(i.kind, "move");
-  assert.strictEqual(i.dx, 0);
-  assert.strictEqual(i.dy, -1);
-
-  i = decide(snake, point.of(5, 1), grid, [point.of(1, 2)], 0);
+  let i = decide(snake, grid, [point.of(5, 1)], [], [], 0);
   assert.strictEqual(i.kind, "move");
   assert.strictEqual(i.dx, 1);
   assert.strictEqual(i.dy, 0);
+
+  i = decide(snake, grid, [point.of(5, 1)], [], [point.of(2, 3)], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 0);
+  assert.strictEqual(i.dy, -1);
 });
 
 test("reach", () => {
@@ -57,52 +71,157 @@ test("reach", () => {
   const snake = actor.of({ id: 1, kind: "snake", pos: point.of(0, 1), stats: stats.of(monsterStats) });
   const bat = actor.of({ id: 2, kind: "bat", pos: point.of(0, 1), stats: stats.of(monsterStats) });
 
-  let i = decide(snake, point.of(7, 1), grid, [], 0);
+  let i = decide(snake, grid, [point.of(7, 1)], [], [], 0);
   assert.strictEqual(i.kind, "wait");
 
-  i = decide(snake, point.of(6, 1), grid, [], 0);
+  i = decide(snake, grid, [point.of(6, 1)], [], [], 0);
   assert.strictEqual(i.kind, "move");
   assert.strictEqual(i.dx, 1);
   assert.strictEqual(i.dy, 0);
 
-  i = decide(bat, point.of(9, 1), grid, [], 0);
+  i = decide(bat, grid, [point.of(9, 1)], [], [], 0);
   assert.strictEqual(i.kind, "move");
   assert.strictEqual(i.dx, 1);
   assert.strictEqual(i.dy, 0);
 
-  i = decide(bat, point.of(10, 1), grid, [], 0);
+  i = decide(bat, grid, [point.of(10, 1)], [], [], 0);
   assert.strictEqual(i.kind, "wait");
+
+  i = decide(snake, grid, [point.of(6, 2)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 1);
+  assert.strictEqual(i.dy, 1);
 });
 
 test("slime-slow", () => {
   const grid = tileGrid.of(5, 5, Array(25).fill("floor"));
   const slime = actor.of({ id: 1, kind: "slime", pos: point.of(2, 2), stats: stats.of(monsterStats) });
 
-  let i = decide(slime, point.of(2, 1), grid, [], 3);
+  let i = decide(slime, grid, [point.of(2, 1)], [], [], 3);
   assert.strictEqual(i.kind, "wait");
 
-  i = decide(slime, point.of(2, 1), grid, [], 4);
+  i = decide(slime, grid, [point.of(2, 1)], [], [], 4);
   assert.strictEqual(i.kind, "move");
   assert.strictEqual(i.dx, 0);
   assert.strictEqual(i.dy, -1);
+
+  const blueSlime = actor.of({ id: 1, kind: "blue-slime", pos: point.of(2, 2), stats: stats.of(monsterStats) });
+  i = decide(blueSlime, grid, [point.of(2, 1)], [], [], 3);
+  assert.strictEqual(i.kind, "wait");
+
+  i = decide(blueSlime, grid, [point.of(2, 1)], [], [], 4);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 0);
+  assert.strictEqual(i.dy, -1);
+});
+
+test("guard", () => {
+  const grid = tileGrid.of(7, 7, Array(49).fill("floor"));
+  const guardSlime = actor.of({ id: 1, kind: "slime", pos: point.of(2, 2), stats: stats.of(monsterStats), mode: "guard" });
+
+  let i = decide(guardSlime, grid, [point.of(3, 3)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 1);
+  assert.strictEqual(i.dy, 1);
+
+  i = decide(guardSlime, grid, [point.of(4, 2)], [], [], 0);
+  assert.strictEqual(i.kind, "wait");
+
+  i = decide(guardSlime, grid, [point.of(4, 2)], [], [], 2);
+  assert.strictEqual(i.kind, "wait");
+});
+
+test("dormant", () => {
+  const grid = tileGrid.of(10, 10, Array(100).fill("floor"));
+  const dormantGolem = actor.of({ id: 1, kind: "golem", pos: point.of(1, 1), stats: stats.of(monsterStats), size: 3, mode: "dormant" });
+
+  let i = decide(dormantGolem, grid, [point.of(4, 2)], [], [], 0);
+  assert.strictEqual(i.kind, "wait");
+
+  const roamGolem = actor.of({ id: 1, kind: "golem", pos: point.of(1, 1), stats: stats.of(monsterStats), size: 3, mode: "roam" });
+  i = decide(roamGolem, grid, [point.of(4, 2)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 1);
+  assert.strictEqual(i.dy, 0);
+
+  i = decide(roamGolem, grid, [point.of(8, 2)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 1);
+  assert.strictEqual(i.dy, 0);
+});
+
+test("flees", () => {
+  const grid = tileGrid.of(12, 12, Array(144).fill("floor"));
+  const worm = actor.of({ id: 1, kind: "worm", pos: point.of(4, 4), stats: stats.of(monsterStats) });
+
+  let i = decide(worm, grid, [], [point.of(2, 4)], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 1);
+  assert.strictEqual(i.dy, 0);
+
+  i = decide(worm, grid, [], [point.of(4, 2)], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 0);
+  assert.strictEqual(i.dy, 1);
+
+  i = decide(worm, grid, [], [point.of(10, 4)], [], 0);
+  assert.strictEqual(i.kind, "wait");
+
+  const g2 = tileGrid.fromRows(["#####", "#...#", "#####"]);
+  const worm2 = actor.of({ id: 1, kind: "worm", pos: point.of(3, 1), stats: stats.of(monsterStats) });
+  i = decide(worm2, g2, [], [point.of(1, 1)], [], 0);
+  assert.strictEqual(i.kind, "wait");
+});
+
+test("shoots", () => {
+  const grid = tileGrid.of(9, 9, Array(81).fill("floor"));
+  const archerStats = { hp: 7, maxHp: 7, attack: 3, defense: 1, range: 4 };
+  const archer = actor.of({ id: 1, kind: "archer", pos: point.of(1, 1), stats: stats.of(archerStats) });
+
+  let i = decide(archer, grid, [point.of(5, 1)], [], [], 0);
+  assert.strictEqual(i.kind, "attack");
+  assert.strictEqual(i.dx, 1);
+  assert.strictEqual(i.dy, 0);
+
+  i = decide(archer, grid, [point.of(4, 4)], [], [], 0);
+  assert.strictEqual(i.kind, "attack");
+  assert.strictEqual(i.dx, 1);
+  assert.strictEqual(i.dy, 1);
+
+  i = decide(archer, grid, [point.of(6, 1)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 1);
+  assert.strictEqual(i.dy, 0);
+
+  i = decide(archer, grid, [point.of(3, 4)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 1);
+  assert.strictEqual(i.dy, 1);
+
+  const g2 = tileGrid.fromRows(["#######", "#..#..#", "#######"]);
+  i = decide(archer, g2, [point.of(5, 1)], [], [], 0);
+  assert.strictEqual(i.kind, "wait");
 });
 
 test("no-path", () => {
   const grid = tileGrid.fromRows(["#######", "#..#..#", "#######"]);
   const skeleton = actor.of({ id: 1, kind: "skeleton", pos: point.of(1, 1), stats: stats.of(monsterStats) });
 
-  const i = decide(skeleton, point.of(4, 1), grid, [], 0);
+  const i = decide(skeleton, grid, [point.of(4, 1)], [], [], 0);
   assert.strictEqual(i.kind, "wait");
 });
 
 test("refuses", () => {
   const grid = tileGrid.of(7, 7, Array(49).fill("floor"));
-  const heroActor = actor.of({ id: 0, kind: "hero", pos: point.of(3, 3), stats: stats.of(monsterStats) });
 
-  assert.throws(() => decide(heroActor, point.of(3, 2), grid, [], 0), TypeError);
-  assert.throws(() => decide(actor.of({ id: 1, kind: "snake", pos: point.of(1, 1), stats: stats.of(monsterStats) }), { x: 1, y: 1 }, grid, [], 0), TypeError);
-  assert.throws(() => decide(actor.of({ id: 1, kind: "snake", pos: point.of(1, 1), stats: stats.of(monsterStats) }), point.of(3, 2), grid, "not-an-array", 0), TypeError);
-  assert.throws(() => decide(actor.of({ id: 1, kind: "snake", pos: point.of(1, 1), stats: stats.of(monsterStats) }), point.of(3, 2), grid, [], -1), TypeError);
+  const heroActor = actor.of({ id: 0, kind: "hero", pos: point.of(3, 3), stats: stats.of(monsterStats) });
+  assert.throws(() => decide(heroActor, grid, [point.of(3, 2)], [], [], 0), TypeError);
+
+  const snake = actor.of({ id: 1, kind: "snake", pos: point.of(1, 1), stats: stats.of(monsterStats) });
+  assert.throws(() => decide(snake, grid, [{ x: 1, y: 1 }], [], [], 0), TypeError);
+  assert.throws(() => decide(snake, grid, [point.of(3, 2)], [], "not-an-array", 0), TypeError);
+  assert.throws(() => decide(snake, grid, [point.of(3, 2)], "not-an-array", [], 0), TypeError);
+  assert.throws(() => decide(snake, grid, [point.of(3, 2)], [], [], -1), TypeError);
 });
 
 test("actor/valid", () => {
@@ -117,10 +236,25 @@ test("actor/valid", () => {
   assert.strictEqual(a.held, 0);
   assert.strictEqual(a.facing, "right");
   assert.strictEqual(a.last, null);
+  assert.strictEqual(a.aim.dx, 1);
+  assert.strictEqual(a.aim.dy, 0);
+  assert.strictEqual(a.slow, 0);
+  assert.strictEqual(a.mode, "roam");
+  assert.strictEqual(a.size, 1);
+  assert.strictEqual(a.small, false);
   assert.ok(Object.isFrozen(a));
 
   const a2 = actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, ready: 250 });
   assert.strictEqual(a2.ready, 250);
+
+  const golem = actor.of({ id: 0, kind: "golem", pos: point.of(0, 0), stats: s, size: 3, mode: "dormant" });
+  assert.strictEqual(golem.size, 3);
+  assert.strictEqual(golem.mode, "dormant");
+
+  const archer = actor.of({ id: 0, kind: "archer", pos: point.of(0, 0), stats: s, aim: { dx: -1, dy: 1 }, slow: 2 });
+  assert.strictEqual(archer.aim.dx, -1);
+  assert.strictEqual(archer.aim.dy, 1);
+  assert.strictEqual(archer.slow, 2);
 
   const b = a.with({ pos: point.of(3, 3) });
   assert.strictEqual(b.pos.x, 3);
@@ -137,18 +271,21 @@ test("actor/valid", () => {
 
   assert.strictEqual(a.with({ ready: 400 }).ready, 400);
 
-  const c = a.with({ held: 300, facing: "left", last: { kind: "attack", dx: -1, dy: 0, at: 50 } });
+  const c = a.with({ held: 300, facing: "left", last: { kind: "attack", dx: -1, dy: 1, at: 50 } });
   assert.strictEqual(c.held, 300);
   assert.strictEqual(c.facing, "left");
   assert.ok(Object.isFrozen(c.last));
-  assert.deepStrictEqual(c.last, { kind: "attack", dx: -1, dy: 0, at: 50 });
+  assert.deepStrictEqual(c.last, { kind: "attack", dx: -1, dy: 1, at: 50, reach: 1 });
 
   const d = actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s });
   assert.deepStrictEqual(a, d);
 
   assert.ok(!Object.hasOwn(a, "with"));
 
-  assert.deepEqual(actor.KINDS, ["hero", "bat", "slime", "snake", "skeleton", "demon"]);
+  assert.strictEqual(actor.KINDS.length, 19);
+  assert.strictEqual(actor.KINDS[0], "hero");
+  assert.strictEqual(actor.KINDS[1], "bat");
+  assert.strictEqual(actor.KINDS[18], "golem");
 
   assert.throws(() => actor.of({ id: 0, kind: "dragon", pos: point.of(1, 2), stats: s }), TypeError);
   assert.throws(() => actor.of({ id: -1, kind: "hero", pos: point.of(1, 2), stats: s }), TypeError);
@@ -158,18 +295,29 @@ test("actor/valid", () => {
   assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, ready: 1.5 }), TypeError);
   assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, held: -1 }), TypeError);
   assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, facing: "up" }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, aim: { dx: 0, dy: 0 } }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, aim: { dx: 2, dy: 0 } }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, slow: 4 }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, mode: "sleep" }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, size: 4 }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, size: 2 }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, mode: "guard" }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, small: 1 }), TypeError);
   assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, last: { kind: "use", dx: 0, dy: 0, at: 0 } }), TypeError);
-  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, last: { kind: "move", dx: 1, dy: 1, at: 0 } }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, last: { kind: "move", dx: 0, dy: 0, at: 0 } }), TypeError);
   assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, last: { kind: "move", dx: 1, dy: 0, at: -5 } }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, last: { kind: "attack", dx: 1, dy: 0, at: 0, reach: 0 } }), TypeError);
 });
 
 test("actor/facing", () => {
   assert.strictEqual(actor.facingFor(-1, 0), "left");
+  assert.strictEqual(actor.facingFor(-1, -1), "left");
   assert.strictEqual(actor.facingFor(0, 1), "left");
   assert.strictEqual(actor.facingFor(1, 0), "right");
+  assert.strictEqual(actor.facingFor(1, 1), "right");
   assert.strictEqual(actor.facingFor(0, -1), "right");
   assert.throws(() => actor.facingFor(0, 0), TypeError);
-  assert.throws(() => actor.facingFor(1, 1), TypeError);
+  assert.throws(() => actor.facingFor(2, 0), TypeError);
 });
 
 test("point/valid", () => {
@@ -210,6 +358,78 @@ test("tile-grid/valid", () => {
   assert.throws(() => tileGrid.fromRows([]), TypeError);
   assert.throws(() => tileGrid.fromRows(["##", "#"]), TypeError);
   assert.throws(() => tileGrid.fromRows(["#x"]), TypeError);
+
+  const tilesArr = ["floor", "wall"];
+  const g3 = tileGrid.of(2, 1, tilesArr);
+  tilesArr[0] = "wall";
+  assert.strictEqual(g3.at(0, 0), "floor");
+  const t = g3.tiles();
+  t[0] = "wall";
+  assert.strictEqual(g3.at(0, 0), "floor");
+});
+
+test("actor/covers", () => {
+  const golem = actor.of({ id: 1, kind: "golem", pos: point.of(4, 5), stats: stats.of(monsterStats), size: 3 });
+  assert.strictEqual(golem.covers(4, 5), true);
+  assert.strictEqual(golem.covers(6, 7), true);
+  assert.strictEqual(golem.covers(5, 6), true);
+  assert.strictEqual(golem.covers(7, 5), false);
+  assert.strictEqual(golem.covers(3, 5), false);
+
+  const cells = golem.cells();
+  assert.strictEqual(cells.length, 9);
+  assert.strictEqual(cells[0].x, 4);
+  assert.strictEqual(cells[0].y, 5);
+  assert.strictEqual(cells[1].x, 5);
+  assert.strictEqual(cells[1].y, 5);
+  assert.strictEqual(cells[8].x, 6);
+  assert.strictEqual(cells[8].y, 7);
+
+  const s1 = actor.of({ id: 1, kind: "bat", pos: point.of(2, 2), stats: stats.of(monsterStats) });
+  assert.strictEqual(s1.covers(2, 2), true);
+  assert.strictEqual(s1.covers(3, 2), false);
+  const cells1 = s1.cells();
+  assert.strictEqual(cells1.length, 1);
+  assert.strictEqual(cells1[0].x, 2);
+  assert.strictEqual(cells1[0].y, 2);
+});
+
+test("bestiary/valid", () => {
+  assert.strictEqual(bestiary.KINDS.length, 18);
+  assert.strictEqual(bestiary.KINDS[0], "bat");
+  assert.strictEqual(bestiary.KINDS[17], "golem");
+  assert.ok(Object.isFrozen(bestiary.KINDS));
+
+  const archerEntry = bestiary.entry("archer");
+  assert.deepStrictEqual(archerEntry, { kind: "archer", group: "undead", hp: 7, attack: 3, defense: 1, range: 4, slows: false, reach: 7, step: 400, strike: 700, size: 1 });
+  assert.ok(Object.isFrozen(archerEntry));
+
+  assert.strictEqual(bestiary.entry("blue-snake").slows, true);
+  assert.strictEqual(bestiary.entry("golem").size, 3);
+  assert.strictEqual(bestiary.entry("golem").step, 1600);
+  assert.strictEqual(bestiary.entry("golem").defense, 12);
+  assert.strictEqual(bestiary.entry("cultist").range, 4);
+
+  assert.strictEqual(bestiary.group("hero"), "human");
+  assert.strictEqual(bestiary.group("imp"), "demon");
+  assert.strictEqual(bestiary.group("golem"), "construct");
+
+  assert.strictEqual(bestiary.hostile("hero", "bat"), true);
+  assert.strictEqual(bestiary.hostile("skeleton", "hero"), true);
+  assert.strictEqual(bestiary.hostile("hero", "hero"), false);
+  assert.strictEqual(bestiary.hostile("bat", "skeleton"), false);
+  assert.strictEqual(bestiary.hostile("imp", "skeleton"), false);
+  assert.strictEqual(bestiary.hostile("demon", "worm"), true);
+  assert.strictEqual(bestiary.hostile("fire-slime", "imp"), true);
+
+  assert.strictEqual(bestiary.flees("worm", "demon"), true);
+  assert.strictEqual(bestiary.flees("demon", "worm"), false);
+  assert.strictEqual(bestiary.flees("worm", "hero"), false);
+
+  assert.throws(() => bestiary.entry("hero"), TypeError);
+  assert.throws(() => bestiary.entry("dragon"), TypeError);
+  assert.throws(() => bestiary.group(5), TypeError);
+  assert.throws(() => bestiary.hostile("bat", "dragon"), TypeError);
 });
 
 test("intent/valid", () => {
@@ -219,10 +439,34 @@ test("intent/valid", () => {
   assert.strictEqual(m.dy, -1);
   assert.ok(Object.isFrozen(m));
 
+  const m2 = intent.move(1, 1);
+  assert.strictEqual(m2.kind, "move");
+
+  const m3 = intent.move(-1, 1);
+  assert.strictEqual(m3.kind, "move");
+
   const a = intent.attack(1, 0);
   assert.strictEqual(a.kind, "attack");
   assert.strictEqual(a.dx, 1);
   assert.strictEqual(a.dy, 0);
+
+  const a0 = intent.attack();
+  assert.strictEqual(a0.kind, "attack");
+  assert.strictEqual(a0.dx, 0);
+  assert.strictEqual(a0.dy, 0);
+
+  const a00 = intent.attack(0, 0);
+  assert.strictEqual(a00.kind, "attack");
+  assert.strictEqual(a00.dx, 0);
+  assert.strictEqual(a00.dy, 0);
+
+  const am = intent.attack(-1, -1);
+  assert.strictEqual(am.kind, "attack");
+
+  const f = intent.face(1, -1);
+  assert.strictEqual(f.kind, "face");
+  assert.strictEqual(f.dx, 1);
+  assert.strictEqual(f.dy, -1);
 
   const u = intent.use();
   assert.strictEqual(u.kind, "use");
@@ -238,13 +482,38 @@ test("intent/valid", () => {
   assert.strictEqual(d.kind, "descend");
   assert.strictEqual(d.dx, 0);
   assert.strictEqual(d.dy, 0);
-  assert.ok(Object.isFrozen(d));
 
-  assert.deepEqual(intent.KINDS, ["move", "attack", "use", "wait", "descend"]);
+  assert.deepStrictEqual(intent.KINDS, ["move", "attack", "use", "wait", "descend", "face"]);
 
-  assert.throws(() => intent.move(1, 1), TypeError);
   assert.throws(() => intent.move(0, 0), TypeError);
   assert.throws(() => intent.move(2, 0), TypeError);
   assert.throws(() => intent.move("1", 0), TypeError);
-  assert.throws(() => intent.attack(0, 0), TypeError);
+  assert.throws(() => intent.face(0, 0), TypeError);
+  assert.throws(() => intent.face(0, 2), TypeError);
+  assert.throws(() => intent.attack(2, 0), TypeError);
+  assert.throws(() => intent.attack(1), TypeError);
+});
+
+test("stats/valid", () => {
+  const s = stats.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.strictEqual(s.hp, 5);
+  assert.strictEqual(s.maxHp, 10);
+  assert.strictEqual(s.attack, 3);
+  assert.strictEqual(s.defense, 1);
+  assert.strictEqual(s.range, 1);
+  assert.ok(Object.isFrozen(s));
+
+  const s0 = stats.of({ hp: 0, maxHp: 10, attack: 3, defense: 1 });
+  assert.strictEqual(s0.hp, 0);
+
+  const s4 = stats.of({ hp: 5, maxHp: 10, attack: 3, defense: 1, range: 4 });
+  assert.strictEqual(s4.range, 4);
+
+  assert.throws(() => stats.of({ hp: 11, maxHp: 10, attack: 3, defense: 1 }), TypeError);
+  assert.throws(() => stats.of({ hp: 5, maxHp: 0, attack: 3, defense: 1 }), TypeError);
+  assert.throws(() => stats.of({ hp: 5, maxHp: 10, attack: -1, defense: 1 }), TypeError);
+  assert.throws(() => stats.of({ hp: 5, maxHp: 10, attack: 3, defense: 1.5 }), TypeError);
+  assert.throws(() => stats.of({ hp: 5, maxHp: 10, attack: 3, defense: 1, range: 0 }), TypeError);
+  assert.throws(() => stats.of({ hp: 5, maxHp: 10, attack: 3, defense: 1, range: 10 }), TypeError);
+  assert.throws(() => stats.of({ maxHp: 10, attack: 3, defense: 1 }), TypeError);
 });
