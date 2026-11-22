@@ -35,13 +35,39 @@ export function compute(grid, origin, radius) {
     throw new TypeError("origin must be inside the grid");
   }
 
-  const cells = new Array(w * h).fill(false);
   const radiusSq = radius * radius;
+  const sightCells = new Array(w * h).fill(false);
 
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       if (inSight(grid, ox, oy, x, y, radiusSq)) {
-        cells[y * w + x] = true;
+        sightCells[y * w + x] = true;
+      }
+    }
+  }
+
+  const cells = new Array(w * h).fill(false);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = y * w + x;
+      if (sightCells[idx]) {
+        cells[idx] = true;
+        continue;
+      }
+      if (grid.at(x, y) === "wall") {
+        let seen = false;
+        for (let dy = -1; dy <= 1 && !seen; dy++) {
+          for (let dx = -1; dx <= 1 && !seen; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = x + dx, ny = y + dy;
+            if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+            const nIdx = ny * w + nx;
+            if (sightCells[nIdx] && grid.at(nx, ny) !== "wall") {
+              seen = true;
+            }
+          }
+        }
+        if (seen) cells[idx] = true;
       }
     }
   }

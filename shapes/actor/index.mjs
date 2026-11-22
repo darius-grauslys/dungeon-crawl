@@ -106,10 +106,26 @@ function isAim(v) {
 }
 
 /**
+ * Validate that a value is a gesture object or null.
+ * @param {*} v
+ * @returns {boolean}
+ */
+function isGesture(v) {
+  if (v === null) return true;
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  if (v.kind !== 'use' && v.kind !== 'power') return false;
+  const { at } = v;
+  if (typeof at !== 'number' || !Number.isInteger(at) || at < 0) return false;
+  const keys = Object.keys(v);
+  if (keys.length !== 2 || !keys.includes('kind') || !keys.includes('at')) return false;
+  return true;
+}
+
+/**
  * Actor class: a creature on the floor: the hero or a monster. Immutable.
  */
 class Actor {
-  constructor({ id, kind, pos, stats, ready, held, facing, last, aim, slow, mode, size, small }) {
+  constructor({ id, kind, pos, stats, ready, held, facing, last, aim, slow, mode, size, small, gesture }) {
     this.id = id;
     this.kind = kind;
     this.pos = pos;
@@ -123,6 +139,7 @@ class Actor {
     this.mode = mode;
     this.size = size;
     this.small = small;
+    this.gesture = gesture;
   }
 
   covers(x, y) {
@@ -164,6 +181,7 @@ class Actor {
       mode: 'mode' in c ? c.mode : this.mode,
       size: 'size' in c ? c.size : this.size,
       small: 'small' in c ? c.small : this.small,
+      gesture: 'gesture' in c ? c.gesture : this.gesture,
     });
   }
 }
@@ -173,7 +191,7 @@ class Actor {
  * @param {{id: number, kind: string, pos: point, stats: stats, ready?: number, held?: number, facing?: string, last?: object, aim?: {dx: number, dy: number}, slow?: number, mode?: string, size?: number, small?: boolean}} input
  * @returns {object} a frozen actor
  */
-export function of({ id, kind, pos, stats, ready = 0, held = 0, facing = FACING_RIGHT, last = null, aim = {dx: 1, dy: 0}, slow = 0, mode = MODE_ROAM, size = 1, small = false }) {
+export function of({ id, kind, pos, stats, ready = 0, held = 0, facing = FACING_RIGHT, last = null, aim = {dx: 1, dy: 0}, slow = 0, mode = MODE_ROAM, size = 1, small = false, gesture = null }) {
   if (typeof id !== 'number' || !Number.isInteger(id) || id < 0) {
     throw new TypeError('actor id must be an integer of 0 or more');
   }
@@ -213,6 +231,9 @@ export function of({ id, kind, pos, stats, ready = 0, held = 0, facing = FACING_
   if (typeof small !== 'boolean') {
     throw new TypeError('actor small must be a boolean');
   }
+  if (!isGesture(gesture)) {
+    throw new TypeError('actor gesture must be null or a {kind, at} with kind use or power and at an integer of 0 or more');
+  }
 
   // hero-only limits
   if (kind === 'hero') {
@@ -226,7 +247,8 @@ export function of({ id, kind, pos, stats, ready = 0, held = 0, facing = FACING_
 
   const frozenLast = last === null ? null : Object.freeze({ kind: last.kind, dx: last.dx, dy: last.dy, at: last.at, reach: last.reach !== undefined ? last.reach : 1 });
   const frozenAim = Object.freeze({ dx: aim.dx, dy: aim.dy });
-  const actor = new Actor({ id, kind, pos, stats, ready, held, facing, last: frozenLast, aim: frozenAim, slow, mode, size, small });
+  const frozenGesture = gesture === null ? null : Object.freeze({ kind: gesture.kind, at: gesture.at });
+  const actor = new Actor({ id, kind, pos, stats, ready, held, facing, last: frozenLast, aim: frozenAim, slow, mode, size, small, gesture: frozenGesture });
   return Object.freeze(actor);
 }
 

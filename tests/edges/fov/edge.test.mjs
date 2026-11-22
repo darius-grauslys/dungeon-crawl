@@ -46,6 +46,43 @@ test("compute/corridor", () => {
   assert.equal(m.at(3, 3), false);
 });
 
+test("compute/wall-edges", () => {
+  const g = tileGrid.fromRows([
+    "#######",
+    "#.....#",
+    "#.....#",
+    "#.....#",
+    "#######",
+  ]);
+  const m = compute(g, point.of(3, 2), 1);
+  assert.equal(m.count(), 11);
+  // in sight
+  assert.equal(m.at(3, 2), true);
+  assert.equal(m.at(2, 2), true);
+  assert.equal(m.at(4, 2), true);
+  assert.equal(m.at(3, 1), true);
+  assert.equal(m.at(3, 3), true);
+  // walls around open cells in sight
+  assert.equal(m.at(2, 0), true);
+  assert.equal(m.at(3, 0), true);
+  assert.equal(m.at(4, 0), true);
+  assert.equal(m.at(2, 4), true);
+  assert.equal(m.at(3, 4), true);
+  assert.equal(m.at(4, 4), true);
+  // not seen
+  assert.equal(m.at(1, 0), false);
+  assert.equal(m.at(5, 0), false);
+  assert.equal(m.at(0, 2), false);
+  assert.equal(m.at(6, 2), false);
+  assert.equal(m.at(2, 1), false);
+  assert.equal(m.at(1, 1), false);
+
+  const c = tileGrid.fromRows(["#####", "#...#", "###.#", "###.#", "#####"]);
+  const cm = compute(c, point.of(1, 1), 10);
+  assert.equal(cm.at(4, 0), true);
+  assert.equal(cm.at(3, 4), false);
+});
+
 test("compute/origin-seen", () => {
   const g = tileGrid.of(6, 4, Array.from({ length: 24 }, () => "floor"));
   for (let y = 0; y < 4; y++) {

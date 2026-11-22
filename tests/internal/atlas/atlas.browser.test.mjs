@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { load, sprite, names, tile } from "../../../src/atlas/index.mjs";
+import { load, sprite, names, tile, frames, pose } from "../../../src/atlas/index.mjs";
 
 test("names returns the table's names in order, fresh array each call", () => {
   const n = names();
@@ -42,6 +42,27 @@ test("before load, tile('frozen', 'floor') is null; bad theme/name throw TypeErr
   assert.throws(() => tile("lava", "floor"), TypeError);
   assert.throws(() => tile("frozen", "wall-16"), TypeError);
   assert.throws(() => tile("frozen", "hero"), TypeError);
+});
+
+test("frames: hero counts and monster idle count, bad args throw", () => {
+  assert.strictEqual(frames("hero", "idle"), 3);
+  assert.strictEqual(frames("hero", "sleep"), 4);
+  assert.strictEqual(frames("hero", "debuff"), 4);
+  assert.strictEqual(frames("hero", "power_up"), 6);
+  assert.strictEqual(frames("hero", "stun"), 5);
+  assert.strictEqual(frames("golem", "idle"), 3);
+  assert.throws(() => frames("golem", "stun"), TypeError);
+  assert.throws(() => frames("dragon", "idle"), TypeError);
+  assert.throws(() => frames("wall-0", "idle"), TypeError);
+  assert.throws(() => frames("hero", "walk"), TypeError);
+});
+
+test("before load, pose('hero','idle',0) is null; bad args throw", () => {
+  assert.strictEqual(pose("hero", "idle", 0), null);
+  assert.throws(() => pose("hero", "idle", 3), TypeError);
+  assert.throws(() => pose("hero", "walk", 0), TypeError);
+  assert.throws(() => pose("bat", "sleep", 0), TypeError);
+  assert.throws(() => pose("hero", "idle", 0, { colour: 4, group: 0 }), TypeError);
 });
 
 test("after load, wall-6 and wall-9 have correct rects", async () => {
@@ -139,5 +160,49 @@ test("after load, magma stairs rect and all themes 16x16", async () => {
     assert.strictEqual(f.sh, 16);
     assert.strictEqual(w.sw, 16);
     assert.strictEqual(w.sh, 16);
+  }
+});
+
+test("after load, hero pose rects and monster poses", async () => {
+  await load("/assets/");
+  const h0 = pose("hero", "idle", 0);
+  const hs = sprite("hero");
+  assert.strictEqual(h0.image, hs.image);
+  assert.strictEqual(h0.sx, hs.sx);
+  assert.strictEqual(h0.sy, hs.sy);
+  const h2 = pose("hero", "idle", 2);
+  assert.strictEqual(h2.sx, 32);
+  assert.strictEqual(h2.sy, 0);
+  const h1c3 = pose("hero", "idle", 1, { colour: 3, group: 0 });
+  assert.strictEqual(h1c3.sx, 208);
+  assert.strictEqual(h1c3.sy, 0);
+  const hsleep2 = pose("hero", "sleep", 2);
+  assert.strictEqual(hsleep2.sx, 0);
+  assert.strictEqual(hsleep2.sy, 48);
+  const hdebuff1 = pose("hero", "debuff", 1, { colour: 1, group: 0 });
+  assert.strictEqual(hdebuff1.sx, 80);
+  assert.strictEqual(hdebuff1.sy, 80);
+  const hp3 = pose("hero", "power_up", 3, { colour: 1, group: 0 });
+  assert.strictEqual(hp3.sx, 64);
+  assert.strictEqual(hp3.sy, 144);
+  const hp5 = pose("hero", "power_up", 5);
+  assert.strictEqual(hp5.sx, 32);
+  assert.strictEqual(hp5.sy, 144);
+  const hstun4 = pose("hero", "stun", 4, { colour: 2, group: 0 });
+  assert.strictEqual(hstun4.sx, 160);
+  assert.strictEqual(hstun4.sy, 192);
+  const hidle0g2 = pose("hero", "idle", 0, { colour: 0, group: 2 });
+  assert.strictEqual(hidle0g2.sx, 0);
+  assert.strictEqual(hidle0g2.sy, 480);
+  const g2 = pose("golem", "idle", 2);
+  assert.strictEqual(g2.sx, 96);
+  assert.strictEqual(g2.sy, 112);
+  assert.strictEqual(g2.image, sprite("golem").image);
+  const bs1 = pose("blue-snake", "idle", 1);
+  assert.strictEqual(bs1.sx, 16);
+  assert.strictEqual(bs1.sy, 16);
+  for (const p of [h0, h2, h1c3, hsleep2, hdebuff1, hp3, hp5, hstun4, hidle0g2, g2, bs1]) {
+    assert.strictEqual(p.sw, 16);
+    assert.strictEqual(p.sh, 16);
   }
 });

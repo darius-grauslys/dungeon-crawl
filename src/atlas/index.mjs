@@ -97,6 +97,33 @@ const _SHEETS = [
   "sheets/magma-monsters.png",
 ];
 
+const MONSTERS = new Set([
+  "skeleton", "slime", "snake", "bat", "demon",
+  "archer", "blue-slime", "golem", "beetle", "mummy",
+  "cultist", "spider", "ghost", "reaper", "worm",
+  "fire-slime", "imp", "blue-snake",
+]);
+
+const HERO_ANIMS = {
+  idle: { count: 3, rows: [[0, [0, 1, 2]]] },
+  sleep: { count: 4, rows: [[32, [0, 1]], [48, [0, 1]]] },
+  debuff: { count: 4, rows: [[80, [0, 1]], [96, [0, 1]]] },
+  power_up: { count: 6, rows: [[128, [0, 1, 2]], [144, [0, 1, 2]]] },
+  stun: { count: 5, rows: [[176, [0, 1]], [192, [0, 1, 2]]] },
+};
+
+function _heroFrameCoords(anim, frame) {
+  const a = HERO_ANIMS[anim];
+  let f = frame;
+  for (const [r, cols] of a.rows) {
+    for (const c of cols) {
+      if (f === 0) return { r, c };
+      f--;
+    }
+  }
+  throw new TypeError(`atlas: invalid hero frame ${frame}`);
+}
+
 let _loadId = 0;
 let _sprites = null;
 let _tiles = null;
@@ -193,4 +220,75 @@ export function tile(theme, name) {
   }
   if (!_tiles) return null;
   return _tiles.get(theme + "/" + name);
+}
+
+/** `frames(name, anim) -> integer`. How many frames the animation has (a monster's `idle` 3; the hero's as the table says). A name or an animation not of those throws a `TypeError`. */
+export function frames(name, anim) {
+  if (name === "hero") {
+    if (!HERO_ANIMS[anim]) {
+      throw new TypeError(`atlas: no hero animation ${anim}`);
+    }
+    return HERO_ANIMS[anim].count;
+  }
+  if (MONSTERS.has(name)) {
+    if (anim !== "idle") {
+      throw new TypeError(`atlas: monster ${name} has only idle animation`);
+    }
+    return 3;
+  }
+  throw new TypeError(`atlas: no creature named ${name}`);
+}
+
+/** `pose(name, anim, frame, look) -> sprite`. A frame of a creature's animation, as **Animations** says: `name` `hero` or a monster's; `anim` one of that creature's animations (a monster: `idle`; `hero`: `idle`, `sleep`, `debuff`, `power_up`, `stun`); `frame` an integer from 0 to the animation's count less 1; `look` (left out: `{colour: 0, group: 0}`, used only for `hero`) `{colour, group}`, integers from 0 to 3 and from 0 to 5. Its `image` the keyed sheet, 16 by 16. Before a `load` has resolved, answers `null`. Anything else throws a `TypeError`, loaded or not. */
+export function pose(name, anim, frame, look) {
+  const isHero = name === "hero";
+  const isMonster = MONSTERS.has(name);
+  if (!isHero && !isMonster) {
+    throw new TypeError(`atlas: no creature named ${name}`);
+  }
+
+  let count;
+  if (isHero) {
+    if (!HERO_ANIMS[anim]) {
+      throw new TypeError(`atlas: no hero animation ${anim}`);
+    }
+    count = HERO_ANIMS[anim].count;
+  } else {
+    if (anim !== "idle") {
+      throw new TypeError(`atlas: monster ${name} has only idle animation`);
+    }
+    count = 3;
+  }
+
+  if (!Number.isInteger(frame) || frame < 0 || frame >= count) {
+    throw new TypeError(`atlas: invalid frame ${frame}`);
+  }
+
+  let colour = 0;
+  let group = 0;
+  if (isHero) {
+    const l = look || { colour: 0, group: 0 };
+    colour = l.colour;
+    group = l.group;
+    if (!Number.isInteger(colour) || colour < 0 || colour > 3) {
+      throw new TypeError(`atlas: invalid colour ${colour}`);
+    }
+    if (!Number.isInteger(group) || group < 0 || group > 5) {
+      throw new TypeError(`atlas: invalid group ${group}`);
+    }
+  }
+
+  if (!_sprites) return null;
+
+  if (isHero) {
+    const { r, c } = _heroFrameCoords(anim, frame);
+    const sx = colour * 64 + 16 * c;
+    const sy = group * 240 + r;
+    return of({ image: _sprites.get(name).image, sx, sy, sw: 16, sh: 16 });
+  } else {
+    const entry = TABLE.find((r) => r.name === name);
+    const sx = entry.sx + 16 * frame;
+    const sy = entry.sy;
+    return of({ image: _sprites.get(name).image, sx, sy, sw: 16, sh: 16 });
+  }
 }
