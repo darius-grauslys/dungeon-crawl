@@ -2,10 +2,10 @@
 
 /**
  * Create frozen stats for a creature in a fight.
- * @param {{hp: number, maxHp: number, attack: number, defense: number}} input
- * @returns {{hp: number, maxHp: number, attack: number, defense: number}}
+ * @param {{hp: number, maxHp: number, attack: number, defense: number, range?: number}} input
+ * @returns {{hp: number, maxHp: number, attack: number, defense: number, range: number}}
  */
-export function of({ hp, maxHp, attack, defense }) {
+export function of({ hp, maxHp, attack, defense, range = 1 }) {
   if (hp === undefined || maxHp === undefined || attack === undefined || defense === undefined) {
     throw new TypeError("stats: missing required field");
   }
@@ -26,5 +26,9 @@ export function of({ hp, maxHp, attack, defense }) {
     throw new TypeError("stats: attack and defense must be at least 0");
   }
 
-  return Object.freeze({ hp, maxHp, attack, defense });
+  if (!Number.isInteger(range) || range < 1 || range > 9) {
+    throw new TypeError("stats: range must be an integer from 1 to 9");
+  }
+
+  return Object.freeze({ hp, maxHp, attack, defense, range });
 }
