@@ -1,12 +1,11 @@
 // sessions: a table of server sessions, without their worlds.
 
 const SESSION_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-const PASSWORD_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
 const MAX_SESSIONS = 4;
 
 /** `table({random, idle}) -> table`. A fresh, empty table of sessions, independent of any other. */
 export function table({ random = Math.random, idle = 1800000 } = {}) {
-  // Map from session id to {password, paused, activity, members}.
+  // Map from session id to {paused, activity, members}.
   const sessions = new Map();
   // Map from connection to its session id.
   const connToSession = new Map();
@@ -38,14 +37,6 @@ export function table({ random = Math.random, idle = 1800000 } = {}) {
     return id;
   }
 
-  function generatePassword() {
-    let pw = "";
-    for (let i = 0; i < 6; i++) {
-      pw += PASSWORD_ALPHABET[Math.floor(random() * PASSWORD_ALPHABET.length)];
-    }
-    return pw;
-  }
-
   function leave(connection) {
     const session = connToSession.get(connection);
     if (session === undefined) return null;
@@ -59,15 +50,13 @@ export function table({ random = Math.random, idle = 1800000 } = {}) {
     create(now) {
       if (sessions.size >= MAX_SESSIONS) return null;
       const id = generateId();
-      const password = generatePassword();
-      sessions.set(id, { password, paused: false, activity: now, members: [] });
-      return { session: id, password };
+      sessions.set(id, { paused: false, activity: now, members: [] });
+      return id;
     },
 
-    join(connection, session, password, name, now) {
+    join(connection, session, name, now) {
       if (!sessions.has(session)) return "no-session";
       const s = sessions.get(session);
-      if (s.password !== password) return "bad-password";
       const taken = s.members.some((m) => m.name === name && m.connection !== connection);
       if (taken) return "name-taken";
       const othersCount = s.members.filter((m) => m.connection !== connection).length;
