@@ -3,15 +3,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import * as intent from "../../../shapes/intent/index.mjs";
-import { fromRows } from "../../../shapes/tile-grid/index.mjs";
-import { of as pointOf } from "../../../shapes/point/index.mjs";
-import { of as statsOf } from "../../../shapes/stats/index.mjs";
-import { of as actorOf } from "../../../shapes/actor/index.mjs";
-import { of as heroOf } from "../../../shapes/hero/index.mjs";
-import { empty as maskEmpty } from "../../../shapes/mask/index.mjs";
-import { of as saveOf } from "../../../shapes/save/index.mjs";
-import { of as itemOf } from "../../../shapes/item/index.mjs";
-import { of as worldOf } from "../../../shapes/world/index.mjs";
+import * as tileGrid from "../../../shapes/tile-grid/index.mjs";
+import * as point from "../../../shapes/point/index.mjs";
+import * as stats from "../../../shapes/stats/index.mjs";
+import * as actor from "../../../shapes/actor/index.mjs";
+import * as hero from "../../../shapes/hero/index.mjs";
+import * as mask from "../../../shapes/mask/index.mjs";
+import * as save from "../../../shapes/save/index.mjs";
+import * as item from "../../../shapes/item/index.mjs";
 
 async function netModule() {
   return import("../../../edges/edge_to_net.mjs");
@@ -144,16 +143,40 @@ test("message/valid: constructors answer frozen messages with correct upward", a
   const m = await messageModule();
   assert.strictEqual(m.act(intent.move(1, 0)).upward, true);
   assert.strictEqual(m.refused("full").upward, false);
+  assert.strictEqual(m.list().upward, true);
 });
 
 test("message/valid: invalid inputs throw TypeError", async () => {
   const m = await messageModule();
   assert.throws(() => m.refused("nope"), TypeError);
-  assert.throws(() => m.join("", "x", "Ann"), TypeError);
-  assert.throws(() => m.join("ABCDEF", "x", ""), TypeError);
+  assert.throws(() => m.refused("bad-password"), TypeError);
+  assert.throws(() => m.join("", "Ann"), TypeError);
+  assert.throws(() => m.join("ABCDEF", ""), TypeError);
+  assert.throws(() => m.lobby([{ session: "ABCDEF", players: ["Ann"], depth: 30 }]), TypeError);
+  assert.throws(
+    () =>
+      m.lobby([
+        { session: "A", players: [], depth: 1 },
+        { session: "B", players: [], depth: 1 },
+        { session: "C", players: [], depth: 1 },
+        { session: "D", players: [], depth: 1 },
+        { session: "E", players: [], depth: 1 },
+      ]),
+    TypeError,
+  );
+  assert.throws(() => m.created(""), TypeError);
   assert.throws(() => m.act({ kind: "move", dx: 1, dy: 0 }), TypeError);
   assert.throws(() => m.pause("yes"), TypeError);
   assert.throws(() => m.create({}), TypeError);
+});
+
+test("message/valid: lobby fields frozen and accessible", async () => {
+  const m = await messageModule();
+  const lobby = m.lobby([{ session: "ABCDEF", players: ["Ann", "Bob"], depth: 3 }]);
+  assert.strictEqual(lobby.sessions[0].players[1], "Bob");
+  assert.ok(Object.isFrozen(lobby.sessions));
+  assert.ok(Object.isFrozen(lobby.sessions[0]));
+  assert.ok(Object.isFrozen(lobby.sessions[0].players));
 });
 
 test("message/valid: parse rejects invalid texts", async () => {
@@ -164,24 +187,39 @@ test("message/valid: parse rejects invalid texts", async () => {
   assert.throws(() => m.parse('{"kind":"pause"}'), TypeError);
 });
 
-test("message/round-trip: parse(m.text()) is deepStrictEqual to m for all ten kinds", async () => {
+test("message/round-trip: parse(m.text()) is deepStrictEqual to m for all twelve kinds", async () => {
   const m = await messageModule();
   const wMod = await worldModule();
-  const saveOne = saveOf({
+  const saveOne = save.of({
     seed: 9,
     depth: 3,
-    players: [{ name: "Cy", stats: statsOf({ hp: 10, maxHp: 30, attack: 6, defense: 2 }) }],
+    players: [{ name: "Cy", stats: stats.of({ hp: 10, maxHp: 30, attack: 6, defense: 2 }) }],
   });
 
+  // list
+  const mList = m.list();
+  assert.deepStrictEqual(m.parse(mList.text()), mList);
+
+  // create(null)
   const mCreateNull = m.create(null);
   assert.deepStrictEqual(m.parse(mCreateNull.text()), mCreateNull);
 
+  // create(save)
   const mCreateOne = m.create(saveOne);
   assert.deepStrictEqual(m.parse(mCreateOne.text()), mCreateOne);
 
-  const mJoin = m.join("sess", "pass", "Ann");
-  assert.deepStrictEqual(m.parse(mJoin.text()), mJoin);
+  // lobby of two entries
+  const mLobbyTwo = m.lobby([
+    { session: "sess1", players: ["Ann", "Bob"], depth: 3 },
+    { session: "sess2", players: ["Cy"], depth: 2 },
+  ]);
+  assert.deepStrictEqual(m.parse(mLobbyTwo.text()), mLobbyTwo);
 
+  // lobby of none
+  const mLobbyNone = m.lobby([]);
+  assert.deepStrictEqual(m.parse(mLobbyNone.text()), mLobbyNone);
+
+  // act of each intent kind
   const intentKinds = [
     intent.move(1, 0),
     intent.attack(1, 0),
@@ -194,25 +232,11 @@ test("message/round-trip: parse(m.text()) is deepStrictEqual to m for all ten ki
     assert.deepStrictEqual(m.parse(mAct.text()), mAct);
   }
 
-  const mPause = m.pause(false);
-  assert.deepStrictEqual(m.parse(mPause.text()), mPause);
-
-  const mSave = m.requestSave();
-  assert.deepStrictEqual(m.parse(mSave.text()), mSave);
-
-  const mCreated = m.created("sess", "pass");
-  assert.deepStrictEqual(m.parse(mCreated.text()), mCreated);
-
-  const mJoined = m.joined("sess", "Ann");
-  assert.deepStrictEqual(m.parse(mJoined.text()), mJoined);
-
-  const mRefused = m.refused("full");
-  assert.deepStrictEqual(m.parse(mRefused.text()), mRefused);
-
-  const tileGrid = fromRows(["#####", "#...#", "#####"]);
-  const heroPoint = pointOf(1, 1);
-  const heroStats = statsOf({ hp: 10, maxHp: 30, attack: 6, defense: 2 });
-  const heroActor = actorOf({
+  // state
+  const tileGridGrid = tileGrid.fromRows(["#####", "#...#", "#####"]);
+  const heroPoint = point.of(1, 1);
+  const heroStats = stats.of({ hp: 10, maxHp: 30, attack: 6, defense: 2 });
+  const heroActor = actor.of({
     id: 0,
     kind: "hero",
     pos: heroPoint,
@@ -221,27 +245,35 @@ test("message/round-trip: parse(m.text()) is deepStrictEqual to m for all ten ki
     facing: "left",
     last: { kind: "attack", dx: -1, dy: 0, at: 50 },
   });
-  const hero = heroOf({ name: "Ann", actor: heroActor });
-  const monsterActor = actorOf({
+  const heroPlayer = hero.of({ name: "Ann", actor: heroActor, pending: intent.move(1, 0), offer: 12 });
+  const monsterActor = actor.of({
     id: 1,
     kind: "slime",
-    pos: pointOf(2, 2),
-    stats: statsOf({ hp: 3, maxHp: 3, attack: 2, defense: 1 }),
+    pos: point.of(2, 2),
+    stats: stats.of({ hp: 3, maxHp: 3, attack: 2, defense: 1 }),
+    last: { kind: "move", dx: 0, dy: 1, at: 20 },
   });
-  const goldItem = itemOf({ id: 2, kind: "gold", pos: pointOf(1, 2), amount: 10 });
-  const emptyMask = maskEmpty(5, 3);
-  const entry = saveOf({ seed: 1, depth: 1, players: [] });
+  const goldItem = item.of({ id: 2, kind: "gold", pos: point.of(1, 2), amount: 10 });
+  const swordItem = item.of({ id: 12, kind: "sword", pos: point.of(3, 1), price: 30 });
+  const visibleCells = [
+    false, false, false, false, false,
+    false, true, false, false, false,
+    false, false, false, false, false,
+  ];
+  const visibleMask = mask.of(5, 3, visibleCells);
+  const emptyMask = mask.empty(5, 3);
+  const entry = save.of({ seed: 1, depth: 1, players: [] });
   const world = wMod.of({
     seed: 1,
     rng: 0,
     depth: 1,
     time: 0,
     state: "playing",
-    grid: tileGrid,
-    heroes: [hero],
+    grid: tileGridGrid,
+    heroes: [heroPlayer],
     monsters: [monsterActor],
-    items: [goldItem],
-    visible: emptyMask,
+    items: [goldItem, swordItem],
+    visible: visibleMask,
     explored: emptyMask,
     gold: 0,
     log: [],
@@ -250,6 +282,7 @@ test("message/round-trip: parse(m.text()) is deepStrictEqual to m for all ten ki
   const mState = m.state(world, false);
   assert.deepStrictEqual(m.parse(mState.text()), mState);
 
+  // saved
   const mSaved = m.saved(saveOne);
   assert.deepStrictEqual(m.parse(mSaved.text()), mSaved);
 });
