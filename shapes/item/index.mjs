@@ -12,9 +12,10 @@ export const KINDS = Object.freeze(['potion', 'gold', 'sword', 'armor']);
  * @param {string} spec.kind - one of KINDS
  * @param {Point} spec.pos - a point
  * @param {number} [spec.amount] - an integer, at least 1 for gold, 0 otherwise
+ * @param {number} [spec.price] - an integer of 0 or more, 0 for a gold
  * @returns {Item} a frozen item
  */
-export function of({ id, kind, pos, amount }) {
+export function of({ id, kind, pos, amount, price }) {
   if (typeof id !== 'number' || !Number.isInteger(id) || id < 0) {
     throw new TypeError('item id must be an integer of 0 or more');
   }
@@ -37,5 +38,16 @@ export function of({ id, kind, pos, amount }) {
   } else if (amt !== 0) {
     throw new TypeError(`amount must be 0 for kind ${kind}`);
   }
-  return Object.freeze({ id, kind, pos: p, amount: amt });
+  let prc;
+  if (price === undefined) {
+    prc = 0;
+  } else if (typeof price !== 'number' || !Number.isInteger(price) || price < 0) {
+    throw new TypeError('item price must be an integer of 0 or more');
+  } else {
+    prc = price;
+  }
+  if (kind === 'gold' && prc !== 0) {
+    throw new TypeError('gold price must be 0');
+  }
+  return Object.freeze({ id, kind, pos: p, amount: amt, price: prc });
 }

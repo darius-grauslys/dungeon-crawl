@@ -1,6 +1,6 @@
 // menu: the in-game menu overlay that Escape opens.
 
-/** `mount(document, {settings, save, pause, back}) -> handle`. Puts the menu in `document.body`, closed. A click on a button calls its handler (`pause` with `true` when the button reads `Pause`, `false` when it reads `Resume`); `Back` also closes the menu. Answers a handle: `open()`, `close()`, `isOpen()`; `setPaused(paused)`, the pause button's text (`Resume` when true, `Pause` when false); `setSession(id, password)`, the session line; `remove()`, taking the menu out of the page. */
+/** `mount(document, {settings, save, pause, back}) -> handle`. Puts the menu in `document.body`, closed. A click on a button calls its handler (`pause` with `true` when the button reads `Pause`, `false` when it reads `Resume`); `Back` also closes the menu. Answers a handle: `open()`, `close()`, `isOpen()`; `setPaused(paused)`, the pause button's text (`Resume` when true, `Pause` when false); `setSession(id)`, the session line; `remove()`, taking the menu out of the page. */
 export function mount(document, { settings, save, pause, back }) {
   const menu = document.createElement("div");
   menu.id = "menu";
@@ -54,7 +54,7 @@ export function mount(document, { settings, save, pause, back }) {
   function close() { menu.style.display = "none"; }
   function isOpen() { return menu.style.display === "block"; }
   function setPaused(paused) { pauseBtn.textContent = paused ? "Resume" : "Pause"; }
-  function setSession(id, password) { session.textContent = `Session ${id}   Password ${password}`; }
+  function setSession(id) { session.textContent = `Session ${id}`; }
   function remove() { if (menu.parentNode) menu.parentNode.removeChild(menu); }
 
   return { open, close, isOpen, setPaused, setSession, remove };
