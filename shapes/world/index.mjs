@@ -29,10 +29,17 @@ function isActor(v) {
   if (typeof v.stats.attack !== 'number' || !Number.isInteger(v.stats.attack)) return false;
   if (typeof v.stats.defense !== 'number' || !Number.isInteger(v.stats.defense)) return false;
   if (typeof v.stats.range !== 'number' || !Number.isInteger(v.stats.range)) return false;
+  if (typeof v.stats.magic !== 'number' || !Number.isInteger(v.stats.magic)) return false;
+  if (typeof v.stats.magicPower !== 'number' || !Number.isInteger(v.stats.magicPower)) return false;
+  if (typeof v.stats.magicResist !== 'number' || !Number.isInteger(v.stats.magicResist)) return false;
   if (v.stats.maxHp < 1) return false;
   if (v.stats.hp < 0 || v.stats.hp > v.stats.maxHp) return false;
   if (v.stats.attack < 0 || v.stats.defense < 0) return false;
   if (v.stats.range < 1 || v.stats.range > 9) return false;
+  if (v.stats.magic < 0) return false;
+  if (v.stats.magicPower < 1) return false;
+  if (v.stats.magicResist < 0) return false;
+  if (Object.keys(v.stats).length !== 8) return false;
   if (typeof v.ready !== 'number' || !Number.isInteger(v.ready) || v.ready < 0) return false;
   if (typeof v.held !== 'number' || !Number.isInteger(v.held) || v.held < 0) return false;
   if (v.facing !== 'left' && v.facing !== 'right') return false;
@@ -173,12 +180,8 @@ class World {
       exploredRows.push(eRow);
     }
 
-    const heroesData = this.heroes.map((h) => ({
-      name: h.name,
-      alive: h.alive,
-      pending: h.pending ? { kind: h.pending.kind, dx: h.pending.dx, dy: h.pending.dy } : null,
-      offer: h.offer,
-      actor: {
+    const heroesData = this.heroes.map((h) => {
+      const actorData = {
         id: h.actor.id,
         kind: h.actor.kind,
         pos: { x: h.actor.pos.x, y: h.actor.pos.y },
@@ -188,6 +191,9 @@ class World {
           attack: h.actor.stats.attack,
           defense: h.actor.stats.defense,
           range: h.actor.stats.range,
+          magic: h.actor.stats.magic,
+          magicPower: h.actor.stats.magicPower,
+          magicResist: h.actor.stats.magicResist,
         },
         ready: h.actor.ready,
         held: h.actor.held,
@@ -198,30 +204,56 @@ class World {
         mode: h.actor.mode,
         size: h.actor.size,
         small: h.actor.small,
-      },
-    }));
+      };
+      if ('gesture' in h.actor) {
+        actorData.gesture = h.actor.gesture ? { kind: h.actor.gesture.kind, at: h.actor.gesture.at } : null;
+      }
+      const heroData = {
+        name: h.name,
+        alive: h.alive,
+        pending: h.pending ? { kind: h.pending.kind, dx: h.pending.dx, dy: h.pending.dy } : null,
+        offer: h.offer,
+        actor: actorData,
+      };
+      if ('colour' in h) {
+        heroData.colour = h.colour;
+      }
+      if ('group' in h) {
+        heroData.group = h.group;
+      }
+      return heroData;
+    });
 
-    const monstersData = this.monsters.map((m) => ({
-      id: m.id,
-      kind: m.kind,
-      pos: { x: m.pos.x, y: m.pos.y },
-      stats: {
-        hp: m.stats.hp,
-        maxHp: m.stats.maxHp,
-        attack: m.stats.attack,
-        defense: m.stats.defense,
-        range: m.stats.range,
-      },
-      ready: m.ready,
-      held: m.held,
-      facing: m.facing,
-      last: m.last ? { kind: m.last.kind, dx: m.last.dx, dy: m.last.dy, at: m.last.at, reach: m.last.reach } : null,
-      aim: { dx: m.aim.dx, dy: m.aim.dy },
-      slow: m.slow,
-      mode: m.mode,
-      size: m.size,
-      small: m.small,
-    }));
+    const monstersData = this.monsters.map((m) => {
+      const monsterData = {
+        id: m.id,
+        kind: m.kind,
+        pos: { x: m.pos.x, y: m.pos.y },
+        stats: {
+          hp: m.stats.hp,
+          maxHp: m.stats.maxHp,
+          attack: m.stats.attack,
+          defense: m.stats.defense,
+          range: m.stats.range,
+          magic: m.stats.magic,
+          magicPower: m.stats.magicPower,
+          magicResist: m.stats.magicResist,
+        },
+        ready: m.ready,
+        held: m.held,
+        facing: m.facing,
+        last: m.last ? { kind: m.last.kind, dx: m.last.dx, dy: m.last.dy, at: m.last.at, reach: m.last.reach } : null,
+        aim: { dx: m.aim.dx, dy: m.aim.dy },
+        slow: m.slow,
+        mode: m.mode,
+        size: m.size,
+        small: m.small,
+      };
+      if ('gesture' in m) {
+        monsterData.gesture = m.gesture ? { kind: m.gesture.kind, at: m.gesture.at } : null;
+      }
+      return monsterData;
+    });
 
     const itemsData = this.items.map((it) => ({
       id: it.id,
@@ -529,6 +561,9 @@ export function fromData(data) {
         attack: actorData.stats.attack,
         defense: actorData.stats.defense,
         range: actorData.stats.range,
+        magic: actorData.stats.magic,
+        magicPower: actorData.stats.magicPower,
+        magicResist: actorData.stats.magicResist,
       }),
       ready: actorData.ready,
       held: actorData.held,
@@ -556,6 +591,9 @@ export function fromData(data) {
         attack: m.stats.attack,
         defense: m.stats.defense,
         range: m.stats.range,
+        magic: m.stats.magic,
+        magicPower: m.stats.magicPower,
+        magicResist: m.stats.magicResist,
       }),
       ready: m.ready,
       held: m.held,
