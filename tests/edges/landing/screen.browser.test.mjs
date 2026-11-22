@@ -15,7 +15,7 @@ function makeHandlers() {
   const calls = { create: [], join: [] };
   return {
     create(saveArg, name) { calls.create.push([saveArg, name]); },
-    join(session, password, name) { calls.join.push([session, password, name]); },
+    join(session, name) { calls.join.push([session, name]); },
     calls,
   };
 }
@@ -36,13 +36,17 @@ test("builds", () => {
   const handle = show(document, handlers);
   assert.strictEqual(document.querySelectorAll("#landing").length, 1);
   assert.ok(document.querySelector("#landing-name"));
+  assert.strictEqual(document.querySelector("#landing-name").maxLength, 16);
+  assert.ok(document.querySelector("#landing-lobby"));
   assert.ok(document.querySelector("#landing-save"));
+  assert.strictEqual(document.querySelector("#landing-save").type, "file");
   assert.ok(document.querySelector("#landing-create"));
-  assert.ok(document.querySelector("#landing-session"));
-  assert.ok(document.querySelector("#landing-password"));
-  assert.ok(document.querySelector("#landing-join"));
+  assert.strictEqual(document.querySelector("#landing-create").textContent, "Create session");
   assert.ok(document.querySelector("#landing-error"));
   assert.strictEqual(document.querySelector("#landing-error").textContent, "");
+  assert.strictEqual(document.querySelector("#landing-lobby").querySelectorAll("li").length, 1);
+  assert.strictEqual(document.querySelector("#landing-lobby").querySelector("li").textContent, "No sessions yet. Create one!");
+  assert.strictEqual(document.querySelector("#landing-lobby").querySelector("button"), null);
   assert.strictEqual(handle.shown(), true);
   assert.throws(() => show(document, handlers));
   handle.hide();
@@ -102,28 +106,86 @@ test("imports", async () => {
   handle.hide();
 });
 
+test("lobby", () => {
+  const handlers = makeHandlers();
+  const handle = show(document, handlers);
+
+  handle.lobby([
+    { session: "ABCDEF", players: ["Ann", "Bob"], depth: 3 },
+    { session: "GHJKMN", players: [], depth: 1 },
+    { session: "PQRSTU", players: ["A", "B", "C", "D"], depth: 7 },
+  ]);
+
+  const lis = document.querySelectorAll("#landing-lobby li");
+  assert.strictEqual(lis.length, 3);
+
+  const firstLi = lis[0];
+  assert.ok(firstLi.textContent.includes("ABCDEF"));
+  assert.ok(firstLi.textContent.includes("Ann, Bob"));
+  assert.ok(firstLi.textContent.includes("(2/4)"));
+  assert.ok(firstLi.textContent.includes("Depth 3"));
+  const firstBtn = firstLi.querySelector("button.landing-join");
+  assert.ok(firstBtn);
+  assert.strictEqual(firstBtn.textContent, "Join");
+  assert.strictEqual(firstBtn.getAttribute("data-session"), "ABCDEF");
+  assert.strictEqual(firstBtn.disabled, false);
+
+  const secondLi = lis[1];
+  assert.ok(secondLi.textContent.includes("GHJKMN"));
+  assert.ok(secondLi.textContent.includes("nobody"));
+  assert.ok(secondLi.textContent.includes("(0/4)"));
+  const secondBtn = secondLi.querySelector("button.landing-join");
+  assert.ok(secondBtn);
+  assert.strictEqual(secondBtn.getAttribute("data-session"), "GHJKMN");
+  assert.strictEqual(secondBtn.disabled, false);
+
+  const thirdLi = lis[2];
+  assert.ok(thirdLi.textContent.includes("PQRSTU"));
+  const thirdBtn = thirdLi.querySelector("button.landing-join");
+  assert.ok(thirdBtn);
+  assert.strictEqual(thirdBtn.getAttribute("data-session"), "PQRSTU");
+  assert.strictEqual(thirdBtn.disabled, true);
+
+  // name preserved
+  const nameInput = document.querySelector("#landing-name");
+  nameInput.value = "Bob";
+  handle.lobby([{ session: "ABCDEF", players: [], depth: 1 }]);
+  const lis2 = document.querySelectorAll("#landing-lobby li");
+  assert.strictEqual(lis2.length, 1);
+  assert.strictEqual(nameInput.value, "Bob");
+
+  handle.lobby([]);
+  const lis3 = document.querySelectorAll("#landing-lobby li");
+  assert.strictEqual(lis3.length, 1);
+  assert.strictEqual(lis3[0].textContent, "No sessions yet. Create one!");
+  assert.strictEqual(lis3[0].querySelector("button"), null);
+
+  handle.hide();
+});
+
 test("joins", () => {
   const handlers = makeHandlers();
   const handle = show(document, handlers);
-  const nameInput = document.querySelector("#landing-name");
-  const sessionInput = document.querySelector("#landing-session");
-  const passwordInput = document.querySelector("#landing-password");
-  const joinBtn = document.querySelector("#landing-join");
 
-  nameInput.value = "Bob";
-  sessionInput.value = " abcdef ";
-  passwordInput.value = "xyz234";
-  joinBtn.click();
+  handle.lobby([
+    { session: "ABCDEF", players: ["Ann", "Bob"], depth: 3 },
+    { session: "GHJKMN", players: [], depth: 1 },
+    { session: "PQRSTU", players: ["A", "B", "C", "D"], depth: 7 },
+  ]);
+
+  const nameInput = document.querySelector("#landing-name");
+  const joinBtns = document.querySelectorAll("#landing-lobby button.landing-join");
+
+  nameInput.value = " Cy ";
+  joinBtns[0].click();
   assert.strictEqual(handlers.calls.join.length, 1);
-  assert.deepStrictEqual(handlers.calls.join[0], ["ABCDEF", "xyz234", "Bob"]);
+  assert.deepStrictEqual(handlers.calls.join[0], ["ABCDEF", "Cy"]);
 
   handlers.calls.join.length = 0;
-  nameInput.value = "Bob";
-  sessionInput.value = " abcdef ";
-  passwordInput.value = "";
-  joinBtn.click();
+  nameInput.value = "";
+  joinBtns[0].click();
   assert.strictEqual(handlers.calls.join.length, 0);
-  assert.strictEqual(document.querySelector("#landing-error").textContent, "Enter the session and its password.");
+  assert.strictEqual(document.querySelector("#landing-error").textContent, "Enter a name of 1 to 16 characters.");
 
   handle.hide();
 });
@@ -150,19 +212,42 @@ test("save/valid", () => {
   assert.strictEqual(save.isName(""), false);
   assert.strictEqual(save.isName("Ann "), false);
   assert.strictEqual(save.isName(5), false);
-  assert.throws(() => save.of({ seed: 9, depth: 6, players: [] }), TypeError);
+  // depth 29 accepted
+  const depth29 = save.of({ seed: 9, depth: 29, players: [] });
+  assert.ok(depth29);
+  // depth 30, 0 throw
+  assert.throws(() => save.of({ seed: 9, depth: 30, players: [] }), TypeError);
+  assert.throws(() => save.of({ seed: 9, depth: 0, players: [] }), TypeError);
+  // seed -1 throws
   assert.throws(() => save.of({ seed: -1, depth: 3, players: [] }), TypeError);
+  // five players throw
   assert.throws(() => save.of({ seed: 9, depth: 3, players: [{ name: "a" }, { name: "b" }, { name: "c" }, { name: "d" }, { name: "e" }] }), TypeError);
+  // two players named 'Cy' throw
   assert.throws(() => save.of({ seed: 9, depth: 3, players: [{ name: "Cy" }, { name: "Cy" }] }), TypeError);
+  // name '' throws
   assert.throws(() => save.of({ seed: 9, depth: 3, players: [{ name: "" }] }), TypeError);
+  // name of 17 characters throws
   assert.throws(() => save.of({ seed: 9, depth: 3, players: [{ name: "01234567890123456" }] }), TypeError);
+  // name ' Cy' throws
   assert.throws(() => save.of({ seed: 9, depth: 3, players: [{ name: " Cy" }] }), TypeError);
+  // name holding '\n' throws
   assert.throws(() => save.of({ seed: 9, depth: 3, players: [{ name: "a\nb" }] }), TypeError);
+  // stats of {} throws
   assert.throws(() => save.of({ seed: 9, depth: 3, players: [{ name: "Cy", stats: {} }] }), TypeError);
+  // stats of {hp: 5, maxHp: 3, attack: 0, defense: 0} throws
+  assert.throws(() => save.of({ seed: 9, depth: 3, players: [{ name: "Cy", stats: { hp: 5, maxHp: 3, attack: 0, defense: 0 } }] }), TypeError);
+  // parse('nope') throws
   assert.throws(() => save.parse("nope"), TypeError);
+  // parse('{}') throws
   assert.throws(() => save.parse("{}"), TypeError);
+  // version 2 throws
   const badText = s.text().replace('"version": 1', '"version": 2');
   assert.throws(() => save.parse(badText), TypeError);
+  // players: [] accepted
   const empty = save.of({ seed: 9, depth: 3, players: [] });
   assert.ok(empty);
+  // stats given as plain object accepted
+  const plainStats = save.of({ seed: 9, depth: 3, players: [{ name: "Cy", stats: { hp: 10, maxHp: 30, attack: 6, defense: 2 } }] });
+  assert.ok(plainStats);
+  assert.strictEqual(plainStats.players[0].stats.hp, 10);
 });
