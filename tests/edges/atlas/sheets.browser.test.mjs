@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { load, sprite, names } from "../../../edges/edge_to_atlas.mjs";
+import { load, sprite, tile, names } from "../../../edges/edge_to_atlas.mjs";
 import * as spriteShape from "../../../shapes/sprite/index.mjs";
 
 const NAMES = [
@@ -13,6 +13,16 @@ const NAMES = [
   "wall-6", "wall-7", "wall-8", "wall-9", "wall-10", "wall-11",
   "wall-12", "wall-13", "wall-14", "wall-15"
 ];
+
+// Intrinsic - themes:
+// Before any `load`, `tile('frozen', 'floor')` is `null`; `tile('lava', 'floor')`, `tile('frozen', 'wall-16')` and `tile('frozen', 'hero')` throw a `TypeError`.
+test("themes: before load, tile('frozen','floor') is null and sprite('hero') is null; throws for invalid theme/name", () => {
+  assert.equal(sprite("hero"), null);
+  assert.equal(tile("frozen", "floor"), null);
+  assert.throws(() => tile("lava", "floor"), TypeError);
+  assert.throws(() => tile("frozen", "wall-16"), TypeError);
+  assert.throws(() => tile("frozen", "hero"), TypeError);
+});
 
 // Intrinsic - table:
 // `names()` is the table's names in order. Before any `load`, `sprite('hero')` is `null`;
@@ -108,6 +118,87 @@ test("table: after load, each name's sprite has the EED table's sx, sy, sw 16, s
     assert.equal(sp.sy, sy, `sprite('${name}').sy`);
     assert.equal(sp.sw, 16, `sprite('${name}').sw`);
     assert.equal(sp.sh, 16, `sprite('${name}').sh`);
+  }
+});
+
+// Intrinsic - themes:
+// After `load('/assets/')` resolves: `tile('dungeon', n)` has the same `image`, `sx` and `sy` as `sprite(n)` for `n` `floor`, `stairs`, `wall-0` and `wall-15`; `tile('frozen', 'wall-6')` has `sx` 32 and `sy` 0 and an `image` other than `sprite('wall-6')`'s; `tile('interior', 'floor')` has `sx` 224 and `sy` 112; `tile('magma', 'stairs')` `sx` 0 and `sy` 112; `tile('interior', 'stairs')` has `sx` 32, `sy` 96 and the same `image` as `sprite('stairs')`; `tile('arid', 'wall-15')`, drawn at its own size on a canvas filled with pure green, leaves at least 100 of the 256 pixels not pure green; for each of the six themes, `tile(theme, 'floor')` and `tile(theme, 'wall-10')` are each 16 by 16.
+test("themes: after load, theme tiles have correct values", async () => {
+  await load("/assets/");
+  const themes = ["dungeon", "frozen", "arid", "temple", "magma", "interior"];
+
+  // tile('dungeon', n) has same image, sx, sy as sprite(n) for n in floor, stairs, wall-0, wall-15
+  for (const n of ["floor", "stairs", "wall-0", "wall-15"]) {
+    const t = tile("dungeon", n);
+    const s = sprite(n);
+    assert.ok(t, `tile('dungeon', '${n}') should exist`);
+    assert.equal(t.image, s.image, `tile('dungeon', '${n}').image === sprite('${n}').image`);
+    assert.equal(t.sx, s.sx, `tile('dungeon', '${n}').sx === sprite('${n}').sx`);
+    assert.equal(t.sy, s.sy, `tile('dungeon', '${n}').sy === sprite('${n}').sy`);
+  }
+
+  // tile('frozen', 'wall-6') has sx 32 and sy 0 and an image other than sprite('wall-6')'s
+  const frozenWall6 = tile("frozen", "wall-6");
+  assert.ok(frozenWall6, "tile('frozen', 'wall-6') should exist");
+  assert.equal(frozenWall6.sx, 32);
+  assert.equal(frozenWall6.sy, 0);
+  assert.notEqual(frozenWall6.image, sprite("wall-6").image);
+
+  // tile('interior', 'floor') has sx 224 and sy 112
+  const interiorFloor = tile("interior", "floor");
+  assert.ok(interiorFloor, "tile('interior', 'floor') should exist");
+  assert.equal(interiorFloor.sx, 224);
+  assert.equal(interiorFloor.sy, 112);
+
+  // tile('magma', 'stairs') sx 0 and sy 112
+  const magmastairs = tile("magma", "stairs");
+  assert.ok(magmastairs, "tile('magma', 'stairs') should exist");
+  assert.equal(magmastairs.sx, 0);
+  assert.equal(magmastairs.sy, 112);
+
+  // tile('interior', 'stairs') has sx 32, sy 96 and the same image as sprite('stairs')
+  const interiorstairs = tile("interior", "stairs");
+  assert.ok(interiorstairs, "tile('interior', 'stairs') should exist");
+  assert.equal(interiorstairs.sx, 32);
+  assert.equal(interiorstairs.sy, 96);
+  assert.equal(interiorstairs.image, sprite("stairs").image);
+
+  // tile('arid', 'wall-15'), drawn at its own size on a canvas filled with pure green, leaves at least 100 of the 256 pixels not pure green
+  const aridWall15 = tile("arid", "wall-15");
+  assert.ok(aridWall15, "tile('arid', 'wall-15') should exist");
+  {
+    const canvas = document.createElement("canvas");
+    canvas.width = 16;
+    canvas.height = 16;
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+    const imgData = ctx.createImageData(16, 16);
+    for (let i = 0; i < imgData.data.length; i += 4) {
+      imgData.data[i] = 0;
+      imgData.data[i + 1] = 255;
+      imgData.data[i + 2] = 0;
+      imgData.data[i + 3] = 255;
+    }
+    ctx.putImageData(imgData, 0, 0);
+    ctx.drawImage(aridWall15.image, aridWall15.sx, aridWall15.sy, aridWall15.sw, aridWall15.sh, 0, 0, 16, 16);
+    const data = ctx.getImageData(0, 0, 16, 16).data;
+    let notGreen = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      if (!(data[i] === 0 && data[i + 1] === 255 && data[i + 2] === 0)) notGreen++;
+    }
+    assert.ok(notGreen >= 100, `expected at least 100 non-green pixels for arid wall-15, got ${notGreen}`);
+  }
+
+  // for each of the six themes, tile(theme, 'floor') and tile(theme, 'wall-10') are each 16 by 16
+  for (const theme of themes) {
+    const f = tile(theme, "floor");
+    assert.ok(f, `tile('${theme}', 'floor') should exist`);
+    assert.equal(f.sw, 16, `tile('${theme}', 'floor').sw`);
+    assert.equal(f.sh, 16, `tile('${theme}', 'floor').sh`);
+    const w = tile(theme, "wall-10");
+    assert.ok(w, `tile('${theme}', 'wall-10') should exist`);
+    assert.equal(w.sw, 16, `tile('${theme}', 'wall-10').sw`);
+    assert.equal(w.sh, 16, `tile('${theme}', 'wall-10').sh`);
   }
 });
 
