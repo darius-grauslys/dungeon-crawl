@@ -310,7 +310,7 @@ function fromSave(save) {
   let log = ["Welcome to the dungeon. Find the stairs (>)."];
   if (isShopDepth(save.depth)) log = ["A shop! Bump a ware twice to buy it."];
   else if (isLairDepth(save.depth)) log = ["A golem blocks the stairs. Guard it to wake it, or die."];
-  else if (save.depth > 1) log = [`The party descends to level ${level.number(save.depth)}.`];
+  else if (save.depth > 1) log = [`The party descends to level ${levelShape.number(save.depth)}.`];
   return worldShape.of({
     seed: save.seed, rng, depth: save.depth, time: 0, state: "playing", grid: plan.grid,
     heroes: newHeroes, monsters, items, visible, explored, gold: 0,
