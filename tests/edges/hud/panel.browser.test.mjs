@@ -51,6 +51,14 @@ test("lines", () => {
   const slowHero = hero.of({ name: 'Ann', actor: slowActor, alive: true });
   const wSlow = world.of({ seed: 1, rng: 1, depth: 2, time: 0, state: 'playing', grid: tileGrid.fromRows(['####', '#..#', '####']), heroes: [slowHero, hero.of({ name: 'Bob', actor: actor.of({ id: 1, kind: 'hero', pos: point.of(2, 1), stats: stats.of({ hp: 0, maxHp: 28, attack: 4, defense: 1 }) }), alive: false })], monsters: [], items: [], visible: mask.empty(4, 3), explored: mask.empty(4, 3), gold: 7, log: ['a', 'b', 'c', 'd'], entry: save.of({ seed: 1, depth: 1, players: [] }) });
   assert.deepEqual(lines(wSlow, 'Ann')[0], 'Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Level 2/25   Slowed 2');
+  const mpActor = actor.of({ id: 0, kind: 'hero', pos: point.of(1, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1, magicPower: 2 }) });
+  const mpHero = hero.of({ name: 'Ann', actor: mpActor, alive: true });
+  const wMp = world.of({ seed: 1, rng: 1, depth: 2, time: 0, state: 'playing', grid: tileGrid.fromRows(['####', '#..#', '####']), heroes: [mpHero, hero.of({ name: 'Bob', actor: actor.of({ id: 1, kind: 'hero', pos: point.of(2, 1), stats: stats.of({ hp: 0, maxHp: 28, attack: 4, defense: 1 }) }), alive: false })], monsters: [], items: [], visible: mask.empty(4, 3), explored: mask.empty(4, 3), gold: 7, log: ['a', 'b', 'c', 'd'], entry: save.of({ seed: 1, depth: 1, players: [] }) });
+  assert.deepEqual(lines(wMp, 'Ann')[0], 'Ann   HP 18/24   ATK 4   DEF 1   MP 2   MR 0   Gold 7   Level 2/25');
+  const mrActor = actor.of({ id: 0, kind: 'hero', pos: point.of(1, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1, magicPower: 1, magicResist: 1 }) });
+  const mrHero = hero.of({ name: 'Ann', actor: mrActor, alive: true });
+  const wMr = world.of({ seed: 1, rng: 1, depth: 2, time: 0, state: 'playing', grid: tileGrid.fromRows(['####', '#..#', '####']), heroes: [mrHero, hero.of({ name: 'Bob', actor: actor.of({ id: 1, kind: 'hero', pos: point.of(2, 1), stats: stats.of({ hp: 0, maxHp: 28, attack: 4, defense: 1 }) }), alive: false })], monsters: [], items: [], visible: mask.empty(4, 3), explored: mask.empty(4, 3), gold: 7, log: ['a', 'b', 'c', 'd'], entry: save.of({ seed: 1, depth: 1, players: [] }) });
+  assert.deepEqual(lines(wMr, 'Ann')[0], 'Ann   HP 18/24   ATK 4   DEF 1   MP 1   MR 1   Gold 7   Level 2/25');
 });
 
 test("bar", async () => {

@@ -31,6 +31,8 @@ const TABLE = [
   { name: "imp", sheet: "sheets/magma-monsters.png", sx: 64, sy: 32 },
   { name: "lever", sheet: "sheets/generics.png", sx: 16, sy: 80 },
   { name: "lever-pulled", sheet: "sheets/generics.png", sx: 32, sy: 80 },
+  { name: "ring", sheet: "sheets/items.png", sx: 0, sy: 64 },
+  { name: "necklace", sheet: "sheets/items.png", sx: 128, sy: 64 },
   { name: "wall-0", sheet: "sheets/dungeon.png", sx: 48, sy: 0 },
   { name: "wall-1", sheet: "sheets/dungeon.png", sx: 0, sy: 32 },
   { name: "wall-2", sheet: "sheets/dungeon.png", sx: 48, sy: 32 },
@@ -51,7 +53,7 @@ const TABLE = [
 
 const _names = TABLE.map((r) => r.name);
 
-/** `names() -> array`. The forty-four names, in the table's order, a fresh array each call. */
+/** `names() -> array`. The forty-six names, in the table's order, a fresh array each call. */
 export function names() {
   return [..._names];
 }
