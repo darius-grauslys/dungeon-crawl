@@ -1,5 +1,5 @@
 {
-  "digest": "f49cd7ceebe63facd6b17a1d9cd8d08e4a6e13be2e25fe41d13390029b61d8cf",
+  "digest": "79302d8788bc27747afde02c18f86b2b47a9357eab7802cd8f8672606f7c9c4e",
   "fixtures": {},
   "nodes": {
     "atlas": {
@@ -114,6 +114,7 @@
         "fixtures": [],
         "shapes": [
           "floor-plan",
+          "level",
           "point",
           "tile-grid"
         ]
@@ -460,6 +461,7 @@
           "hero",
           "intent",
           "item",
+          "level",
           "mask",
           "point",
           "save",
@@ -610,6 +612,7 @@
           "hero",
           "intent",
           "item",
+          "level",
           "mask",
           "point",
           "save",
@@ -689,6 +692,17 @@
       ],
       "tests": [
         "tests/shapes/item/"
+      ]
+    },
+    "level": {
+      "closure": [
+        "level"
+      ],
+      "code": [
+        "shapes/level/"
+      ],
+      "tests": [
+        "tests/shapes/level/"
       ]
     },
     "mask": {

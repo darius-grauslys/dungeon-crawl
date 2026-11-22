@@ -4,7 +4,7 @@
 import * as target from "../src/atlas/index.mjs";
 
 // __nirnroot_begin__ load
-// `load(base) -> promise`. `base` a URL prefix ending in `/` (the page's is `/assets/`); each sheet is fetched from `base` plus its path in the table. Resolves, with nothing, once all five are loaded and keyed; rejects, with an `Error` whose message contains the sheet's path, as soon as one fails to load. A later `load` replaces what an earlier one loaded once it resolves.
+// `load(base) -> promise`. `base` a URL prefix ending in `/` (the page's is `/assets/`); each sheet is fetched from `base` plus its path in the table. Resolves, with nothing, once all fifteen are loaded and keyed; rejects, with an `Error` whose message contains the sheet's path, as soon as one fails to load. A later `load` replaces what an earlier one loaded once it resolves.
 // __nirnroot_end__
 export function load(...args) {
   return target.load(...args);
@@ -15,6 +15,13 @@ export function load(...args) {
 // __nirnroot_end__
 export function sprite(...args) {
   return target.sprite(...args);
+}
+
+// __nirnroot_begin__ tile
+// `tile(theme, name) -> sprite`. The `sprite` of the terrain tile `name` (`floor`, `stairs`, or `wall-0` to `wall-15`) of the theme `theme` (one of the six of the themes' table), as that table says: its `image` the keyed sheet, 16 by 16. Before a `load` has resolved, answers `null`. A theme or a name not of those throws a `TypeError`, loaded or not.
+// __nirnroot_end__
+export function tile(...args) {
+  return target.tile(...args);
 }
 
 // __nirnroot_begin__ names
