@@ -142,12 +142,12 @@ function makeFloor(seed, depth, rngIn) {
   const spots = plan.spots;
 
   let rng = rngIn;
+  let grid = plan.grid;
   const monsters = [];
   const items = [];
   let idCounter = 10;
 
   if (isLairDepth(depth)) {
-    let grid = plan.grid;
     if (plan.boss) {
       const tiles = plan.grid.tiles();
       const newTiles = tiles.map((t, idx) => {
@@ -205,7 +205,7 @@ function makeFloor(seed, depth, rngIn) {
       const price = Math.round(cfg.base * Math.pow(1.25, round - 1)) - spread + Math.floor(value * (2 * spread + 1));
       items.push(itemShape.of({ id: idCounter++, kind, pos: spots[i], amount: 0, price, pulled: false }));
     }
-    return { plan, monsters, items, rng };
+    return { plan, monsters, items, rng, grid };
   }
 
   const stage = levelShape.stage(depth);
@@ -264,7 +264,7 @@ function makeFloor(seed, depth, rngIn) {
   if (hasSword) items.push(itemShape.of({ id: idCounter++, kind: "sword", pos: spots[spotIdx++], amount: 0, price: 0, pulled: false }));
   if (hasArmor) items.push(itemShape.of({ id: idCounter++, kind: "armor", pos: spots[spotIdx++], amount: 0, price: 0, pulled: false }));
 
-  return { plan, monsters, items, rng };
+  return { plan, monsters, items, rng, grid };
 }
 
 function newGame(seed) {
