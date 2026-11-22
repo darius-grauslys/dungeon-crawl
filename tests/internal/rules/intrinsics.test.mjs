@@ -496,7 +496,7 @@ test("rolls-advance: rng advances per attack, 20 attacks give miss and hit", () 
   for (let i = 0; i < 20; i++) {
     w = worldShape.of({ ...w, monsters: [skeletonActor] });
     const ready = w.heroes[0].actor.ready;
-    const elapsed = ready - w.time;
+    const elapsed = Math.max(1, ready - w.time);
     w = rules.advance(rules.intend(w, "Ann", intentShape.attack(1, 0)), elapsed);
     const last = w.log[w.log.length - 1];
     if (last.includes("misses")) anyMiss = true;
