@@ -13,6 +13,7 @@ import * as inputEdge from "../../edges/edge_to_input.mjs";
 const REASON_TEXT = {
   "full": "The server already has 4 sessions.",
   "no-session": "No such session.",
+  "bad-password": "Wrong password.",
   "name-taken": "Someone is already playing that name.",
   "party-full": "That party is full.",
 };
@@ -70,6 +71,7 @@ export function start(document, options = {}) {
   let me = null;
   let paused = false;
   let menuOpenFlag = false;
+  let sessionPassword = "";
 
   const menuHandlers = {
     settings: () => {},
@@ -88,25 +90,22 @@ export function start(document, options = {}) {
   let menuRemoved = false;
 
   let rememberedName = "";
+  let rememberedPassword = "";
 
   const landingHandlers = {
     create: (save, name) => {
       rememberedName = name;
       conn.send(messageShape.create(save));
     },
-    join: (session, name) => {
-      conn.send(messageShape.join(session, name));
+    join: (session, password, name) => {
+      rememberedPassword = password;
+      rememberedName = name;
+      sessionPassword = password;
+      conn.send(messageShape.join(session, password, name));
     },
   };
 
   const landing = landingEdge.show(document, landingHandlers);
-
-  let lobbyInterval = setInterval(() => {
-    if (screen === "landing") {
-      conn.send(messageShape.list());
-    }
-  }, 2000);
-  conn.send(messageShape.list());
 
   let stopKeys = null;
 
@@ -159,14 +158,14 @@ export function start(document, options = {}) {
   function handleMessage(msg) {
     switch (msg.kind) {
       case "created": {
-        conn.send(messageShape.join(msg.session, rememberedName));
+        sessionPassword = msg.password;
+        conn.send(messageShape.join(msg.session, msg.password, rememberedName));
         break;
       }
       case "joined": {
         landing.hide();
-        clearInterval(lobbyInterval);
         me = msg.name;
-        menu.setSession(msg.session);
+        menu.setSession(msg.session, sessionPassword);
         screen = "game";
         stopKeys = inputEdge.listen(document, { intent: handleIntent, command: handleCommand });
         break;
@@ -199,10 +198,6 @@ export function start(document, options = {}) {
     me: () => me,
     menuOpen: () => menuOpenFlag,
     stop: () => {
-      if (lobbyInterval !== null) {
-        clearInterval(lobbyInterval);
-        lobbyInterval = null;
-      }
       if (rafId !== null) {
         caf(rafId);
         rafId = null;
