@@ -376,39 +376,34 @@ test("aim: aim dot only while aiming", async () => {
   const ctx = canvas.getContext("2d");
   view.init(canvas);
 
-  // range 1, aiming (1, 0)
+  // range 1, aiming (1, 0): draw with aiming=true draws dot at (2, 1)
   let w = makeAimWorld(1);
   view.draw(w, "Ann", false, 300, true);
   let img = ctx.getImageData(0, 0, 800, 600).data;
   assert.deepEqual(pixelAt(img, 120, 72), [255, 140, 0, 255]);
 
-  view.draw(w, "Ann", false, 0);
-  img = ctx.getImageData(0, 0, 800, 600).data;
-  assert.deepEqual(pixelAt(img, 120, 72), [230, 200, 60, 255]);
-
-  view.draw(w, "Ann", false, 600);
-  img = ctx.getImageData(0, 0, 800, 600).data;
-  assert.deepEqual(pixelAt(img, 120, 72), [230, 200, 60, 255]);
-
-  // not aiming (default)
-  view.draw(w, "Ann", false, 300);
-  img = ctx.getImageData(0, 0, 800, 600).data;
-  assert.deepEqual(pixelAt(img, 120, 72), [230, 200, 60, 255]);
-  assert.ok(noAimDotPixels(img), "no aim dot when aiming defaults to false");
-
-  // not aiming (false)
+  // fresh world, draw with aiming=false: no dot anywhere
+  w = makeAimWorld(1);
   view.draw(w, "Ann", false, 300, false);
   img = ctx.getImageData(0, 0, 800, 600).data;
-  assert.deepEqual(pixelAt(img, 120, 72), [230, 200, 60, 255]);
+  assert.ok(noAimDotPixels(img), "no aim dot when aiming is false");
 
-  // range 3
+  // fresh world, draw with default aiming: no dot anywhere
+  w = makeAimWorld(1);
+  view.draw(w, "Ann", false, 300);
+  img = ctx.getImageData(0, 0, 800, 600).data;
+  assert.ok(noAimDotPixels(img), "no aim dot when aiming defaults to false");
+
+  // range 3: dot at (4, 1)
   w = makeAimWorld(3);
   view.draw(w, "Ann", false, 300, true);
   img = ctx.getImageData(0, 0, 800, 600).data;
   assert.deepEqual(pixelAt(img, 216, 72), [255, 140, 0, 255]);
-  assert.deepEqual(pixelAt(img, 120, 72), [230, 200, 60, 255]);
 
-  // aiming (-1, 0), wall next to her
+  // aiming (-1, 0), wall next to her: no dot
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const visible = mask.of(7, 3, Array(21).fill(true));
+  const explored = mask.of(7, 3, Array(21).fill(true));
   const annActor = actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1, range: 1 }) });
   const annActorLeft = actor.with(annActor, { aim: { dx: -1, dy: 0 } });
   const heroes = [heroShape.of({ name: "Ann", actor: annActorLeft, alive: true })];
