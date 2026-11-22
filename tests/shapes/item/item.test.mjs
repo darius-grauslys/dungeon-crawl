@@ -13,16 +13,28 @@ test("item valid: builds a gold item with the given values and is frozen", () =>
   assert.strictEqual(item.pos.x, 2);
   assert.strictEqual(item.pos.y, 2);
   assert.strictEqual(item.amount, 10);
+  assert.strictEqual(item.price, 0);
   assert.ok(Object.isFrozen(item));
 });
 
-test("item valid: defaults amount to 0 when left out", () => {
+test("item valid: defaults amount and price to 0 when left out", () => {
   const item = of({ id: 5, kind: 'potion', pos: point.of(1, 1) });
   assert.strictEqual(item.id, 5);
   assert.strictEqual(item.kind, 'potion');
   assert.strictEqual(item.pos.x, 1);
   assert.strictEqual(item.pos.y, 1);
   assert.strictEqual(item.amount, 0);
+  assert.strictEqual(item.price, 0);
+  assert.ok(Object.isFrozen(item));
+});
+
+test("item valid: builds a ware sword with price 30", () => {
+  const item = of({ id: 6, kind: 'sword', pos: point.of(1, 1), price: 30 });
+  assert.strictEqual(item.id, 6);
+  assert.strictEqual(item.kind, 'sword');
+  assert.strictEqual(item.pos.x, 1);
+  assert.strictEqual(item.pos.y, 1);
+  assert.strictEqual(item.price, 30);
   assert.ok(Object.isFrozen(item));
 });
 
@@ -45,4 +57,16 @@ test("item valid: refuses a sword of amount 3", () => {
 
 test("item valid: refuses pos as an array", () => {
   assert.throws(() => of({ id: 0, kind: 'sword', pos: [1, 1] }), TypeError);
+});
+
+test("item valid: refuses a price of -1", () => {
+  assert.throws(() => of({ id: 0, kind: 'sword', pos: point.of(0, 0), price: -1 }), TypeError);
+});
+
+test("item valid: refuses a price of 2.5", () => {
+  assert.throws(() => of({ id: 0, kind: 'sword', pos: point.of(0, 0), price: 2.5 }), TypeError);
+});
+
+test("item valid: refuses a gold of price 5", () => {
+  assert.throws(() => of({ id: 0, kind: 'gold', pos: point.of(0, 0), amount: 1, price: 5 }), TypeError);
 });
