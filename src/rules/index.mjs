@@ -494,6 +494,7 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
   let items = state.items;
   let monstersList = state.monstersList;
   let offer = h.offer;
+  let rng = state.rng;
 
   if (intent.kind === "move") {
     const dx = intent.dx, dy = intent.dy;
@@ -519,7 +520,7 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
           log.push(`${h.name} looks at ${wareLabel(it.kind)}: ${it.price} gold. Bump it again to buy.`);
         }
         const newHero = h.with({ actor: updatedActor, pending: null, offer });
-        return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined };
+        return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
       }
     }
     let leverHit = null;
@@ -552,20 +553,21 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
       }
       log.push(golemMsg);
       const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
-      return { hero: newHero, gold, items, monstersList: monstersAfter, log: log.slice(-50), grid: undefined };
+      return { hero: newHero, gold, items, monstersList: monstersAfter, log: log.slice(-50), grid: undefined, rng };
     }
     if (!gridOpen(world.grid, nx, ny) || stepCutCorner(world.grid, h.actor, dx, dy)) {
       let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("step"), aim: { dx, dy }, facing: actorShape.facingFor(dx, dy), last: h.actor.last });
       if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
       const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
-      return { hero: newHero, gold, items, monstersList, log, grid: undefined };
+      return { hero: newHero, gold, items, monstersList, log, grid: undefined, rng };
     }
     let monsterHit = null;
     for (const m of monstersList) {
       if (m.covers(nx, ny)) { monsterHit = m; break; }
     }
     if (monsterHit) {
-      const { rng: nr, roll, ward } = combatDraw(world.rng);
+      const { rng: nrr, roll, ward } = combatDraw(rng);
+      rng = nrr;
       const s = combat.resolve(h.actor.stats, monsterHit.stats, roll, ward);
       let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("attack"), aim: { dx, dy }, facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach: 1 } });
       if (h.actor.slow > 0) {
@@ -585,10 +587,10 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
           monsterLine = `The ${monsterHit.kind} is slain.`;
           monstersAfter = monstersAfter.filter((mm) => mm.id !== monsterHit.id);
           if (monsterHit.kind === "golem") {
-            const gd = golemDeath(world, monstersAfter, newTime, gold, log, nr);
+            const gd = golemDeath(world, monstersAfter, newTime, gold, log, rng);
             monstersAfter = gd.monsters;
             items = gd.items;
-            return { hero: newHero, gold, items, monstersList: monstersAfter, log: log.slice(-50), grid: gd.grid };
+            return { hero: newHero, gold, items, monstersList: monstersAfter, log: log.slice(-50), grid: gd.grid, rng: gd.rng };
           }
         } else {
           const nstats = statsShape.of({ hp: nhp, maxHp: monsterHit.stats.maxHp, attack: monsterHit.stats.attack, defense: monsterHit.stats.defense, range: monsterHit.stats.range, magic: monsterHit.stats.magic, magicPower: monsterHit.stats.magicPower, magicResist: monsterHit.stats.magicResist });
@@ -598,7 +600,7 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
         }
       }
       log.push(monsterLine);
-      return { hero: newHero, gold, items, monstersList: monstersAfter, log: log.slice(-50), grid: undefined };
+      return { hero: newHero, gold, items, monstersList: monstersAfter, log: log.slice(-50), grid: undefined, rng };
     }
     let picked = null;
     for (const it of items) {
@@ -624,12 +626,12 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
       if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
       log.push(msg);
       const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
-      return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined };
+      return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
     }
     let updatedActor = h.actor.with({ pos: pointShape.of(nx, ny), ready: newTime + heroLatencyFn("step"), aim: { dx, dy }, facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 } });
     if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
     const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
-    return { hero: newHero, gold, items, monstersList, log, grid: undefined };
+    return { hero: newHero, gold, items, monstersList, log, grid: undefined, rng };
   } else if (intent.kind === "attack") {
     const dx = intent.dx, dy = intent.dy;
     const dir = (dx === 0 && dy === 0) ? h.actor.aim : { dx, dy };
@@ -681,7 +683,7 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
         log.push(`${h.name} looks at ${wareLabel(wareHit.kind)}: ${wareHit.price} gold. Bump it again to buy.`);
       }
       const newHero = h.with({ actor: updatedActor, pending: null, offer });
-      return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined };
+      return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
     }
     if (leverHit) {
       let monstersAfter = monstersList;
@@ -710,13 +712,14 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
         log.push(`${h.name} pulls a lever.`);
       }
       const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
-      return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined };
+      return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
     }
     if (monster) {
       const newHeld = Math.max(monster.held || 0, newTime + 300);
       let newMonster = monster.with({ held: newHeld });
       let monstersAfter = monstersList;
-      const { rng: nr, roll, ward } = combatDraw(world.rng);
+      const { rng: nrr, roll, ward } = combatDraw(rng);
+      rng = nrr;
       const s = combat.resolve(h.actor.stats, monster.stats, roll, ward);
       let monsterLine = "";
       const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
@@ -729,10 +732,10 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
           monsterLine = `The ${monster.kind} is slain.`;
           monstersAfter = monstersAfter.filter((mm) => mm.id !== monster.id);
           if (monster.kind === "golem") {
-            const gd = golemDeath(world, monstersAfter, newTime, gold, log, nr);
+            const gd = golemDeath(world, monstersAfter, newTime, gold, log, rng);
             monstersAfter = gd.monsters;
             items = gd.items;
-            return { hero: newHero, gold, items, monstersList: monstersAfter, log: log.slice(-50), grid: gd.grid };
+            return { hero: newHero, gold, items, monstersList: monstersAfter, log: log.slice(-50), grid: gd.grid, rng: gd.rng };
           }
         } else {
           const nstats = statsShape.of({ hp: nhp, maxHp: monster.stats.maxHp, attack: monster.stats.attack, defense: monster.stats.defense, range: monster.stats.range, magic: monster.stats.magic, magicPower: monster.stats.magicPower, magicResist: monster.stats.magicResist });
@@ -745,17 +748,17 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
       monstersList = monstersAfter;
     }
     const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
-    return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined };
+    return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
   } else if (intent.kind === "use") {
     let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("use"), gesture: { kind: "use", at: newTime } });
     const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
-    return { hero: newHero, gold, items, monstersList, log, grid: undefined };
+    return { hero: newHero, gold, items, monstersList, log, grid: undefined, rng };
   } else if (intent.kind === "wait" || intent.kind === "descend") {
     let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("wait") });
     const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
-    return { hero: newHero, gold, items, monstersList, log, grid: undefined };
+    return { hero: newHero, gold, items, monstersList, log, grid: undefined, rng };
   }
-  return { hero: h.with({ pending: null, offer: h.offer }), gold, items, monstersList, log, grid: undefined };
+  return { hero: h.with({ pending: null, offer: h.offer }), gold, items, monstersList, log, grid: undefined, rng };
 }
 
 function advance(world, ms) {
@@ -765,7 +768,7 @@ function advance(world, ms) {
   const newTime = world.time + ms;
 
   if (world.state !== "playing") {
-    return worldShape.of({ ...world, time: newTime });
+    return worldShape.of({ ...world, time: newTime, rng: world.rng });
   }
 
   let log = [...world.log];
@@ -774,6 +777,7 @@ function advance(world, ms) {
   let monstersList = world.monsters;
   let heroes = world.heroes;
   let currentGrid = world.grid;
+  let rng = world.rng;
 
   // 1. Heroes fire
   let updatedHeroes = [...heroes];
@@ -795,9 +799,10 @@ function advance(world, ms) {
       }
     }
     const latFn = (type) => heroLatency(h.actor, type);
-    const res = heroFiredAction(world, h, newTime, latFn, { gold, items, monstersList, log: log.slice(-50) });
+    const res = heroFiredAction(world, h, newTime, latFn, { gold, items, monstersList, log: log.slice(-50), rng });
     updatedHeroes[hi] = res.hero;
     gold = res.gold; items = res.items; monstersList = res.monstersList; log = res.log;
+    if (res.rng !== undefined) rng = res.rng;
     if (res.grid) currentGrid = res.grid;
   }
   heroes = updatedHeroes;
@@ -876,7 +881,8 @@ function advance(world, ms) {
       }
       if (meleeTarget) {
         const target = meleeTarget.type === 'hero' ? meleeTarget.hero.actor : meleeTarget.monster;
-        const { rng: nr, roll, ward } = combatDraw(world.rng);
+        const { rng: nrr, roll, ward } = combatDraw(rng);
+        rng = nrr;
         const s = combat.resolve(m.stats, target.stats, roll, ward);
         let monsterLine = "";
         let isSlowed = false;
@@ -955,7 +961,8 @@ function advance(world, ms) {
       reach = target ? mk : 1;
       if (!target) { monsterMap.set(m.id, m.with({ ready: newTime + bestiary.entry(m.kind).step, facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach: 1 } })); acted = true; continue; }
       const tStats = target.type === 'hero' ? target.hero.actor.stats : target.monster.stats;
-      const { rng: nr, roll, ward } = combatDraw(world.rng);
+      const { rng: nrr, roll, ward } = combatDraw(rng);
+      rng = nrr;
       const s = combat.resolve(m.stats, tStats, roll, ward);
       let monsterLine = "";
       let isSlowed = false;
@@ -1022,7 +1029,7 @@ function advance(world, ms) {
     const newLog = [...saved.log, `The party has fallen. ${levelShape.label(world.depth)} begins again.`].slice(-50);
     const finalVisible = computeVisible(saved.grid, saved.depth, []);
     const finalExplored = maskShape.union(saved.explored, finalVisible);
-    return worldShape.of({ ...saved, time: newTime, gold, log: newLog, visible: finalVisible, explored: finalExplored });
+    return worldShape.of({ ...saved, time: newTime, gold, log: newLog, visible: finalVisible, explored: finalExplored, rng });
   }
 
   // 4. Stairs / descend
@@ -1043,10 +1050,10 @@ function advance(world, ms) {
       log.push(`The party escapes the dungeon with ${gold} gold!`);
       const fv = computeVisible(currentGrid, world.depth, heroes.filter((h) => h.alive));
       const fe = maskShape.union(world.explored, fv);
-      return worldShape.of({ ...world, time: newTime, heroes, monsters: monstersList, items, visible: fv, explored: fe, state: "won", log: log.slice(-50), gold, grid: currentGrid });
+      return worldShape.of({ ...world, time: newTime, heroes, monsters: monstersList, items, visible: fv, explored: fe, state: "won", log: log.slice(-50), gold, grid: currentGrid, rng });
     }
     const newDepth = world.depth + 1;
-    const { plan, monsters: newMonsters, items: newItems, rng: newRng, grid: newGrid } = makeFloor(world.seed, newDepth, world.rng);
+    const { plan, monsters: newMonsters, items: newItems, rng: newRng, grid: newGrid } = makeFloor(world.seed, newDepth, rng);
     const startList = startCells(plan);
     const newHeroes = [];
     for (const h of heroes) {
@@ -1083,7 +1090,7 @@ function advance(world, ms) {
   const finalVisible = computeVisible(currentGrid, world.depth, aliveHeroes);
   const finalExplored = maskShape.union(world.explored, finalVisible);
 
-  return worldShape.of({ ...world, time: newTime, heroes, monsters: monstersList, items, visible: finalVisible, explored: finalExplored, state: "playing", log: log.slice(-50), gold, grid: currentGrid });
+  return worldShape.of({ ...world, time: newTime, heroes, monsters: monstersList, items, visible: finalVisible, explored: finalExplored, state: "playing", log: log.slice(-50), gold, grid: currentGrid, rng });
 }
 
 export { newGame, fromSave, toSave, join, intend, advance };
