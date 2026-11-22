@@ -848,7 +848,8 @@ function advance(world, ms) {
         let newTarget = target;
         if (meleeTarget.type === 'hero') {
           const nhp = target.stats.hp - s.damage;
-          if (s.damage > 0 && isSlowingMonster(m.kind)) { const hi = heroes.findIndex((hh) => hh.actor.id === target.id); if (hi >= 0) { updatedHeroes[hi] = updatedHeroes[hi].with({ actor: updatedHeroes[hi].actor.with({ slow: 3 }) }); } log.push(`${meleeTarget.hero.name}: you are slowed!`); }
+          const isSlowed = s.damage > 0 && isSlowingMonster(m.kind);
+          if (isSlowed) log.push(`${meleeTarget.hero.name}: you are slowed!`);
           const newHeld = Math.max(target.held || 0, newTime + 300);
           newTarget = target.with({ held: newHeld });
           if (nhp <= 0) {
@@ -857,7 +858,8 @@ function advance(world, ms) {
             monsterLine = "The hero falls.";
           } else {
             monsterLine = `The ${m.kind} hits the hero for ${s.damage}.`;
-            heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer }) : hh);
+            const actorUpdate = isSlowed ? { held: newHeld, slow: 3 } : { held: newHeld };
+            heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with(actorUpdate), pending: hh.pending, alive: hh.alive, offer: hh.offer }) : hh);
           }
         } else {
           const nhp = target.stats.hp - s.damage;
@@ -913,14 +915,16 @@ function advance(world, ms) {
         const th = target.hero;
         const nhp = th.actor.stats.hp - s.damage;
         const newHeld = Math.max(th.actor.held || 0, newTime + 300);
-        if (s.damage > 0 && isSlowingMonster(m.kind)) { const hi = heroes.findIndex((hh) => hh.actor.id === th.actor.id); if (hi >= 0) { updatedHeroes[hi] = updatedHeroes[hi].with({ actor: updatedHeroes[hi].actor.with({ slow: 3 }) }); } log.push(`${th.name}: you are slowed!`); }
+        const isSlowed = s.damage > 0 && isSlowingMonster(m.kind);
+        if (isSlowed) log.push(`${th.name}: you are slowed!`);
         if (nhp <= 0) {
           monsterLine = `The ${m.kind} hits the hero for ${s.damage}.`;
           heroes = heroes.map((hh) => hh.actor.id === th.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: statsShape.of({ hp: 0, maxHp: hh.actor.stats.maxHp, attack: hh.actor.stats.attack, defense: hh.actor.stats.defense, range: hh.actor.stats.range }), held: newHeld }), pending: hh.pending, alive: false, offer: hh.offer }) : hh);
           monsterLine = "The hero falls.";
         } else {
           monsterLine = `The ${m.kind} hits the hero for ${s.damage}.`;
-          heroes = heroes.map((hh) => hh.actor.id === th.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer }) : hh);
+          const actorUpdate = isSlowed ? { held: newHeld, slow: 3 } : { held: newHeld };
+          heroes = heroes.map((hh) => hh.actor.id === th.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with(actorUpdate), pending: hh.pending, alive: hh.alive, offer: hh.offer }) : hh);
         }
       } else {
         const tm = target.monster;
