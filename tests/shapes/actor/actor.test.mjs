@@ -26,6 +26,7 @@ test("actor of builds a frozen actor with the given values", () => {
   assert.strictEqual(a.mode, 'roam');
   assert.strictEqual(a.size, 1);
   assert.strictEqual(a.small, false);
+  assert.strictEqual(a.gesture, null);
   assert.strictEqual(Object.isFrozen(a), true);
   assert.strictEqual(Object.isFrozen(a.last), true);
   assert.strictEqual(Object.isFrozen(a.aim), true);
@@ -184,6 +185,7 @@ test("actor with returns a new actor with changed pos, leaving the original unch
   assert.strictEqual(b.mode, a.mode);
   assert.strictEqual(b.size, a.size);
   assert.strictEqual(b.small, a.small);
+  assert.strictEqual(b.gesture, a.gesture);
   assert.strictEqual(a.pos.x, 1);
   assert.strictEqual(a.pos.y, 2);
   assert.notStrictEqual(a, b);
@@ -264,6 +266,7 @@ test("with is a shared method, not an own property of an actor", () => {
   assert.strictEqual(Object.hasOwn(a, 'mode'), true);
   assert.strictEqual(Object.hasOwn(a, 'size'), true);
   assert.strictEqual(Object.hasOwn(a, 'small'), true);
+  assert.strictEqual(Object.hasOwn(a, 'gesture'), true);
   assert.strictEqual(Object.hasOwn(a, 'covers'), false);
   assert.strictEqual(Object.hasOwn(a, 'cells'), false);
 });
@@ -308,4 +311,39 @@ test("facingFor returns right for (1, 0), (1, 1) and (0, -1)", () => {
 test("facingFor throws for (0, 0) and (2, 0)", () => {
   assert.throws(() => facingFor(0, 0), TypeError);
   assert.throws(() => facingFor(2, 0), TypeError);
+});
+
+test("actor with({gesture: {kind: 'power', at: 50}}) has frozen gesture deep equal to {kind: 'power', at: 50}", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  const a = of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s });
+  const b = a.with({ gesture: { kind: 'power', at: 50 } });
+  assert.strictEqual(Object.isFrozen(b.gesture), true);
+  assert.deepStrictEqual(b.gesture, { kind: 'power', at: 50 });
+  assert.strictEqual(a.gesture, null);
+  assert.notStrictEqual(a, b);
+});
+
+test("actor of refuses gesture: {kind: 'wave', at: 0}", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, gesture: { kind: 'wave', at: 0 } }), TypeError);
+});
+
+test("actor of refuses gesture: {kind: 'use', at: -1}", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, gesture: { kind: 'use', at: -1 } }), TypeError);
+});
+
+test("actor of refuses gesture: {kind: 'use'}", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, gesture: { kind: 'use' } }), TypeError);
+});
+
+test("actor of accepts gesture: {kind: 'use', at: 0} and {kind: 'power', at: 100}", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  const a = of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, gesture: { kind: 'use', at: 0 } });
+  assert.strictEqual(Object.isFrozen(a.gesture), true);
+  assert.deepStrictEqual(a.gesture, { kind: 'use', at: 0 });
+  const b = of({ id: 1, kind: 'hero', pos: pointShape.of(2, 2), stats: s, gesture: { kind: 'power', at: 100 } });
+  assert.strictEqual(Object.isFrozen(b.gesture), true);
+  assert.deepStrictEqual(b.gesture, { kind: 'power', at: 100 });
 });
