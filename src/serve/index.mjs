@@ -294,7 +294,7 @@ export async function serve({ port, root, host }) {
       const p = addr && typeof addr.port === "number" ? addr.port : port;
       resolve({
         port: p,
-        url: host !== undefined ? `http://${host}:${p}/` : `http://127.0.0.1:${p}/`,
+        url: host !== undefined ? `http://${host}:${p}/` : `http://0.0.0.0:${p}/`,
         drain: () => {
           const items = inbox.slice();
           inbox.length = 0;
