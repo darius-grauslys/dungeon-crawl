@@ -45,7 +45,7 @@ the constructors of the shapes it holds.
 | `items` | `[{id, kind, pos: {x, y}, amount, price, pulled, flung}]`: `flung` `null` or `{x, y, at}` |
 | `entry` | the save's `data()` |
 
-An actor's data is `{id, kind, pos: {x, y}, stats: {hp, maxHp, attack, defense, range}, ready, held, facing, last, aim: {dx, dy}, slow, mode, size, small}`,
+An actor's data is `{id, kind, pos: {x, y}, stats: {hp, maxHp, attack, defense, range, magic, magicPower, magicResist}, ready, held, facing, last, aim: {dx, dy}, slow, mode, size, small}`,
 `last` `null` or `{kind, dx, dy, at, reach}`.
 
 # Fields:

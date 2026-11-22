@@ -70,9 +70,11 @@ corner; it strikes the first creature it reaches that is hostile to the
 attacker (`bestiary`'s `hostile`; for a creature covering several cells,
 any cell it covers), passing through friends; with none, nothing
 happens. For a hero, a ware or a lever on the cell at `k` 1 is bumped or
-pulled instead (below). Every hit is `combat`'s, a roll from the world's
-`rng`; a creature brought to 0 hit points: a monster is removed, a hero
-is no longer alive.
+pulled instead (below). Every attack is `combat`'s, a d20 roll and then
+a ward roll (1 to 100) from the world's `rng`; a hit takes its whole
+`damage` (physical and magic) off the defender's hit points; a miss takes
+none and is logged as a miss, never as a hit of 0. A creature brought to
+0 hit points: a monster is removed, a hero is no longer alive.
 
 **Groups.** Monsters fight whatever is hostile to them: the alive
 heroes, and, for a `demon`, the `vermin` (who fight back). A `vermin`
@@ -102,15 +104,19 @@ line `<h> looks at <ware>: <p> gold. Bump it again to buy.` On a bump of
 the ware that is its `offer`: with the party's gold at least the price,
 the gold goes down by the price, the ware is gone from `items`, the hero
 gets its effect as if picked up (a potion heals 8 to at most `maxHp`, a
-sword 2 more `attack`, an armor 1 more `defense`), and the line is `<h>
+sword 2 more `attack`, an armor 1 more `defense`, a ring 1 more
+`magicPower`, a necklace 1 more `magicResist`), and the line is `<h>
 buys <ware> for <p> gold.`; with less, the line `Not enough gold for
 <ware>: <p> needed, the party has <g>.`, and nothing else changes;
 either way the `offer` is `null` again. Every other action of a hero
 that fires sets its `offer` to `null` (a `face` is not one).
-`<ware>` is `a potion`, `a sword` or `armor`, `<p>` its price.
+`<ware>` is `a potion`, `a sword`, `armor`, `a ring` or `a cross
+necklace`, `<p>` its price.
 
 **Lairs.** The first lair (depth 7) is the golem's. The `golem`
-(`bestiary`; stats 40/40/16/12) stands on the plan's `boss` square, 3 by
+(`bestiary`; stats 40/40/12/12, `magic` 6, `magicPower` 2: each hit
+deals 12 less armor, at least 1, plus 6 magic damage) stands on the
+plan's `boss` square, 3 by
 3 cells, `dormant`, facing left; while it lives, the cell of the plan's
 `stairs` (at the centre of its square) is `floor`: there is no way down.
 A `lever` item stands on each of the plan's `levers`, and on every one
@@ -125,8 +131,8 @@ monsters, no items.
 - **Levers.** A hero's fired `move` onto a lever's cell, or `attack`
   toward it (next to it), **pulls** it if it is not yet `pulled`: it
   fires as an attack does (as a bump), the lever is `pulled`, and, while
-  a `golem` lives, the golem's `attack` and `defense` are halved
-  (`Math.floor`) and it shrinks: a `size` of 3 becomes 2, a `size` of 2
+  a `golem` lives, the golem's `attack`, `defense` and `magic` are
+  halved (`Math.floor`) and it shrinks: a `size` of 3 becomes 2, a `size` of 2
   becomes 1, and at `size` 1 it becomes `small` (it keeps its `pos`, the
   top-left cell). The line is `<h> pulls a lever. The golem weakens!`
   (with no golem alive, `<h> pulls a lever.`). A pulled lever bumped
@@ -202,7 +208,7 @@ In a world on `['#####', '#...#', '#...#', '#####']` with `Ann` at (1, 1): `adva
 In the `latency` world with Ann at (2, 1): a fired `move(-1, 0)` turns her `left`, `move(0, 1)` (into the wall) `left`, `move(1, 0)` `right`, `move(0, -1)` `right`, each aiming her that way. After her `move(1, 0)` fires at time 50, her `last` is `{kind: 'move', dx: 1, dy: 0, at: 50, reach: 1}`; after a `move(0, -1)` into the wall, `last` is as it was. `intend(w, 'Ann', face(-1, 1))` answers at once a world with Ann's `aim` `{dx: -1, dy: 1}`, `facing` `left`, and her `pending`, `ready`, cell and the world's `time` unchanged; with a `move(1, 0)` intended first, it is still her `pending` after the `face`. A hero who joins has `held` 0, `facing` `right`, `aim` `{dx: 1, dy: 0}` and `last` null. In the `monsters-act` world, the skeleton's first step leaves it `facing` `left` with `last` `{kind: 'move', dx: -1, dy: 0, at: 50, reach: 1}`.
 
 ## Intrinsic - picks-up:
-In the `latency` world, with an item at (2, 1), after Ann's `move(1, 0)` fires the item is gone from `items` and: a `gold` of amount 7 makes `gold` 7 more; a `potion`, with Ann at 10 of 24 hit points, makes her `hp` 18, and at 20 of 24 makes it 24; a `sword` makes her `attack` 2 more; an `armor` makes her `defense` 1 more.
+In the `latency` world, with an item at (2, 1), after Ann's `move(1, 0)` fires the item is gone from `items` and: a `gold` of amount 7 makes `gold` 7 more; a `potion`, with Ann at 10 of 24 hit points, makes her `hp` 18, and at 20 of 24 makes it 24; a `sword` makes her `attack` 2 more; an `armor` makes her `defense` 1 more; a `ring` makes her `magicPower` 2 (from 1), the log's last line `Ann puts on a ring (+1 magic power).`; a `necklace` makes her `magicResist` 1, the line `Ann puts on a cross necklace (+1 magic resist).`
 
 ## Intrinsic - attacks:
 In a world on `['######', '#....#', '######']` with `Ann` (attack 4) at (1, 1) and a `bat` of 1 hit point (defense 0, `ready` 10000) at (2, 1): for `rng` from 0 to 39, Ann's `move(1, 0)` (one `advance` by 50) leaves her at (1, 1) every time; in at least one the bat is gone from `monsters`, and in at least one it is still there with 1 hit point. In every one Ann's `ready` is 400 and the bat's `held`, if it is still there, 350. `attack(1, 0)` does the same, and so does `attack()` (her `aim` is `(1, 0)`); `attack(-1, 0)` (toward the wall) changes nothing but Ann's `ready` (400), `aim` (`{dx: -1, dy: 0}`), `facing` (`left`) and `last` (`{kind: 'attack', dx: -1, dy: 0, at: 50, reach: 1}`).
@@ -232,22 +238,28 @@ In a world on `['#####', '#...#', '#####']` with the one hero `Ann` at 1 of 24 h
 In a world on `['##########', '#.>......#', '##########']` at depth 1 with `Ann` (20 of 24) at (7, 1) and `Bob` not alive (0 of 24) at (1, 1): `advance(w, 50)` is still at depth 1 (nobody asked). `advance(intend(w, 'Ann', descend()), 50)` is at depth 2, its grid 48 by 32, Ann alive at 24 of 28, Bob alive at 1 of 28, both on open cells, `explored` holding nothing that isn't `visible`, `entry` the save of depth 2 with those two, and the log's last line `The party descends to level 2.` With Ann at (8, 1) instead (6 from the stairs): still depth 1, and the log's last line `All party members must be within 5 units of the exit!`. With Bob alive (24 of 24) at (1, 1) and Ann at (8, 1), Bob's `descend()` gives that same line and depth 1. At depth 5, within 5, after a `descend()`: depth 6, the log's last two lines `The party descends to a shop.` and `A shop! Bump a ware twice to buy it.` At depth 6: depth 7, the last two lines `The party descends into a lair.` and `A golem guards the way down. Pull the levers to weaken it!`. At depth 14: depth 15, the last line `The party descends to level 11.` At depth 33, within 5, after a `descend()`: the state is `won`, the log's last line `The party escapes the dungeon with <gold> gold!`, and a later `advance` changes only `time`.
 
 ## Intrinsic - shop:
-`w = fromSave(save.of({seed: 4, depth: 6, players: [{name: 'Ann', stats: 24/24/4/1}]}))`: depth 6, its grid `at(31, 19)` `stairs` and `at(14, 10)` `floor`, no monsters, and six items, every one with a `price` above 0, on (16, 13), (19, 13), (22, 13), (25, 13), (28, 13) and (31, 13), of the kinds `potion`, `sword`, `armor`, `potion`, `sword`, `armor` in that order; each potion's price from 8 to 32, each sword's from 24 to 36, each armor's from 34 to 46; `visible.count()` and `explored.count()` 1536. At depth 27 the prices are from 27 to 51, 53 to 65 and 72 to 84.
+`w = fromSave(save.of({seed: 4, depth: 6, players: [{name: 'Ann', stats: 24/24/4/1}]}))`: depth 6, its grid `at(31, 19)` `stairs` and `at(14, 10)` `floor`, no monsters, and six items, every one with a `price` above 0, on (16, 13), (19, 13), (22, 13), (25, 13), (28, 13) and (31, 13), of the kinds `potion`, `sword`, `armor`, `ring`, `necklace`, `potion` in that order; each potion's price from 8 to 32, the sword's from 24 to 36, the armor's from 34 to 46, the ring's and the necklace's each from 29 to 41; `visible.count()` and `explored.count()` 1536. At depth 27 the prices are from 27 to 51 (potions), 53 to 65 (sword), 72 to 84 (armor) and 62 to 74 (ring, necklace).
 
 ## Intrinsic - buys:
-In a world on `['#######', '#.....#', '#######']` with `Ann` (24/24/4/1) at (1, 1), gold 50, and a `sword` ware of `id` 12 and `price` 30 at (2, 1): `advance(intend(w, 'Ann', move(1, 0)), 50)` leaves Ann at (1, 1) with `offer` 12, `ready` 400, `facing` `right`, `last` `{kind: 'attack', dx: 1, dy: 0, at: 50, reach: 1}`, the ware still there, gold 50, and the log's last line `Ann looks at a sword: 30 gold. Bump it again to buy.` Then her `move(1, 0)` again, advanced by 350 (time 400): her `attack` is 6, `offer` null, the ware gone, gold 20, the log's last line `Ann buys a sword for 30 gold.` With gold 10 instead, the second bump leaves the ware there, gold 10, `offer` null, and the line `Not enough gold for a sword: 30 needed, the party has 10.` With a `wait()` fired between the two bumps, the second is a first again (`offer` 12, the ware there, gold 50); a `face(1, 0)` between them changes nothing (the second still buys). An `attack(1, 0)` bumps as the `move` does. An `armor` ware bought gives `defense` 2; a `potion` ware, with Ann at 10 of 24, `hp` 18.
+In a world on `['#######', '#.....#', '#######']` with `Ann` (24/24/4/1) at (1, 1), gold 50, and a `sword` ware of `id` 12 and `price` 30 at (2, 1): `advance(intend(w, 'Ann', move(1, 0)), 50)` leaves Ann at (1, 1) with `offer` 12, `ready` 400, `facing` `right`, `last` `{kind: 'attack', dx: 1, dy: 0, at: 50, reach: 1}`, the ware still there, gold 50, and the log's last line `Ann looks at a sword: 30 gold. Bump it again to buy.` Then her `move(1, 0)` again, advanced by 350 (time 400): her `attack` is 6, `offer` null, the ware gone, gold 20, the log's last line `Ann buys a sword for 30 gold.` With gold 10 instead, the second bump leaves the ware there, gold 10, `offer` null, and the line `Not enough gold for a sword: 30 needed, the party has 10.` With a `wait()` fired between the two bumps, the second is a first again (`offer` 12, the ware there, gold 50); a `face(1, 0)` between them changes nothing (the second still buys). An `attack(1, 0)` bumps as the `move` does. An `armor` ware bought gives `defense` 2; a `potion` ware, with Ann at 10 of 24, `hp` 18; a `ring` ware (price 35) bought, with gold 50, gives `magicPower` 2 and the line `Ann buys a ring for 35 gold.`; a `necklace` ware, `magicResist` 1 and `Ann buys a cross necklace for 35 gold.`
 
 ## Intrinsic - lair:
-`w = fromSave(save.of({seed: 4, depth: 7, players: [{name: 'Ann', stats: 24/24/4/1}]}))`: depth 7, Ann at (8, 16), the grid `at(33, 16)` `floor` (no stairs anywhere); 73 monsters: the first a `golem` at (32, 15), `size` 3, `mode` `dormant`, stats 40/40/16/12 (`range` 1), `facing` `left`; the other 72 each a `slime` of `mode` `guard` and stats 6/6/2/1, on the plan's 72 spots; 3 items, each a `lever` not `pulled`, on (12, 8), (12, 24) and (22, 16). `fromSave` at depth 14: no monsters, no items, `at(33, 16)` `stairs`.
+`w = fromSave(save.of({seed: 4, depth: 7, players: [{name: 'Ann', stats: 24/24/4/1}]}))`: depth 7, Ann at (8, 16), the grid `at(33, 16)` `floor` (no stairs anywhere); 73 monsters: the first a `golem` at (32, 15), `size` 3, `mode` `dormant`, stats deep equal to `{hp: 40, maxHp: 40, attack: 12, defense: 12, range: 1, magic: 6, magicPower: 2, magicResist: 0}`, `facing` `left`; the other 72 each a `slime` of `mode` `guard` and stats 6/6/2/1 (`range` 1, `magic` 0, `magicPower` 1, `magicResist` 0), on the plan's 72 spots; 3 items, each a `lever` not `pulled`, on (12, 8), (12, 24) and (22, 16). `fromSave` at depth 14: no monsters, no items, `at(33, 16)` `stairs`.
 
 ## Intrinsic - levers:
-In a world on `['##########', '#........#', '#........#', '#........#', '#........#', '##########']` with `Ann` (24/24/4/1) at (1, 1), `lever`s (ids 20, 21, 22) at (2, 1), (1, 2) and (2, 2), and a `golem` (id 10, stats 40/40/16/12, `size` 3, `mode` `dormant`, `ready` 10000) at (5, 2): Ann's `move(1, 0)` advanced by 50 leaves her at (1, 1), `ready` 400, `last` `{kind: 'attack', dx: 1, dy: 0, at: 50, reach: 1}`, the lever (2, 1) `pulled`, the golem's `attack` 8, `defense` 6, `size` 2, `small` false, and the log's last line `Ann pulls a lever. The golem weakens!`. Then her `move(0, 1)` at time 400: the golem 4/3, `size` 1; then her `move(1, 1)` at time 750: the golem 2/1, `size` 1, `small` true, `pos` still (5, 2). A pulled lever bumped again changes nothing but Ann's `ready`, `aim`, `facing` and `last`. Ann never stands on a lever.
+In a world on `['##########', '#........#', '#........#', '#........#', '#........#', '##########']` with `Ann` (24/24/4/1) at (1, 1), `lever`s (ids 20, 21, 22) at (2, 1), (1, 2) and (2, 2), and a `golem` (id 10, stats 40/40/12/12 with `magic` 6 and `magicPower` 2, `size` 3, `mode` `dormant`, `ready` 10000) at (5, 2): Ann's `move(1, 0)` advanced by 50 leaves her at (1, 1), `ready` 400, `last` `{kind: 'attack', dx: 1, dy: 0, at: 50, reach: 1}`, the lever (2, 1) `pulled`, the golem's `attack` 6, `defense` 6, `magic` 3, `size` 2, `small` false, and the log's last line `Ann pulls a lever. The golem weakens!`. Then her `move(0, 1)` at time 400: the golem's `attack` 3, `defense` 3, `magic` 1, `size` 1; then her `move(1, 1)` at time 750: `attack` 1, `defense` 1, `magic` 0, `size` 1, `small` true, `pos` still (5, 2), `magicPower` still 2. A pulled lever bumped again changes nothing but Ann's `ready`, `aim`, `facing` and `last`. Ann never stands on a lever.
 
 ## Intrinsic - wakes:
-In a world on `['##########', '#........#', '#........#', '#........#', '##########']` with `Ann` at (1, 1) and a `golem` (stats 40/40/16/12, `size` 3, `mode` `dormant`, `ready` 0) at (5, 1): `advance(w, 50)` gives the golem `mode` `roam` and `ready` 1650, the log holding `The golem awakens!`, and the golem at (4, 1). With the golem at (6, 1) (5 away): it stays `dormant` at (6, 1), `ready` 1650.
+In a world on `['##########', '#........#', '#........#', '#........#', '##########']` with `Ann` at (1, 1) and a `golem` (stats 40/40/12/12, `magic` 6, `magicPower` 2, `size` 3, `mode` `dormant`, `ready` 0) at (5, 1): `advance(w, 50)` gives the golem `mode` `roam` and `ready` 1650, the log holding `The golem awakens!`, and the golem at (4, 1). With the golem at (6, 1) (5 away): it stays `dormant` at (6, 1), `ready` 1650.
 
 ## Intrinsic - golem-dies:
 `w` the `lair` world, with Ann's stats 24/24/40/1 and her at (31, 16), and the golem's `hp` 1, `defense` 0 and `ready` 10000: for `rng` from 0 to 39, Ann's `move(1, 0)` advanced by 50, in at least one: no monster left (the golem and every guard gone), `at(33, 16)` `stairs`, the log holding `The golem is slain.`, `The guardians crumble.`, `The way down opens!` and `Gold spills from the golem!`; from 1 to 5 new `gold` items, of amounts adding up to 25 to 75, each on a `floor` cell from 1 to 2 cells (`max(|dx|, |dy|)`) outside the golem's 3 by 3 square at (32, 15), no two on one cell, each `flung` `{x: 33, y: 16, at: 50}`. Ann's `descend()` then takes the party to depth 8.
+
+## Intrinsic - misses:
+In a world on `['######', '#....#', '######']` with `Ann` (24/24/4/1) at (1, 1) and a `skeleton` of stats 30/30/4/2 (`ready` 10000) at (2, 1): for `rng` from 0 to 39, Ann's `attack(1, 0)` advanced by 50 leaves the log's last line, in every one, either `Ann misses the skeleton.` with the skeleton at 30 hit points, or `Ann hits the skeleton for <n>.` with `<n>` at least 1 and the skeleton at `30 - <n>`, or `Critical! Ann hits the skeleton for <n>.` likewise; at least one of the 40 is a miss and at least one a hit; no line ends `for 0.`. With the skeleton (`ready` 0) attacking Ann instead (Ann's `ready` 10000), every last line is `The skeleton misses Ann.`, `The skeleton hits Ann for <n>.` or `Critical! The skeleton hits Ann for <n>.` with `<n>` at least 1 and Ann at `24 - <n>`.
+
+## Intrinsic - magic:
+In a world on `['######', '#....#', '######']` with `Ann` (24/24/4/1) at (1, 1) and a `golem` of `size` 1, `mode` `roam`, stats 40/40/12/12 with `magic` 6 and `magicPower` 2, `ready` 0, at (2, 1): for `rng` from 0 to 39, after `advance(w, 50)` Ann has 24 hit points (a miss), 7 (a hit: 11 physical and 6 magic), or none and not alive (a critical: 28); at least one is 7. With Ann's `magicResist` 1 instead (ward chance 50%): her hit points after a hit are 7 (the magic not warded) or 12 (warded: 11 and 1); among the 40, at least one 7 and at least one 12.
 
 ## Intrinsic - themes:
 `fromSave(save.of({seed: 3, depth: 8, players: [{name: 'Ann', stats: 24/24/4/1}]}))` has 4 monsters, each a `blue-slime` of 9/9/3/1, a `blue-snake` of 7/7/4/0 or a `skeleton` of 13/13/5/2 (`hp`/`maxHp`/`attack`/`defense`); at depth 33, 12 monsters, each a `worm` of 27/27/9/4, a `fire-slime` of 30/30/9/5, an `imp` of 36/36/10/5 or a `demon` of 48/48/11/6; at depth 15, 4 monsters, each a `beetle`, `mummy` or `cultist`, every `cultist` of `range` 4; at depth 22, each a `spider`, `ghost` or `reaper`; at depth 3, 8 monsters, each a `bat` of 3/3/2/0, a `slime` of 6/6/2/1 or a `snake` of 5/5/3/0. Over the seeds 0 to 19 at depth 5 (12 monsters each), every monster is a `bat`, `slime`, `snake`, `skeleton` (9/9/4/2) or `archer` (7/7/3/1, `range` 4), at least one is an `archer`, and the archers are at most a fifth of them all.

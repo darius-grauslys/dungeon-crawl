@@ -102,6 +102,12 @@ As the EED states.
 ## Intrinsic - golem-dies:
 As the EED states: replace the heroes and monsters of the `lair` world with `with`.
 
+## Intrinsic - misses:
+As the EED states: match each log line with a regular expression and read `<n>` from it.
+
+## Intrinsic - magic:
+As the EED states: build the golem with `actor`'s `of` (`size: 1`, `mode: 'roam'`) and its stats with `stats`'s `of`.
+
 ## Intrinsic - themes:
 As the EED states.
 

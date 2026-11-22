@@ -36,7 +36,8 @@ On tier 0, stages 4 and 5, each monster takes one draw first: below
 Monster stats from `bestiary.entry(kind)` (`hp` = `maxHp`), with the
 tier: `hp` and `maxHp` are `base + Math.floor(base * tier / 2)`,
 `attack` `base + tier`, `defense` `base + Math.floor(tier / 2)` (a
-`demon` of tier 4: 48/48/11/6), `range` the entry's. Every monster
+`demon` of tier 4: 48/48/11/6), `range`, `magic` and `magicPower` the
+entry's, `magicResist` 0. Every monster
 `mode` `roam`, `size` the entry's (1), `ready` as the EED says.
 
 Items: 2 `potion`s and 2 `gold` (amount `level.number(depth) * (3 + d)`
@@ -46,9 +47,10 @@ and items count up from 10, fresh on each floor (monsters first).
 
 On a **shop** depth (`level.kind(depth)` is `interior`): no monsters;
 the six wares on the plan's six spots in order, of the kinds `potion`,
-`sword`, `armor`, `potion`, `sword`, `armor`, each with a `price` drawn
+`sword`, `armor`, `ring`, `necklace`, `potion`, each with a `price` drawn
 in that order: with `round = level.round(depth)` and the kind's base `B`
-and spread `S` (`potion` 20 and 12, `sword` 30 and 6, `armor` 40 and 6),
+and spread `S` (`potion` 20 and 12, `sword` 30 and 6, `armor` 40 and 6,
+`ring` 35 and 6, `necklace` 35 and 6),
 `Math.round(B * 1.25 ** (round - 1)) - S + Math.floor(value * (2 * S +
 1))`, `value` one draw. So the base prices of the first shop are 20, 30
 and 40 gold, and each next shop's are a quarter more than the last's.
@@ -91,7 +93,10 @@ cell, all as they stand at that moment (monsters already moved count
 where they now are), `turn` `Math.floor(time / 400)` with `time` the new
 time. Before deciding, a `dormant` monster wakes as the EED says, or
 waits. Every attack is `combat.resolve(attacker.stats, defender.stats,
-roll)`.
+roll, ward)`: two draws, the d20 `roll` first, then `ward`, `1 +
+Math.floor(value * 100)`. The log line follows the strike: `hit` false
+is a miss line, `critical` true the `Critical!` line, `damage` the
+`<n>`.
 
 **The golem's gold.** When the golem dies, at time `t`, two draws: the
 total `25 + Math.floor(value * 51)`, then the count `n = 1 +
@@ -127,7 +132,9 @@ Exactly these lines (`<h>` the hero's name, `<m>` the monster's kind):
   `<h> pulls a lever.` / `The golem is slain.` / `The guardians crumble.` /
   `The way down opens!` / `Gold spills from the golem!`
 - `<h> drinks a potion (+<healed> HP).` / `<h> picks up <n> gold.` /
-  `<h> picks up a sword (+2 attack).` / `<h> puts on armor (+1 defense).`
+  `<h> picks up a sword (+2 attack).` / `<h> puts on armor (+1 defense).` /
+  `<h> puts on a ring (+1 magic power).` /
+  `<h> puts on a cross necklace (+1 magic resist).`
 - `<h> looks at <ware>: <p> gold. Bump it again to buy.` /
   `<h> buys <ware> for <p> gold.` /
   `Not enough gold for <ware>: <p> needed, the party has <g>.`

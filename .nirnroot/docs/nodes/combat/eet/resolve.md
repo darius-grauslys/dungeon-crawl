@@ -18,6 +18,12 @@ As the EED states.
 ## Intrinsic - minimum:
 As the EED states.
 
+## Intrinsic - magic:
+As the EED states.
+
+## Intrinsic - ward:
+As the EED states.
+
 ## Intrinsic - refuses:
 As the EED states.
 

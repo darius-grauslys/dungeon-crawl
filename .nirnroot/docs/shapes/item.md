@@ -10,6 +10,8 @@ shop, a **ware**: a thing for sale, with a price; or, in a lair, a
 | `gold` | adds `amount` to the party's gold |
 | `sword` | adds 2 to that hero's `attack` |
 | `armor` | adds 1 to that hero's `defense` |
+| `ring` | adds 1 to that hero's `magicPower` |
+| `necklace` | a cross necklace: adds 1 to that hero's `magicResist` |
 | `lever` | never picked up: a hero pulls it (`rules` says how) |
 
 An item with a `price` above 0 is a ware: it is never picked up by
@@ -23,14 +25,14 @@ when, so the screen can draw it flying.
 
 The module (`shapes/item/index.mjs`) exports `of({id, kind, pos, amount,
 price, pulled, flung})`: `id` an integer of 0 or more; `kind` one of the
-five; `pos` a `point`; `amount` an integer, at least 1 for `gold` and
+seven; `pos` a `point`; `amount` an integer, at least 1 for `gold` and
 exactly 0 for the others (left out: 0); `price` an integer of 0 or more,
 0 for a `gold` and a `lever` (left out: 0); `pulled` a boolean, `false`
 for any kind but `lever` (left out: `false`); `flung` `null` or `{x, y,
 at}`, the cell it was thrown from and the world time it was thrown, all
 integers of 0 or more (left out: `null`; the item keeps a frozen copy
 with those three keys). Any other input is refused with a `TypeError`.
-`KINDS` is the five kind names, in the table's order (a frozen array).
+`KINDS` is the seven kind names, in the table's order (a frozen array).
 
 # Fields:
 ## Field - id:
@@ -67,8 +69,10 @@ flung: {x: 4, y: 4, at: 100}})` has `flung` frozen and deep equal to
 `sword` of `amount` 3, `pos: [1, 1]`, a `price` of -1 or 2.5, a `gold`
 of `price` 5, a `lever` of `price` 5, a `potion` that is `pulled`,
 `pulled: 'yes'`, and `flung` of `{x: 1, y: 1}` or `{x: -1, y: 1, at: 0}`
-each throw a `TypeError`. `KINDS` is `['potion', 'gold', 'sword',
-'armor', 'lever']`.
+each throw a `TypeError`. `of({id: 9, kind: 'ring', pos: point.of(1, 1),
+price: 35})` and `of({id: 10, kind: 'necklace', pos: point.of(1, 1)})`
+are accepted. `KINDS` is `['potion', 'gold', 'sword', 'armor', 'ring',
+'necklace', 'lever']`.
 
 # Callbacks:
 None

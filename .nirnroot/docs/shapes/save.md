@@ -15,7 +15,7 @@ The module (`shapes/save/index.mjs`) exports:
   `depth` an integer from 1 to 33 (`level`'s `MAX_DEPTH`, the game's last floor); `players` an array of 0 to 4 entries,
   each `{name, stats}`, `name` a name, `stats` the values of a
   `stats` (a `stats`, or a plain `{hp, maxHp, attack, defense}` with or
-  without `range`: each is
+  without `range`, `magic`, `magicPower` and `magicResist`: each is
   made a `stats` with `stats.of`, and refused as `stats.of` refuses it),
   no two names equal. Answers a frozen save; `players` is copied and answered frozen,
   each entry a frozen `{name, stats}`. Any other input is refused with a
@@ -27,8 +27,10 @@ The module (`shapes/save/index.mjs`) exports:
 - `isName(value)`: true for a name, false for anything else.
 
 **The format** (`data()`): `{format: 'crawl-save', version: 1, seed,
-depth, players: [{name, stats: {hp, maxHp, attack, defense, range}}, ...]}`
-(a file whose stats have no `range` is read with `range` 1). A
+depth, players: [{name, stats: {hp, maxHp, attack, defense, range, magic,
+magicPower, magicResist}}, ...]}` (a file whose stats lack `range`,
+`magic`, `magicPower` or `magicResist` is read with `stats.of`'s
+default for each: 1, 0, 1, 0). A
 `format` or `version` other than these is refused.
 
 # Fields:
@@ -54,7 +56,8 @@ A method on the prototype, never an own property.
 ## Intrinsic - valid:
 `s = of({seed: 9, depth: 3, players: [{name: 'Cy', stats: stats.of({hp: 10, maxHp: 30, attack: 6, defense: 2})}]})`
 has those values, is frozen, and `s.players` is frozen. `depth: 33` is
-accepted; `s.data().players[0].stats.range` is 1.
+accepted; `s.data().players[0].stats.range` is 1, `magic` 0,
+`magicPower` 1 and `magicResist` 0.
 `parse(s.text())` passes `assert.deepStrictEqual` with `s`, and
 `s.data().format` is `'crawl-save'`. `depth: 34`, `depth: 0`, `seed: -1`, five
 players, two players named `'Cy'`, a name `''`, a name of 17 characters,

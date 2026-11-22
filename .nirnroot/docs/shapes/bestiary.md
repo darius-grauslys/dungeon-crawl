@@ -12,29 +12,32 @@ them is a hero, or when one is a `demon` and the other `vermin` (demons
 hunt vermin, and vermin fight back); any other two are **friends** (a
 ranged attack passes through friends). A `vermin` **flees** a `demon`.
 
-| kind | group | hp | attack | defense | range | slows | reach | step | strike | size |
-|---|---|---|---|---|---|---|---|---|---|---|
-| `bat` | `vermin` | 3 | 2 | 0 | 1 | no | 9 | 400 | 600 | 1 |
-| `slime` | `vermin` | 6 | 2 | 1 | 1 | no | 6 | 400 | 600 | 1 |
-| `snake` | `vermin` | 5 | 3 | 0 | 1 | no | 6 | 400 | 600 | 1 |
-| `skeleton` | `undead` | 9 | 4 | 2 | 1 | no | 6 | 400 | 600 | 1 |
-| `archer` | `undead` | 7 | 3 | 1 | 4 | no | 7 | 400 | 700 | 1 |
-| `blue-slime` | `vermin` | 6 | 2 | 1 | 1 | yes | 6 | 400 | 600 | 1 |
-| `blue-snake` | `vermin` | 5 | 3 | 0 | 1 | yes | 6 | 400 | 600 | 1 |
-| `beetle` | `vermin` | 8 | 4 | 3 | 1 | no | 6 | 400 | 600 | 1 |
-| `mummy` | `undead` | 12 | 5 | 2 | 1 | no | 6 | 600 | 600 | 1 |
-| `cultist` | `human` | 7 | 5 | 1 | 4 | no | 7 | 400 | 700 | 1 |
-| `spider` | `vermin` | 9 | 5 | 1 | 1 | no | 8 | 300 | 600 | 1 |
-| `ghost` | `undead` | 10 | 6 | 3 | 1 | no | 7 | 400 | 600 | 1 |
-| `reaper` | `undead` | 14 | 7 | 3 | 1 | no | 6 | 400 | 600 | 1 |
-| `worm` | `vermin` | 9 | 5 | 2 | 1 | no | 6 | 400 | 600 | 1 |
-| `fire-slime` | `vermin` | 10 | 5 | 3 | 1 | no | 6 | 400 | 600 | 1 |
-| `imp` | `demon` | 12 | 6 | 3 | 1 | no | 7 | 300 | 600 | 1 |
-| `demon` | `demon` | 16 | 7 | 4 | 1 | no | 7 | 400 | 600 | 1 |
-| `golem` | `construct` | 40 | 16 | 12 | 1 | no | 30 | 1600 | 1000 | 3 |
+| kind | group | hp | attack | defense | magic | magicPower | range | slows | reach | step | strike | size |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `bat` | `vermin` | 3 | 2 | 0 | 0 | 1 | 1 | no | 9 | 400 | 600 | 1 |
+| `slime` | `vermin` | 6 | 2 | 1 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
+| `snake` | `vermin` | 5 | 3 | 0 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
+| `skeleton` | `undead` | 9 | 4 | 2 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
+| `archer` | `undead` | 7 | 3 | 1 | 0 | 1 | 4 | no | 7 | 400 | 700 | 1 |
+| `blue-slime` | `vermin` | 6 | 2 | 1 | 0 | 1 | 1 | yes | 6 | 400 | 600 | 1 |
+| `blue-snake` | `vermin` | 5 | 3 | 0 | 0 | 1 | 1 | yes | 6 | 400 | 600 | 1 |
+| `beetle` | `vermin` | 8 | 4 | 3 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
+| `mummy` | `undead` | 12 | 5 | 2 | 0 | 1 | 1 | no | 6 | 600 | 600 | 1 |
+| `cultist` | `human` | 7 | 5 | 1 | 0 | 1 | 4 | no | 7 | 400 | 700 | 1 |
+| `spider` | `vermin` | 9 | 5 | 1 | 0 | 1 | 1 | no | 8 | 300 | 600 | 1 |
+| `ghost` | `undead` | 10 | 6 | 3 | 0 | 1 | 1 | no | 7 | 400 | 600 | 1 |
+| `reaper` | `undead` | 14 | 7 | 3 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
+| `worm` | `vermin` | 9 | 5 | 2 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
+| `fire-slime` | `vermin` | 10 | 5 | 3 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
+| `imp` | `demon` | 12 | 6 | 3 | 0 | 1 | 1 | no | 7 | 300 | 600 | 1 |
+| `demon` | `demon` | 16 | 7 | 4 | 0 | 1 | 1 | no | 7 | 400 | 600 | 1 |
+| `golem` | `construct` | 40 | 12 | 12 | 6 | 2 | 1 | no | 30 | 1600 | 1000 | 3 |
 
 - `hp`, `attack`, `defense`: the base stats (`hp` is also `maxHp`),
   before `rules` adds the floor's tier.
+- `magic` and `magicPower`: the magic damage each hit adds, and how hard
+  it is to resist (`stats`, `combat`); the tier never changes them. A
+  monster's `magicResist` is 0.
 - `range`: how many cells away it can attack, in a straight line (1:
   only the cells next to it).
 - `slows`: a creature it damages is **slowed** (`rules`).
@@ -54,7 +57,8 @@ The module (`shapes/bestiary/index.mjs`) exports:
   frozen array).
 - `SLIMES`: `['slime', 'blue-slime', 'fire-slime']` (a frozen array).
 - `entry(kind)`: the table's row for a kind, a frozen `{kind, group, hp,
-  attack, defense, range, slows, reach, step, strike, size}` (`slows` a
+  attack, defense, magic, magicPower, range, slows, reach, step, strike,
+  size}` (`slows` a
   boolean); a kind not in the table throws a `TypeError`.
 - `group(kind)`: the kind's group, and `'human'` for `'hero'`; anything
   else throws a `TypeError`.
@@ -90,9 +94,10 @@ The function `flees(a, b)`.
 ## Intrinsic - valid:
 `KINDS` has 18 kinds, the first `bat` and the last `golem`, and is
 frozen. `entry('archer')` is `{kind: 'archer', group: 'undead', hp: 7,
-attack: 3, defense: 1, range: 4, slows: false, reach: 7, step: 400,
-strike: 700, size: 1}` and frozen; `entry('blue-snake').slows` is true;
-`entry('golem')` has `size` 3, `step` 1600 and `defense` 12;
+attack: 3, defense: 1, magic: 0, magicPower: 1, range: 4, slows: false,
+reach: 7, step: 400, strike: 700, size: 1}` and frozen;
+`entry('blue-snake').slows` is true; `entry('golem')` has `size` 3,
+`step` 1600, `attack` 12, `defense` 12, `magic` 6 and `magicPower` 2;
 `entry('cultist').range` is 4. `group('hero')` is `'human'`,
 `group('imp')` `'demon'`, `group('golem')` `'construct'`.
 `hostile('hero', 'bat')` and `hostile('skeleton', 'hero')` are true;

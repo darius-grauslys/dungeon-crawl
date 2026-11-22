@@ -37,6 +37,8 @@ transparent, so a sprite drawn over the floor shows the floor around it.
 | `imp` | `sheets/magma-monsters.png` | 64 | 32 |
 | `lever` | `sheets/generics.png` | 16 | 80 |
 | `lever-pulled` | `sheets/generics.png` | 32 | 80 |
+| `ring` | `sheets/items.png` | 0 | 64 |
+| `necklace` | `sheets/items.png` | 128 | 64 |
 | `wall-0` | `sheets/dungeon.png` | 48 | 0 |
 | `wall-1` | `sheets/dungeon.png` | 0 | 32 |
 | `wall-2` | `sheets/dungeon.png` | 48 | 32 |
@@ -98,7 +100,7 @@ Every sprite is 16 by 16.
 `tile(theme, name) -> sprite`. The `sprite` of the terrain tile `name` (`floor`, `stairs`, or `wall-0` to `wall-15`) of the theme `theme` (one of the six of the themes' table), as that table says: its `image` the keyed sheet, 16 by 16. Before a `load` has resolved, answers `null`. A theme or a name not of those throws a `TypeError`, loaded or not.
 
 ## Function - names:
-`names() -> array`. The forty-four names, in the table's order, a fresh array each call.
+`names() -> array`. The forty-six names, in the table's order, a fresh array each call.
 
 # Intrinsics:
 ## Intrinsic - table:

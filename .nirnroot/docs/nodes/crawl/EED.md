@@ -7,7 +7,7 @@ with a shop and then a boss's lair between two themes, fighting the
 monsters of each theme (bats, slimes, snakes, skeletons and archers,
 beetles, mummies, cultists, spiders, ghosts, reapers, worms, imps,
 demons, and the stone golem), moving in eight directions, aiming and
-attacking at range, picking up potions, gold, swords and armor (or
+attacking at range, picking up potions, gold, swords, armor, rings and cross necklaces (or
 buying them in the shops), and wins by reaching the stairs of the last
 floor together. The root owns nothing but the
 program's entry, run by the launcher (`npm start`): it starts the game's
