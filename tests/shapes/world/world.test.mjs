@@ -266,6 +266,20 @@ test('world: intrinsic data - fromData(data()) round trip passes deepStrictEqual
   const w = worldOf(fields);
   const round = worldFromData(JSON.parse(JSON.stringify(w.data())));
   assert.deepStrictEqual(round, w);
+
+  for (const pendingIntent of [
+    intentShape.move(1, 1),
+    intentShape.attack(),
+    intentShape.attack(-1, 0),
+    intentShape.use(),
+    intentShape.wait(),
+    intentShape.descend(),
+    intentShape.face(0, 1)
+  ]) {
+    const w2 = worldOf({ ...fields, heroes: [heroWithPending.with({ pending: pendingIntent })] });
+    const round2 = worldFromData(JSON.parse(JSON.stringify(w2.data())));
+    assert.deepStrictEqual(round2, w2);
+  }
 });
 
 test('world: intrinsic data - data().grid and data().visible[1]', () => {
