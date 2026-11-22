@@ -28,7 +28,7 @@ test("new-game: deterministic and fields", () => {
   assert.deepEqual(w1.heroes, []);
   assert.equal(w1.monsters.length, 4);
   for (const m of w1.monsters) {
-    assert.ok(["bat", "slime", "snake"].includes(m.kind));
+    assert.ok(["bat", "slime"].includes(m.kind));
     assert.ok(w1.grid.open(m.pos.x, m.pos.y));
     assert.equal(m.ready, 0);
   }
@@ -51,7 +51,7 @@ test("joins: Ann joins, dup returns same, full returns null, bad name throws", (
   assert.equal(h.name, "Ann");
   assert.ok(h.alive);
   assert.equal(h.pending, null);
-  assert.deepEqual(h.actor.stats, { hp: 24, maxHp: 24, attack: 4, defense: 1, range: 1 });
+  assert.deepEqual(h.actor.stats, { hp: 24, maxHp: 24, attack: 4, defense: 1 });
   assert.equal(h.actor.ready, 0);
   assert.ok(wAnn.grid.open(h.actor.pos.x, h.actor.pos.y));
   assert.ok(wAnn.visible.at(h.actor.pos.x, h.actor.pos.y));
@@ -212,7 +212,7 @@ test("attacks: hero stays, bat sometimes gone sometimes stays", () => {
   assert.equal(wWall2.heroes[0].actor.ready, 400);
   assert.equal(wWall2.heroes[0].pending, null);
   assert.equal(wWall2.heroes[0].actor.facing, "left");
-  assert.deepEqual(wWall2.heroes[0].actor.last, { kind: "attack", dx: -1, dy: 0, at: 50, reach: 1 });
+  assert.deepEqual(wWall2.heroes[0].actor.last, { kind: "attack", dx: -1, dy: 0, at: 50 });
   assert.ok(wWall2.monsters.some((m) => m.kind === "bat"));
   assert.equal(wWall2.monsters.find((m) => m.kind === "bat").stats.hp, 1);
 });
@@ -383,7 +383,7 @@ test("saves: toSave and fromSave round-trip, hp 0 becomes 1", () => {
   assert.equal(w.heroes.length, 1);
   assert.equal(w.heroes[0].name, "Cy");
   assert.ok(w.heroes[0].alive);
-  assert.deepEqual(w.heroes[0].actor.stats, { hp: 10, maxHp: 30, attack: 6, defense: 2, range: 1 });
+  assert.deepEqual(w.heroes[0].actor.stats, { hp: 10, maxHp: 30, attack: 6, defense: 2 });
   assert.deepEqual(w.entry, s);
   const w2 = rules.fromSave(s);
   assert.deepStrictEqual(w, w2);
@@ -396,7 +396,7 @@ test("saves: toSave and fromSave round-trip, hp 0 becomes 1", () => {
 test("level-based floors: stage monster counts, kinds, tier scaling, swords/armor, depth 29 win, shop arrival", () => {
   const w1 = rules.newGame(5);
   assert.equal(w1.monsters.length, 4);
-  for (const m of w1.monsters) assert.ok(["bat", "slime", "snake"].includes(m.kind));
+  for (const m of w1.monsters) assert.ok(["bat", "slime"].includes(m.kind));
 
   const w3 = rules.fromSave(saveShape.of({ seed: 5, depth: 3, players: [] }));
   assert.equal(w3.monsters.length, 8);
