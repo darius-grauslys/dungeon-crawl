@@ -17,12 +17,7 @@ test("generate: deterministic", () => {
     for (const d of depths) {
       const a = generate(s, d);
       const b = generate(s, d);
-      const aTiles = a.grid.tiles();
-      const bTiles = b.grid.tiles();
-      assert.strictEqual(aTiles.length, bTiles.length);
-      for (let i = 0; i < aTiles.length; i++) {
-        assert.strictEqual(aTiles[i], bTiles[i]);
-      }
+      assert.deepStrictEqual(a.grid.tiles(), b.grid.tiles());
       assert.ok(point.equals(a.start, b.start));
       assert.ok(point.equals(a.stairs, b.stairs));
       assert.strictEqual(a.spots.length, b.spots.length);
@@ -46,8 +41,9 @@ test("generate: deterministic", () => {
 
 // Intrinsic - bounded:
 test("generate: bounded", () => {
+  const depths = [1, 2, 3, 4, 5, 7, 11, 13, 23, 25, 29];
   for (let s = 0; s <= 19; s++) {
-    for (let d = 1; d <= 5; d++) {
+    for (const d of depths) {
       const plan = generate(s, d);
       const g = plan.grid;
       assert.strictEqual(g.width, 48);
@@ -71,8 +67,9 @@ test("generate: bounded", () => {
 
 // Intrinsic - connected:
 test("generate: connected", () => {
+  const depths = [1, 2, 3, 4, 5, 7, 11, 13, 23, 25, 29, 6, 24];
   for (let s = 0; s <= 19; s++) {
-    for (let d = 1; d <= 5; d++) {
+    for (const d of depths) {
       const plan = generate(s, d);
       const g = plan.grid;
       const visited = new Set();
@@ -103,8 +100,9 @@ test("generate: connected", () => {
 
 // Intrinsic - spots-apart:
 test("generate: spots-apart", () => {
+  const depths = [1, 2, 3, 4, 5, 7, 11, 13, 23, 25, 29];
   for (let s = 0; s <= 19; s++) {
-    for (let d = 1; d <= 5; d++) {
+    for (const d of depths) {
       const plan = generate(s, d);
       const g = plan.grid;
       assert.ok(plan.spots.length >= 12 && plan.spots.length <= 40);
@@ -125,6 +123,43 @@ test("generate: spots-apart", () => {
   }
 });
 
+// Intrinsic - shop:
+test("generate: shop", () => {
+  const seeds = [0, 1, 4294967295];
+  const depths = [6, 12, 18, 24];
+  const shopTiles = generate(0, 6).grid.tiles();
+  for (const s of seeds) {
+    for (const d of depths) {
+      const plan = generate(s, d);
+      const g = plan.grid;
+      assert.strictEqual(g.width, 48);
+      assert.strictEqual(g.height, 32);
+      assert.strictEqual(g.at(14, 10), "floor");
+      assert.strictEqual(g.at(33, 21), "floor");
+      assert.strictEqual(g.at(16, 12), "floor");
+      assert.strictEqual(g.at(13, 10), "wall");
+      assert.strictEqual(g.at(34, 15), "wall");
+      assert.strictEqual(g.at(20, 9), "wall");
+      assert.strictEqual(g.at(31, 19), "stairs");
+      assert.ok(point.equals(plan.stairs, point.of(31, 19)));
+      assert.ok(point.equals(plan.start, point.of(16, 19)));
+      const expectedSpots = [
+        point.of(16, 13),
+        point.of(19, 13),
+        point.of(22, 13),
+        point.of(25, 13),
+        point.of(28, 13),
+        point.of(31, 13),
+      ];
+      assert.strictEqual(plan.spots.length, 6);
+      for (let i = 0; i < 6; i++) {
+        assert.ok(point.equals(plan.spots[i], expectedSpots[i]));
+      }
+      assert.deepStrictEqual(g.tiles(), shopTiles);
+    }
+  }
+});
+
 // Intrinsic - refuses:
 test("generate: refuses", () => {
   const bad = [
@@ -132,7 +167,7 @@ test("generate: refuses", () => {
     () => generate(1.5, 1),
     () => generate(4294967296, 1),
     () => generate(1, 0),
-    () => generate(1, 6),
+    () => generate(1, 30),
     () => generate("1", 1),
   ];
   for (const fn of bad) {

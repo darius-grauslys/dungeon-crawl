@@ -35,11 +35,11 @@ function makeWorld(changes) {
 
 test("lines", () => {
   const w = makeWorld();
-  assert.deepEqual(lines(w, 'Ann'), ['Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Depth 2/5', 'Party: Ann 18/24, Bob fallen', 'c', 'd']);
-  assert.deepEqual(lines(w, 'Bob')[0], 'Bob   HP 0/28 (fallen)   ATK 4   DEF 1   Gold 7   Depth 2/5');
-  assert.deepEqual(lines(w, 'Eve')[0], 'Watching   Gold 7   Depth 2/5');
+  assert.deepEqual(lines(w, 'Ann'), ['Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Depth 2/29', 'Party: Ann 18/24, Bob fallen', 'c', 'd']);
+  assert.deepEqual(lines(w, 'Bob')[0], 'Bob   HP 0/28 (fallen)   ATK 4   DEF 1   Gold 7   Depth 2/29');
+  assert.deepEqual(lines(w, 'Eve')[0], 'Watching   Gold 7   Depth 2/29');
   const w2 = makeWorld({ log: ['a'] });
-  assert.deepEqual(lines(w2, 'Ann'), ['Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Depth 2/5', 'Party: Ann 18/24, Bob fallen', 'a']);
+  assert.deepEqual(lines(w2, 'Ann'), ['Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Depth 2/29', 'Party: Ann 18/24, Bob fallen', 'a']);
 });
 
 test("bar", async () => {
@@ -132,35 +132,54 @@ test("world/valid", () => {
   const badEntry = save.of({ seed: 1, depth: 1, players: [] });
 
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'dead', grid: badGrid, heroes: [badAnnHero], monsters: [badMonster], items: [], visible: badVisible, explored: badExplored, gold: 0, log: [], entry: badEntry }), TypeError);
-  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 6, time: 0, state: 'playing', grid: badGrid, heroes: [badAnnHero], monsters: [badMonster], items: [], visible: badVisible, explored: badExplored, gold: 0, log: [], entry: badEntry }), TypeError);
+  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 30, time: 0, state: 'playing', grid: badGrid, heroes: [badAnnHero], monsters: [badMonster], items: [], visible: badVisible, explored: badExplored, gold: 0, log: [], entry: badEntry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: -1, state: 'playing', grid: badGrid, heroes: [badAnnHero], monsters: [badMonster], items: [], visible: badVisible, explored: badExplored, gold: 0, log: [], entry: badEntry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid: badGrid, heroes: [badAnnHero], monsters: [badMonster], items: [], visible: mask.empty(4, 3), explored: badExplored, gold: 0, log: [], entry: badEntry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid: badGrid, heroes: [badAnnHero], monsters: [actor.of({ id: 1, kind: 'hero', pos: point.of(2, 2), stats: stats.of({ hp: 10, maxHp: 20, attack: 2, defense: 2 }) })], items: [], visible: badVisible, explored: badExplored, gold: 0, log: [], entry: badEntry }), TypeError);
-  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid: badGrid, heroes: [badAnnHero, badAnnHero, badAnnHero, badAnnHero, badAnnHero], monsters: [badMonster], items: [], visible: badVisible, explored: badExplored, gold: 0, log: [], entry: badEntry }), TypeError);
+  const badHero2 = hero.of({ name: 'Bob', actor: actor.of({ id: 1, kind: 'hero', pos: point.of(2, 2), stats: stats.of({ hp: 10, maxHp: 20, attack: 2, defense: 2 }) }), alive: true });
+  const badHero3 = hero.of({ name: 'Carol', actor: actor.of({ id: 2, kind: 'hero', pos: point.of(3, 2), stats: stats.of({ hp: 10, maxHp: 20, attack: 2, defense: 2 }) }), alive: true });
+  const badHero4 = hero.of({ name: 'Dave', actor: actor.of({ id: 3, kind: 'hero', pos: point.of(1, 3), stats: stats.of({ hp: 10, maxHp: 20, attack: 2, defense: 2 }) }), alive: true });
+  const badHero5 = hero.of({ name: 'Eve', actor: actor.of({ id: 4, kind: 'hero', pos: point.of(2, 3), stats: stats.of({ hp: 10, maxHp: 20, attack: 2, defense: 2 }) }), alive: true });
+  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid: badGrid, heroes: [badAnnHero, badHero2, badHero3, badHero4, badHero5], monsters: [badMonster], items: [], visible: badVisible, explored: badExplored, gold: 0, log: [], entry: badEntry }), TypeError);
+  const badAnnActor2 = actor.of({ id: 5, kind: 'hero', pos: point.of(3, 3), stats: stats.of({ hp: 10, maxHp: 20, attack: 2, defense: 2 }) });
+  const badAnnHero2 = hero.of({ name: 'Ann', actor: badAnnActor2, alive: true });
+  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid: badGrid, heroes: [badAnnHero, badAnnHero2], monsters: [badMonster], items: [], visible: badVisible, explored: badExplored, gold: 0, log: [], entry: badEntry }), TypeError);
+  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid: badGrid, heroes: [badAnnHero], monsters: [badMonster], items: [], visible: badVisible, explored: badExplored, log: [], entry: badEntry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid: badGrid, heroes: [badAnnHero], monsters: [badMonster], items: [], visible: badVisible, explored: badExplored, gold: 0, log: Array(51).fill('x'), entry: badEntry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid: badGrid, heroes: [badAnnHero], monsters: [badMonster], items: [], visible: badVisible, explored: badExplored, gold: 0, log: [] }), TypeError);
 
+  const w29 = world.of({ seed: 1, rng: 1, depth: 29, time: 0, state: 'playing', grid: badGrid, heroes: [badAnnHero], monsters: [badMonster], items: [], visible: badVisible, explored: badExplored, gold: 0, log: [], entry: badEntry });
+  assert.equal(w29.depth, 29);
+
   assert.equal(w.with({ time: 9 }).time, 9);
   assert.equal(w.time, 0);
+
+  const w2 = world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid, heroes: [annHero], monsters: [monster], items: [itemGold], visible, explored, gold: 0, log: [], entry });
+  assert.deepStrictEqual(w, w2);
+  assert.equal(Object.hasOwn(w, 'with'), false);
+  assert.equal(Object.hasOwn(w, 'data'), false);
 });
 
 test("world/data", () => {
   const grid = tileGrid.fromRows(['#####', '#...#', '#####']);
   const annActor = actor.of({ id: 0, kind: 'hero', pos: point.of(1, 1), stats: stats.of({ hp: 10, maxHp: 20, attack: 2, defense: 2 }), held: 300, facing: 'left', last: { kind: 'attack', dx: -1, dy: 0, at: 50 } });
-  const annHero = hero.of({ name: 'Ann', actor: annActor, pending: intent.move(1, 0), alive: true });
+  const annHero = hero.of({ name: 'Ann', actor: annActor, pending: intent.move(1, 0), alive: true, offer: 12 });
   const monster = actor.of({ id: 1, kind: 'slime', pos: point.of(2, 2), stats: stats.of({ hp: 10, maxHp: 20, attack: 2, defense: 2 }), last: { kind: 'move', dx: 0, dy: 1, at: 20 } });
   const itemGold = item.of({ id: 0, kind: 'gold', pos: point.of(3, 1), amount: 1 });
+  const itemSword = item.of({ id: 12, kind: 'sword', pos: point.of(3, 1), price: 30 });
   const visible = mask.of(5, 3, [false, false, false, false, false, false, true, false, false, false, false, false, false, false, false]);
   const explored = mask.empty(5, 3);
   const entry = save.of({ seed: 1, depth: 1, players: [] });
-  const w = world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid, heroes: [annHero], monsters: [monster], items: [itemGold], visible, explored, gold: 0, log: [], entry });
+  const w = world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid, heroes: [annHero], monsters: [monster], items: [itemGold, itemSword], visible, explored, gold: 0, log: [], entry });
   const data = JSON.parse(JSON.stringify(w.data()));
   const w2 = world.fromData(data);
   assert.deepStrictEqual(w2, w);
   assert.deepEqual(w.data().grid, ['#####', '#...#', '#####']);
   assert.equal(w.data().visible[1], '01000');
+  assert.equal(w.data().items[1].price, 30);
+  assert.equal(w.data().heroes[0].offer, 12);
   const badData = JSON.parse(JSON.stringify(w.data()));
-  badData.depth = 9;
+  badData.depth = 30;
   assert.throws(() => world.fromData(badData), TypeError);
   assert.throws(() => world.fromData({}), TypeError);
 });
