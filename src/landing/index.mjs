@@ -20,7 +20,16 @@ export function show(document, { create, join }) {
 
   const nameInput = document.createElement("input");
   nameInput.id = "landing-name";
-  nameInput.maxlength = 16;
+  nameInput.maxLength = 16;
+
+  const joinGameHeading = document.createElement("p");
+  joinGameHeading.textContent = "Join a game";
+
+  const lobbyList = document.createElement("ul");
+  lobbyList.id = "landing-lobby";
+
+  const newGameHeading = document.createElement("p");
+  newGameHeading.textContent = "New game";
 
   const saveInput = document.createElement("input");
   saveInput.id = "landing-save";
@@ -31,36 +40,53 @@ export function show(document, { create, join }) {
   createButton.id = "landing-create";
   createButton.textContent = "Create session";
 
-  const sessionInput = document.createElement("input");
-  sessionInput.id = "landing-session";
-
-  const passwordInput = document.createElement("input");
-  passwordInput.id = "landing-password";
-
-  const joinButton = document.createElement("button");
-  joinButton.id = "landing-join";
-  joinButton.textContent = "Join session";
-
   const errorP = document.createElement("p");
   errorP.id = "landing-error";
 
-  const newGameHeading = document.createElement("p");
-  newGameHeading.textContent = "New game";
-
-  const joinGameHeading = document.createElement("p");
-  joinGameHeading.textContent = "Join a game";
-
   root.appendChild(nameInput);
+  root.appendChild(joinGameHeading);
+  root.appendChild(lobbyList);
   root.appendChild(newGameHeading);
   root.appendChild(saveInput);
   root.appendChild(createButton);
-  root.appendChild(joinGameHeading);
-  root.appendChild(sessionInput);
-  root.appendChild(passwordInput);
-  root.appendChild(joinButton);
   root.appendChild(errorP);
 
   document.body.appendChild(root);
+
+  const renderLobby = (sessions) => {
+    while (lobbyList.firstChild) {
+      lobbyList.removeChild(lobbyList.firstChild);
+    }
+    if (!sessions || sessions.length === 0) {
+      const li = document.createElement("li");
+      li.textContent = "No sessions yet. Create one!";
+      lobbyList.appendChild(li);
+      return;
+    }
+    for (const sess of sessions) {
+      const li = document.createElement("li");
+      const playerNames = sess.players.length > 0 ? sess.players.join(", ") : "nobody";
+      li.textContent = `${sess.session} ${playerNames} (${sess.players.length}/4) Depth ${sess.depth}`;
+      const button = document.createElement("button");
+      button.className = "landing-join";
+      button.textContent = "Join";
+      button.dataset.session = sess.session;
+      if (sess.players.length >= 4) {
+        button.disabled = true;
+      }
+      button.addEventListener("click", async () => {
+        errorP.textContent = "";
+        const name = nameInput.value.trim();
+        if (!save.isName(name)) {
+          errorP.textContent = "Enter a name of 1 to 16 characters.";
+          return;
+        }
+        join(sess.session, name);
+      });
+      li.appendChild(button);
+      lobbyList.appendChild(li);
+    }
+  };
 
   createButton.addEventListener("click", async () => {
     errorP.textContent = "";
@@ -84,23 +110,12 @@ export function show(document, { create, join }) {
     create(saveData, name);
   });
 
-  joinButton.addEventListener("click", async () => {
-    errorP.textContent = "";
-    const name = nameInput.value.trim();
-    if (!save.isName(name)) {
-      errorP.textContent = "Enter a name of 1 to 16 characters.";
-      return;
-    }
-    const session = sessionInput.value.trim().toUpperCase();
-    const password = passwordInput.value.trim();
-    if (session === "" || password === "") {
-      errorP.textContent = "Enter the session and its password.";
-      return;
-    }
-    join(session, password, name);
-  });
+  renderLobby([]);
 
   return {
+    lobby(sessions) {
+      renderLobby(sessions);
+    },
     error(text) {
       errorP.textContent = text;
     },
