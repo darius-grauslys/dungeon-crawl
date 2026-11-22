@@ -5,10 +5,8 @@ import * as worldShape from "../world/index.mjs";
 import * as intentShape from "../intent/index.mjs";
 
 const VALID_REASONS = [
-  "full", "no-session", "bad-password", "name-taken", "party-full", "not-joined", "malformed",
+  "full", "no-session", "name-taken", "party-full", "not-joined", "malformed",
 ];
-
-const UPWARD_KINDS = new Set(["create", "join", "act", "pause", "save"]);
 
 /**
  * Message: one text that crosses the WebSocket, in either direction.
@@ -28,12 +26,13 @@ class Message {
   text() {
     const obj = { kind: this.kind };
     switch (this.kind) {
+      case "list":
+        break;
       case "create":
         obj.save = this.save ? this.save.data() : null;
         break;
       case "join":
         obj.session = this.session;
-        obj.password = this.password;
         obj.name = this.name;
         break;
       case "act":
@@ -44,9 +43,15 @@ class Message {
         break;
       case "save":
         break;
+      case "lobby":
+        obj.sessions = this.sessions.map((s) => ({
+          session: s.session,
+          players: s.players.slice(),
+          depth: s.depth,
+        }));
+        break;
       case "created":
         obj.session = this.session;
-        obj.password = this.password;
         break;
       case "joined":
         obj.session = this.session;
@@ -70,6 +75,14 @@ class Message {
 }
 
 /**
+ * Create an upward message to ask for the lobby.
+ * @returns {Message}
+ */
+export function list() {
+  return new Message("list", true, {});
+}
+
+/**
  * Create an upward message to make a session.
  * @param {saveShape.Save|null} save
  * @returns {Message}
@@ -84,21 +97,17 @@ export function create(save) {
 /**
  * Create an upward message to join a session.
  * @param {string} session
- * @param {string} password
  * @param {string} name
  * @returns {Message}
  */
-export function join(session, password, name) {
+export function join(session, name) {
   if (typeof session !== "string" || session.length < 1 || session.length > 32) {
     throw new TypeError("join: session must be a string of 1 to 32 characters");
-  }
-  if (typeof password !== "string" || password.length < 1 || password.length > 32) {
-    throw new TypeError("join: password must be a string of 1 to 32 characters");
   }
   if (!saveShape.isName(name)) {
     throw new TypeError("join: name must be a valid name");
   }
-  return new Message("join", true, { session, password, name });
+  return new Message("join", true, { session, name });
 }
 
 /**
@@ -134,16 +143,55 @@ export function requestSave() {
 }
 
 /**
- * Create a downward message for a new session.
- * @param {string} session
- * @param {string} password
+ * Create a downward message carrying the lobby.
+ * @param {Array<{session: string, players: string[], depth: number}>} sessions
  * @returns {Message}
  */
-export function created(session, password) {
-  if (typeof session !== "string" || typeof password !== "string") {
-    throw new TypeError("created: session and password must be strings");
+export function lobby(sessions) {
+  if (!Array.isArray(sessions)) {
+    throw new TypeError("lobby: sessions must be an array");
   }
-  return new Message("created", false, { session, password });
+  if (sessions.length < 0 || sessions.length > 4) {
+    throw new TypeError("lobby: sessions must have 0 to 4 entries");
+  }
+  const frozenSessions = sessions.map((s) => {
+    if (typeof s.session !== "string" || s.session.length < 1 || s.session.length > 32) {
+      throw new TypeError("lobby: session must be a string of 1 to 32 characters");
+    }
+    if (!Array.isArray(s.players)) {
+      throw new TypeError("lobby: players must be an array");
+    }
+    if (s.players.length < 0 || s.players.length > 4) {
+      throw new TypeError("lobby: players must have 0 to 4 entries");
+    }
+    for (const p of s.players) {
+      if (!saveShape.isName(p)) {
+        throw new TypeError("lobby: player must be a valid name");
+      }
+    }
+    if (typeof s.depth !== "number" || !Number.isInteger(s.depth) || s.depth < 1 || s.depth > 29) {
+      throw new TypeError("lobby: depth must be an integer from 1 to 29");
+    }
+    return Object.freeze({
+      session: s.session,
+      players: Object.freeze(s.players.slice()),
+      depth: s.depth,
+    });
+  });
+  Object.freeze(frozenSessions);
+  return new Message("lobby", false, { sessions: frozenSessions });
+}
+
+/**
+ * Create a downward message for a new session.
+ * @param {string} session
+ * @returns {Message}
+ */
+export function created(session) {
+  if (typeof session !== "string" || session.length < 1 || session.length > 32) {
+    throw new TypeError("created: session must be a string of 1 to 32 characters");
+  }
+  return new Message("created", false, { session });
 }
 
 /**
@@ -223,15 +271,18 @@ export function parse(text) {
   }
 
   switch (obj.kind) {
+    case "list": {
+      return list();
+    }
     case "create": {
       const save = obj.save === null ? null : saveShape.fromData(obj.save);
       return create(save);
     }
     case "join": {
-      if (typeof obj.session !== "string" || typeof obj.password !== "string" || typeof obj.name !== "string") {
+      if (typeof obj.session !== "string" || typeof obj.name !== "string") {
         throw new TypeError("parse: join missing fields");
       }
-      return join(obj.session, obj.password, obj.name);
+      return join(obj.session, obj.name);
     }
     case "act": {
       if (!obj.intent || typeof obj.intent.kind !== "string" || typeof obj.intent.dx !== "number" || typeof obj.intent.dy !== "number") {
@@ -255,11 +306,22 @@ export function parse(text) {
     case "save": {
       return requestSave();
     }
-    case "created": {
-      if (typeof obj.session !== "string" || typeof obj.password !== "string") {
-        throw new TypeError("parse: created missing fields");
+    case "lobby": {
+      if (!Array.isArray(obj.sessions)) {
+        throw new TypeError("parse: lobby missing sessions");
       }
-      return created(obj.session, obj.password);
+      const sessions = obj.sessions.map((s) => ({
+        session: s.session,
+        players: s.players,
+        depth: s.depth,
+      }));
+      return lobby(sessions);
+    }
+    case "created": {
+      if (typeof obj.session !== "string") {
+        throw new TypeError("parse: created missing session");
+      }
+      return created(obj.session);
     }
     case "joined": {
       if (typeof obj.session !== "string" || typeof obj.name !== "string") {
