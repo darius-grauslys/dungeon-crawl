@@ -313,7 +313,7 @@ function fromSave(save) {
     const stats = statsShape.of({ hp, maxHp: p.stats.maxHp, attack: p.stats.attack, defense: p.stats.defense, range: p.stats.range || 1, magic: p.stats.magic || 0, magicPower: p.stats.magicPower || 1, magicResist: p.stats.magicResist || 0 });
     const start = startList[i] || startList[0];
     const actor = actorShape.of({ id: i, kind: "hero", pos: start, stats, ready: 0 });
-    newHeroes.push(heroShape.of({ name: p.name, actor, pending: null, alive: true }));
+    newHeroes.push(heroShape.of({ name: p.name, actor, pending: null, alive: true, colour: i, group: 0 }));
   }
   const visible = isShopDepth(save.depth) ? allTrueMask(grid.width, grid.height) : computeVisible(grid, save.depth, newHeroes);
   const explored = isShopDepth(save.depth) ? visible : maskShape.empty(grid.width, grid.height);
@@ -347,7 +347,10 @@ function join(world, name) {
   while (existingIds.has(nextId)) nextId++;
   const stats = statsShape.of(HERO_START_STATS);
   const actor = actorShape.of({ id: nextId, kind: "hero", pos: start, stats, ready: world.time });
-  const newHero = heroShape.of({ name, actor, pending: null, alive: true, offer: null });
+  let usedColors = new Set(world.heroes.map((h) => h.colour));
+  let colour = 0;
+  while (usedColors.has(colour)) colour++;
+  const newHero = heroShape.of({ name, actor, pending: null, alive: true, offer: null, colour, group: 0 });
   const newHeroes = [...world.heroes, newHero];
   const newEntry = saveShape.of({ seed: world.seed, depth: world.depth, players: [...world.entry.players, { name, stats: HERO_START_STATS }] });
   const newHeroVisible = computeVisible(world.grid, world.depth, [newHero]);
@@ -370,10 +373,10 @@ function intend(world, name, intent) {
     const dx = intent.dx, dy = intent.dy;
     const facing = actorShape.facingFor(dx, dy);
     const actor = hero.actor.with({ aim: { dx, dy }, facing });
-    const newHeroes = world.heroes.map((h) => h.name === name ? heroShape.of({ name: h.name, actor, pending: h.pending, alive: h.alive, offer: h.offer }) : h);
+    const newHeroes = world.heroes.map((h) => h.name === name ? heroShape.of({ name: h.name, actor, pending: h.pending, alive: h.alive, offer: h.offer, colour: h.colour, group: h.group }) : h);
     return worldShape.of({ ...world, heroes: newHeroes });
   }
-  const newHeroes = world.heroes.map((h) => h.name === name ? heroShape.of({ name: h.name, actor: h.actor, pending: intent, alive: h.alive, offer: h.offer }) : h);
+  const newHeroes = world.heroes.map((h) => h.name === name ? heroShape.of({ name: h.name, actor: h.actor, pending: intent, alive: h.alive, offer: h.offer, colour: h.colour, group: h.group }) : h);
   return worldShape.of({ ...world, heroes: newHeroes });
 }
 
@@ -501,7 +504,7 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
     const nx = h.actor.pos.x + dx, ny = h.actor.pos.y + dy;
     for (const it of items) {
       if (it.price > 0 && it.pos.x === nx && it.pos.y === ny) {
-        let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("attack"), aim: { dx, dy }, facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach: 1 } });
+        let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("attack"), aim: { dx, dy }, facing: actorShape.facingFor(dx, dy) });
         if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
         if (offer === it.id) {
           if (gold >= it.price) {
@@ -514,10 +517,12 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
           } else {
             offer = null;
             log.push(`Not enough gold for ${wareLabel(it.kind)}: ${it.price} needed, the party has ${gold}.`);
+            updatedActor = updatedActor.with({ gesture: { kind: "use", at: newTime } });
           }
         } else {
           offer = it.id;
           log.push(`${h.name} looks at ${wareLabel(it.kind)}: ${it.price} gold. Bump it again to buy.`);
+          updatedActor = updatedActor.with({ gesture: { kind: "use", at: newTime } });
         }
         const newHero = h.with({ actor: updatedActor, pending: null, offer });
         return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
@@ -528,7 +533,7 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
       if (it.kind === "lever" && it.pos.x === nx && it.pos.y === ny) { leverHit = it; break; }
     }
     if (leverHit) {
-      let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("attack"), aim: { dx, dy }, facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach: 1 } });
+      let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("attack"), aim: { dx, dy }, facing: actorShape.facingFor(dx, dy) });
       if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
       let golemMsg = `${h.name} pulls a lever.`;
       let monstersAfter = monstersList;
@@ -551,6 +556,7 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
           golemMsg = `${h.name} pulls a lever. The golem weakens!`;
         }
       }
+      updatedActor = updatedActor.with({ gesture: { kind: "use", at: newTime } });
       log.push(golemMsg);
       const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
       return { hero: newHero, gold, items, monstersList: monstersAfter, log: log.slice(-50), grid: undefined, rng };
@@ -663,7 +669,7 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
     reach = monster ? mk : 1;
     const aimDx = (dx === 0 && dy === 0) ? h.actor.aim.dx : dir.dx;
     const aimDy = (dx === 0 && dy === 0) ? h.actor.aim.dy : dir.dy;
-    let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("attack"), aim: (dx === 0 && dy === 0) ? h.actor.aim : { dx: aimDx, dy: aimDy }, facing: actorShape.facingFor(aimDx, aimDy), last: { kind: "attack", dx: aimDx, dy: aimDy, at: newTime, reach } });
+    let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("attack"), aim: (dx === 0 && dy === 0) ? h.actor.aim : { dx: aimDx, dy: aimDy }, facing: actorShape.facingFor(aimDx, aimDy) });
     if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
     if (wareHit) {
       if (offer === wareHit.id) {
@@ -677,10 +683,12 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
         } else {
           offer = null;
           log.push(`Not enough gold for ${wareLabel(wareHit.kind)}: ${wareHit.price} needed, the party has ${gold}.`);
+          updatedActor = updatedActor.with({ gesture: { kind: "use", at: newTime } });
         }
       } else {
         offer = wareHit.id;
         log.push(`${h.name} looks at ${wareLabel(wareHit.kind)}: ${wareHit.price} gold. Bump it again to buy.`);
+        updatedActor = updatedActor.with({ gesture: { kind: "use", at: newTime } });
       }
       const newHero = h.with({ actor: updatedActor, pending: null, offer });
       return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
@@ -711,6 +719,7 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
       } else {
         log.push(`${h.name} pulls a lever.`);
       }
+      updatedActor = updatedActor.with({ gesture: { kind: "use", at: newTime } });
       const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
       return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
     }
@@ -891,19 +900,19 @@ function advance(world, ms) {
           const newHeld = Math.max(target.held || 0, newTime + 300);
           if (!s.hit) {
             monsterLine = `The ${m.kind} misses ${meleeTarget.hero.name}.`;
-            heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer }) : hh);
+            heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
           } else {
             const nhp = target.stats.hp - s.damage;
             if (nhp <= 0) {
               monsterLine = `${meleeTarget.hero.name} falls.`;
-              heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: statsShape.of({ hp: 0, maxHp: hh.actor.stats.maxHp, attack: hh.actor.stats.attack, defense: hh.actor.stats.defense, range: hh.actor.stats.range, magic: hh.actor.stats.magic, magicPower: hh.actor.stats.magicPower, magicResist: hh.actor.stats.magicResist }), held: newHeld }), pending: hh.pending, alive: false, offer: hh.offer }) : hh);
+              heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: statsShape.of({ hp: 0, maxHp: hh.actor.stats.maxHp, attack: hh.actor.stats.attack, defense: hh.actor.stats.defense, range: hh.actor.stats.range, magic: hh.actor.stats.magic, magicPower: hh.actor.stats.magicPower, magicResist: hh.actor.stats.magicResist }), held: newHeld }), pending: hh.pending, alive: false, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
             } else {
               monsterLine = s.critical ? `Critical! The ${m.kind} hits ${meleeTarget.hero.name} for ${s.damage}.` : `The ${m.kind} hits ${meleeTarget.hero.name} for ${s.damage}.`;
               const nstats = statsShape.of({ hp: nhp, maxHp: target.stats.maxHp, attack: target.stats.attack, defense: target.stats.defense, range: target.stats.range, magic: target.stats.magic, magicPower: target.stats.magicPower, magicResist: target.stats.magicResist });
               if (isSlowed) {
-                heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld, slow: 3 }), pending: hh.pending, alive: hh.alive, offer: hh.offer }) : hh);
+                heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld, slow: 3 }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
               } else {
-                heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer }) : hh);
+                heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
               }
             }
           }
@@ -972,19 +981,19 @@ function advance(world, ms) {
         isSlowed = s.hit && s.damage > 0 && isSlowingMonster(m.kind);
         if (!s.hit) {
           monsterLine = `The ${m.kind} misses ${th.name}.`;
-          heroes = heroes.map((hh) => hh.actor.id === th.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer }) : hh);
+          heroes = heroes.map((hh) => hh.actor.id === th.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
         } else {
           const nhp = th.actor.stats.hp - s.damage;
           if (nhp <= 0) {
             monsterLine = `${th.name} falls.`;
-            heroes = heroes.map((hh) => hh.actor.id === th.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: statsShape.of({ hp: 0, maxHp: hh.actor.stats.maxHp, attack: hh.actor.stats.attack, defense: hh.actor.stats.defense, range: hh.actor.stats.range, magic: hh.actor.stats.magic, magicPower: hh.actor.stats.magicPower, magicResist: hh.actor.stats.magicResist }), held: newHeld }), pending: hh.pending, alive: false, offer: hh.offer }) : hh);
+            heroes = heroes.map((hh) => hh.actor.id === th.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: statsShape.of({ hp: 0, maxHp: hh.actor.stats.maxHp, attack: hh.actor.stats.attack, defense: hh.actor.stats.defense, range: hh.actor.stats.range, magic: hh.actor.stats.magic, magicPower: hh.actor.stats.magicPower, magicResist: hh.actor.stats.magicResist }), held: newHeld }), pending: hh.pending, alive: false, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
           } else {
             monsterLine = s.critical ? `Critical! The ${m.kind} hits ${th.name} for ${s.damage}.` : `The ${m.kind} hits ${th.name} for ${s.damage}.`;
             const nstats = statsShape.of({ hp: nhp, maxHp: th.actor.stats.maxHp, attack: th.actor.stats.attack, defense: th.actor.stats.defense, range: th.actor.stats.range, magic: th.actor.stats.magic, magicPower: th.actor.stats.magicPower, magicResist: th.actor.stats.magicResist });
             if (isSlowed) {
-              heroes = heroes.map((hh) => hh.actor.id === th.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld, slow: 3 }), pending: hh.pending, alive: hh.alive, offer: hh.offer }) : hh);
+              heroes = heroes.map((hh) => hh.actor.id === th.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld, slow: 3 }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
             } else {
-              heroes = heroes.map((hh) => hh.actor.id === th.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer }) : hh);
+              heroes = heroes.map((hh) => hh.actor.id === th.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
             }
           }
         }
@@ -1066,8 +1075,8 @@ function advance(world, ms) {
       const hp = wasAlive ? Math.min(h.actor.stats.maxHp + 4, h.actor.stats.hp + 4) : 1;
       const maxHp = h.actor.stats.maxHp + 4;
       const stats = statsShape.of({ hp, maxHp, attack: h.actor.stats.attack, defense: h.actor.stats.defense, range: h.actor.stats.range || 1, magic: h.actor.stats.magic, magicPower: h.actor.stats.magicPower, magicResist: h.actor.stats.magicResist });
-      const actor = actorShape.of({ id: h.actor.id, kind: "hero", pos: start, stats, ready: newTime, slow: 0, held: 0 });
-      newHeroes.push(heroShape.of({ name: h.name, actor, pending: null, alive: true, offer: null }));
+      const actor = actorShape.of({ id: h.actor.id, kind: "hero", pos: start, stats, ready: newTime, slow: 0, held: 0, gesture: null });
+      newHeroes.push(heroShape.of({ name: h.name, actor, pending: null, alive: true, offer: null, colour: h.colour, group: h.group }));
     }
     const visible = isShopDepth(newDepth) ? allTrueMask(newGrid.width, newGrid.height) : maskShape.empty(newGrid.width, newGrid.height);
     const explored = isShopDepth(newDepth) ? visible : maskShape.empty(newGrid.width, newGrid.height);
