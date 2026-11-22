@@ -24,6 +24,20 @@ export function tile(...args) {
   return target.tile(...args);
 }
 
+// __nirnroot_begin__ pose
+// `pose(name, anim, frame, look) -> sprite`. A frame of a creature's animation, as **Animations** says: `name` `hero` or a monster's; `anim` one of that creature's animations (a monster: `idle`; `hero`: `idle`, `sleep`, `debuff`, `power_up`, `stun`); `frame` an integer from 0 to the animation's count less 1; `look` (left out: `{colour: 0, group: 0}`, used only for `hero`) `{colour, group}`, integers from 0 to 3 and from 0 to 5. Its `image` the keyed sheet, 16 by 16. Before a `load` has resolved, answers `null`. Anything else throws a `TypeError`, loaded or not.
+// __nirnroot_end__
+export function pose(...args) {
+  return target.pose(...args);
+}
+
+// __nirnroot_begin__ frames
+// `frames(name, anim) -> integer`. How many frames the animation has (a monster's `idle` 3; the hero's as the table says). A name or an animation not of those throws a `TypeError`.
+// __nirnroot_end__
+export function frames(...args) {
+  return target.frames(...args);
+}
+
 // __nirnroot_begin__ names
 // `names() -> array`. The forty-six names, in the table's order, a fresh array each call.
 // __nirnroot_end__
