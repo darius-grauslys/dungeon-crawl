@@ -65,9 +65,9 @@ test("session: session line and remove", async () => {
   const handle = mount(document, {
     settings: () => {}, save: () => {}, pause: () => {}, back: () => {},
   });
-  handle.setSession("ABCDEF", "xyz234");
+  handle.setSession("ABCDEF");
   const sessionP = document.getElementById("menu-session");
-  assert.strictEqual(sessionP.textContent, "Session ABCDEF   Password xyz234", "#menu-session text after setSession");
+  assert.strictEqual(sessionP.textContent, "Session ABCDEF", "#menu-session text after setSession");
   handle.remove();
   assert.strictEqual(document.getElementById("menu"), null, "no #menu in the page after remove()");
 });

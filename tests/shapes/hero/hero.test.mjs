@@ -27,6 +27,7 @@ test("valid: of builds a hero with defaults", () => {
   assert.strictEqual(h.actor, a);
   assert.strictEqual(h.pending, null);
   assert.strictEqual(h.alive, true);
+  assert.strictEqual(h.offer, null);
   assert.ok(Object.isFrozen(h));
 });
 
@@ -36,6 +37,24 @@ test("valid: with replaces pending, leaves original unchanged", () => {
   const h2 = h.with({ pending: move(1, 0) });
   assert.strictEqual(h2.pending.kind, "move");
   assert.strictEqual(h.pending, null);
+});
+
+test("valid: with replaces offer, leaves original unchanged", () => {
+  const a = heroActor(5);
+  const h = of({ name: "Ann", actor: a });
+  const h2 = h.with({ offer: 12 });
+  assert.strictEqual(h2.offer, 12);
+  assert.strictEqual(h.offer, null);
+});
+
+test("valid: offer: -1 throws a TypeError", () => {
+  const a = heroActor(5);
+  assert.throws(() => of({ name: "Ann", actor: a, offer: -1 }), TypeError);
+});
+
+test("valid: offer: '12' throws a TypeError", () => {
+  const a = heroActor(5);
+  assert.throws(() => of({ name: "Ann", actor: a, offer: "12" }), TypeError);
 });
 
 test("valid: a name '' throws a TypeError", () => {
