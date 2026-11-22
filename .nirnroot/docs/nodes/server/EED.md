@@ -11,13 +11,18 @@ start and stop of all of it.
 
 How a page plays, as the server answers it:
 
+0. It sends `list()` (any time, joined or not) and gets `lobby(sessions)`:
+   every session the server holds, in the order they were made, each
+   `{session, players, depth}`: its id, the names of the connections in
+   it now (in the order they joined), and its world's depth. Sessions
+   have no password.
 1. It sends `create(save)` (a save, or `null` for a new game) and gets
-   `created(session, password)`, or `refused('full')` when the server
+   `created(session)`, or `refused('full')` when the server
    already holds 4 sessions. A new game's seed is random; a save's game
    starts on the save's floor with the save's party.
-2. It sends `join(session, password, name)` and gets `joined(session,
+2. It sends `join(session, name)` and gets `joined(session,
    name)` and then the session's `state`; or `refused` with
-   `no-session`, `bad-password`, `name-taken` (a name already played by
+   `no-session`, `name-taken` (a name already played by
    another open connection in that session), `full` (4 connections are in
    the session already) or `party-full` (the name is none of the
    session's heroes and the party has 4). A name that is a hero of the
@@ -36,7 +41,7 @@ How a page plays, as the server answers it:
 A text that isn't an upward `message` is answered `refused('malformed')`
 and the connection stays open. A session is deleted, its world with it,
 once no player has done anything in it (a `create`, a `join`, an `act`, a
-`pause`, a `save`) for `idle` milliseconds; its connections stay open and
+`pause`, a `save`; a `list` is none of these) for `idle` milliseconds; its connections stay open and
 are no longer joined. A connection that closes leaves its session; its
 hero stays in the world.
 
@@ -52,10 +57,13 @@ None
 `GET /` on the url answers 200 with a `text/html` content type.
 
 ## Intrinsic - create-join:
-A WebSocket client at `ws://127.0.0.1:<port>/ws` sends `create(null)` and gets `created(session, password)`, `session` six characters of `ABCDEFGHJKMNPQRSTUVWXYZ23456789`, `password` six of `abcdefghjkmnpqrstuvwxyz23456789`. It sends `join(session, password, 'Ann')` and gets `joined(session, 'Ann')`, then, within a second, a `state` whose world is at depth 1, state `playing`, with one hero `Ann` alive at 24 of 24 hit points, and `paused` false.
+A WebSocket client at `ws://127.0.0.1:<port>/ws` sends `create(null)` and gets `created(session)`, `session` six characters of `ABCDEFGHJKMNPQRSTUVWXYZ23456789`. It sends `join(session, 'Ann')` and gets `joined(session, 'Ann')`, then, within a second, a `state` whose world is at depth 1, state `playing`, with one hero `Ann` alive at 24 of 24 hit points, and `paused` false.
 
 ## Intrinsic - refusals:
-`join` with the right session and another password gets `refused('bad-password')`; with a session no one made, `refused('no-session')`; `act(wait())` from a connection that hasn't joined, `refused('not-joined')`; the text `nonsense`, `refused('malformed')`, and the connection is still open (a `create(null)` on it after is answered `created`).
+`join` with a session no one made gets `refused('no-session')`; `act(wait())` from a connection that hasn't joined, `refused('not-joined')`; the text `nonsense`, `refused('malformed')`, and the connection is still open (a `create(null)` on it after is answered `created`).
+
+## Intrinsic - lobby:
+On a fresh server, `list()` is answered `lobby([])`. After one client's `create(null)` (answered `created(a)`) and `join(a, 'Ann')`, and another's `create(null)` (answered `created(b)`) with no join, a third client's `list()` (it has joined nothing) is answered `lobby` with two entries: `{session: a, players: ['Ann'], depth: 1}` then `{session: b, players: [], depth: 1}`. Once a second client has joined `a` as `Bob`, `list()` gives `a`'s `players` `['Ann', 'Bob']`; once Ann's connection has closed, `['Bob']`.
 
 ## Intrinsic - at-most-four:
 Four `create(null)` are each answered `created`; a fifth, `refused('full')`.

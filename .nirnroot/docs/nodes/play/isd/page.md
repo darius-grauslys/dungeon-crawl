@@ -6,8 +6,11 @@
    (on its rejection `console.error`); `conn = net.connect(url, open)`;
    `menu.mount(document, handlers)` (closed); `landing.show(document,
    {create, join})`, whose `create(save, name)` remembers `name` and
-   sends `create(save)`, and whose `join(session, password, name)`
-   remembers all three and sends `join(...)`.
+   sends `create(save)`, and whose `join(session, name)` remembers both
+   and sends `join(...)`. The lobby: a `setInterval` of 2000 ms sending
+   `list()` while the landing shows, plus one `list()` sent at once (`net` keeps it
+   until the socket opens); `lobby` messages go to the landing handle's `lobby`. `stop` and
+   `joined` clear the interval.
 2. The keys: `input` prevents the default of every key it maps, so it
    must not listen while the landing shows (the player types there).
    Only on `joined` call `stopKeys = input.listen(document, {intent,
@@ -17,8 +20,8 @@
    remember the `performance.now()` at which the latest `state` came; once
 there is a world, draw every frame (`view.draw(world, me, paused, now)`,
 `now` as the EED says).
-4. `created(session, password)`: remember the password, send the `join`.
-   `joined`: `landing.hide()`, `menu.setSession(session, password)`,
+4. `created(session)`: send the `join`.
+   `joined`: `landing.hide()`, clear the lobby interval, `menu.setSession(session)`,
    screen `game`, start listening to the keys.
 
 The default `download`: `URL.createObjectURL(new Blob([text], {type:

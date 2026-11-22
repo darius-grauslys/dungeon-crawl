@@ -33,6 +33,9 @@ As the EED states.
 ## Intrinsic - refusals:
 As the EED states.
 
+## Intrinsic - lobby:
+As the EED states: wait for each answer before the next step.
+
 ## Intrinsic - at-most-four:
 As the EED states.
 

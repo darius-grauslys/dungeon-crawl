@@ -14,11 +14,14 @@ list is `list[Math.floor(value * list.length)]`. `newGame(seed)` and
 
 ## A floor
 
-`dungeon.generate(seed, depth)` makes the terrain. Place, in order, on the
-plan's `spots` taken from the first onward: `2 + 2 * depth` monsters, then
-the items. Monster kinds by depth, each picked from its list:
+`dungeon.generate(seed, depth)` makes the terrain; `level` (the shape)
+says what the depth is. On a **dungeon** depth, with `stage =
+level.stage(depth)` and `tier = level.tier(depth)`, place, in order, on
+the plan's `spots` taken from the first onward: `2 + 2 * stage`
+monsters, then the items. Monster kinds by stage, each picked from its
+list:
 
-| depth | kinds |
+| stage | kinds |
 |---|---|
 | 1 | bat, slime |
 | 2 | bat, slime, snake |
@@ -26,7 +29,7 @@ the items. Monster kinds by depth, each picked from its list:
 | 4 | snake, skeleton, demon |
 | 5 | skeleton, demon |
 
-Monster stats (`hp` = `maxHp`):
+Monster stats (`hp` = `maxHp`), before the tier:
 
 | kind | hp | attack | defense |
 |---|---|---|---|
@@ -36,10 +39,25 @@ Monster stats (`hp` = `maxHp`):
 | skeleton | 9 | 4 | 2 |
 | demon | 16 | 6 | 3 |
 
+With the tier: `hp` and `maxHp` are `base + Math.floor(base * tier /
+2)`, `attack` `base + tier`, `defense` `base + Math.floor(tier / 2)` (a
+`demon` of tier 4: 48/48/10/5).
+
 Items: 2 `potion`s and 2 `gold` (amount `depth * (3 + d)` with `d` a
-draw from 0 to 7), plus a `sword` on depths 2 and 4 and an `armor` on
-depths 3 and 5. Ids: heroes 0 to 3; monsters and items count up from 10,
-fresh on each floor.
+draw from 0 to 7), plus a `sword` on stages 2 and 4 and an `armor` on
+stages 3 and 5, every `price` 0. Ids: heroes 0 to 3; monsters and items
+count up from 10, fresh on each floor.
+
+On a **shop** depth (`level.kind(depth)` is `interior`): no monsters;
+the six wares on the plan's six spots in order, of the kinds `potion`,
+`sword`, `armor`, `potion`, `sword`, `armor`, each with a `price` drawn
+in that order: with `round = level.round(depth)` and the kind's base `B`
+and spread `S` (`potion` 20 and 12, `sword` 30 and 6, `armor` 40 and 6),
+`Math.round(B * 1.25 ** (round - 1)) - S + Math.floor(value * (2 * S +
+1))`, `value` one draw. So the base prices of the first shop are 20, 30
+and 40 gold, and each next shop's are a quarter more than the last's.
+`visible` and `explored` are every cell (`mask.of` with every cell
+true), on arrival and after every `advance`.
 
 **Start cells.** The plan's `start`, then the `floor` cells a
 breadth-first search from it reaches by orthogonal steps over `floor`
@@ -63,8 +81,11 @@ moment (monsters already moved count where they now are), `turn`
 is reached but with no alive hero waits (its `ready` moves on all the
 same). Every attack is `combat.resolve(attacker, defender, roll)`.
 Visibility is the `mask.union` of `fov.compute(grid, pos, 7)` over the
-alive heroes (all false with none); `explored` is `mask.union(explored,
-visible)`.
+alive heroes (all false with none), on a shop every cell; `explored` is
+`mask.union(explored, visible)`. The monsters' `blocked` also holds
+every ware's cell. A hero's `offer` goes back to `null` whenever it
+fires anything but a bump of that ware (a bump of another ware makes
+that one the offer).
 
 ## The log
 
@@ -76,6 +97,10 @@ Exactly these lines (`<h>` the hero's name, `<m>` the monster's kind):
   `The <m> misses <h>.` / `<h> falls.`
 - `<h> drinks a potion (+<healed> HP).` / `<h> picks up <n> gold.` /
   `<h> picks up a sword (+2 attack).` / `<h> puts on armor (+1 defense).`
+- `<h> looks at <ware>: <p> gold. Bump it again to buy.` /
+  `<h> buys <ware> for <p> gold.` /
+  `Not enough gold for <ware>: <p> needed, the party has <g>.`
+- `A shop! Bump a ware twice to buy it.`
 - `<h> joins the party.`
 - `All party members must be within 5 units of the exit!`
 - `The party descends to depth <d>.` /
@@ -107,6 +132,7 @@ Children this specification reaches:
 - [shape:stats](../../../shapes/stats.md)
 - [shape:strike](../../../shapes/strike.md)
 - [shape:point](../../../shapes/point.md)
+- [shape:level](../../../shapes/level.md)
 
 # Inbound Side-Effects:
 None: it reads only its arguments.

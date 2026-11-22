@@ -37,6 +37,9 @@ The edge under test:
 ## Intrinsic - starts:
 As the EED states.
 
+## Intrinsic - lobby:
+As the EED states.
+
 ## Intrinsic - creates:
 As the EED states.
 

@@ -1,5 +1,9 @@
 # dungeon: `rooms`
 
+A shop depth (`level.kind(depth)` is `interior`) answers the EED's shop,
+built cell by cell, without drawing from any generator. Every other
+depth is carved as below.
+
 How a floor is carved. Everything random comes from one generator seeded
 by `seed` and `depth` together: mulberry32 (a 32-bit generator; its state
 is a uint32, each draw adds 0x6D2B79F5 to it and mixes it) started at
@@ -37,6 +41,7 @@ This Node's edge:
 - [shape:floor-plan](../../../shapes/floor-plan.md)
 - [shape:tile-grid](../../../shapes/tile-grid.md)
 - [shape:point](../../../shapes/point.md)
+- [shape:level](../../../shapes/level.md)
 
 # Inbound Side-Effects:
 None: it reads only its arguments.

@@ -7,7 +7,7 @@ stats as the intrinsic says, else `{hp: 24, maxHp: 24, attack: 4,
 defense: 1}`; `ready` 0 unless said), monsters with `actor`'s `of` (ids
 10, 11, ...; stats as the intrinsic says, else `{hp: 5, maxHp: 5,
 attack: 2, defense: 0}`; `ready` 10000 unless said, so they stay out of
-the way; `held` 0, `facing` `right` and `last` null unless said), items with `item`'s `of`, `mask`'s `empty` for both masks, seed
+the way; `held` 0, `facing` `right` and `last` null unless said), items with `item`'s `of` (`price` 0 unless said), `mask`'s `empty` for both masks, seed
 1, rng 1 (unless the intrinsic varies it), depth 1, time 0, state
 `playing`, gold 0, an empty log, and `entry` the save of seed 1, depth 1
 and the heroes' names and stats. Intents come from `intent`'s
@@ -67,6 +67,15 @@ As the EED states.
 As the EED states.
 
 ## Intrinsic - descends:
+As the EED states.
+
+## Intrinsic - shop:
+As the EED states.
+
+## Intrinsic - buys:
+As the EED states: the ware with `item`'s `of` and its `price`.
+
+## Intrinsic - themes:
 As the EED states.
 
 ## Intrinsic - saves:

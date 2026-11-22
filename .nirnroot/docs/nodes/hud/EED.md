@@ -21,14 +21,14 @@ The panel's look:
 
 # Functions:
 ## Function - lines:
-`lines(world, me) -> array of strings`. First the status line of `me`'s hero, `<name>   HP <hp>/<maxHp>   ATK <attack>   DEF <defense>   Gold <gold>   Depth <depth>/5` (three spaces between the parts; ` (fallen)` after the HP part of a hero not alive), or `Watching   Gold <gold>   Depth <depth>/5` with no hero of that name; then the party line, `Party: ` and each hero in order as `<name> <hp>/<maxHp>`, or `<name> fallen` for one not alive, joined by `, ` (`Party: none` with no heroes); then the last two lines of the world's log, oldest first (fewer when the log is shorter).
+`lines(world, me) -> array of strings`. First the status line of `me`'s hero, `<name>   HP <hp>/<maxHp>   ATK <attack>   DEF <defense>   Gold <gold>   Depth <depth>/29` (three spaces between the parts; ` (fallen)` after the HP part of a hero not alive), or `Watching   Gold <gold>   Depth <depth>/29` with no hero of that name; then the party line, `Party: ` and each hero in order as `<name> <hp>/<maxHp>`, or `<name> fallen` for one not alive, joined by `, ` (`Party: none` with no heroes); then the last two lines of the world's log, oldest first (fewer when the log is shorter).
 
 ## Function - draw:
 `draw(ctx, x, y, width, height, world, me)`. Draws the panel for the player `me` into the rectangle (`x`, `y`, `width`, `height`) of the 2D context `ctx`, and nothing outside it (it clips to it). `x`, `y` integers, `width` and `height` integers of 1 or more, `me` a string; anything else, or a `world` that isn't one, throws a `TypeError`.
 
 # Intrinsics:
 ## Intrinsic - lines:
-For a world with `Ann` at 18 of 24 hit points, attack 4, defense 1, and `Bob` not alive (0 of 28), gold 7, depth 2 and the log `['a', 'b', 'c', 'd']`: `lines(w, 'Ann')` is `['Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Depth 2/5', 'Party: Ann 18/24, Bob fallen', 'c', 'd']`; `lines(w, 'Bob')[0]` is `'Bob   HP 0/28 (fallen)   ATK 4   DEF 1   Gold 7   Depth 2/5'`; `lines(w, 'Eve')[0]` is `'Watching   Gold 7   Depth 2/5'`; with the log `['a']`, three lines, the last `'a'`.
+For a world with `Ann` at 18 of 24 hit points, attack 4, defense 1, and `Bob` not alive (0 of 28), gold 7, depth 2 and the log `['a', 'b', 'c', 'd']`: `lines(w, 'Ann')` is `['Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Depth 2/29', 'Party: Ann 18/24, Bob fallen', 'c', 'd']`; `lines(w, 'Bob')[0]` is `'Bob   HP 0/28 (fallen)   ATK 4   DEF 1   Gold 7   Depth 2/29'`; `lines(w, 'Eve')[0]` is `'Watching   Gold 7   Depth 2/29'`; with the log `['a']`, three lines, the last `'a'`.
 
 ## Intrinsic - bar:
 On an 800 by 600 canvas filled with pure green, `draw(ctx, 0, 480, 800, 120, w, 'Ann')` with Ann at 12 of 24: the pixel (58, 494) is rgb(200, 40, 40) and (158, 494) is rgb(60, 20, 20); at 24 of 24, (206, 494) is rgb(200, 40, 40). The pixel (4, 476), outside the panel, is still pure green, and (796, 596) is rgb(40, 26, 34). For `'Eve'` (no such hero), (58, 494) is rgb(60, 20, 20).

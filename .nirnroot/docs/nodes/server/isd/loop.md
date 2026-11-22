@@ -16,13 +16,16 @@ url: handle.url, close}`; `close` clears the interval, then awaits
 1. **Inbound.** For each `[connection, text]` of `handle.drain()`, parse
    it with `message.parse`; a parse that throws, or a message that is not
    `upward`, is `refused('malformed')`. Otherwise:
-   - `create(save)`: `made = table.create(now)`; `null` is
-     `refused('full')`; else `worlds.set(made.session, save ?
+   - `list()`: send `lobby(table.ids().map(id => ({session: id,
+     players: table.members(id).map(m => m.name), depth:
+     worlds.get(id).depth})))`. Touches nothing.
+   - `create(save)`: `id = table.create(now)`; `null` is
+     `refused('full')`; else `worlds.set(id, save ?
      rules.fromSave(save) : rules.newGame(seed))`, `seed` a random integer
      from 0 to 4294967295 (`crypto.getRandomValues` or `Math.random`), and
-     send `created(made.session, made.password)`.
-   - `join(session, password, name)`: `reason = table.join(connection,
-     session, password, name, now)`; a reason is `refused(reason)`. Else
+     send `created(id)`.
+   - `join(session, name)`: `reason = table.join(connection,
+     session, name, now)`; a reason is `refused(reason)`. Else
      `next = rules.join(worlds.get(session), name)`; `null` means
      `table.leave(connection)` and `refused('party-full')`; else store
      `next`, send `joined(session, name)`, and forget what was last sent

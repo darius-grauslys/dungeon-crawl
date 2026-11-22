@@ -9,13 +9,14 @@ fields. The encoding is JSON: `{kind, ...fields}`, the fields under the
 keys named below.
 
 **Upward** (page to server). A page never names a position, a world or
-another player: it says which session it joins as whom, and what its
-player wants to do.
+another player: it asks for the lobby, says which session it joins as
+whom, and what its player wants to do.
 
 | kind | constructor | fields |
 |---|---|---|
+| `list` | `list()` | none: ask for the lobby, the sessions there are |
 | `create` | `create(save)` | `save`: a `save` (sent as its `data()`) or `null`: make a session, from that save or new |
-| `join` | `join(session, password, name)` | `session`, `password`: strings of 1 to 32 characters; `name`: a name (`save`'s `isName`) |
+| `join` | `join(session, name)` | `session`: a string of 1 to 32 characters; `name`: a name (`save`'s `isName`) |
 | `act` | `act(intent)` | `intent`: an `intent` (sent as `{kind, dx, dy}`) |
 | `pause` | `pause(paused)` | `paused`: a boolean |
 | `save` | `requestSave()` | none: ask for the session's save |
@@ -24,13 +25,16 @@ player wants to do.
 
 | kind | constructor | fields |
 |---|---|---|
-| `created` | `created(session, password)` | the new session's id and password |
+| `lobby` | `lobby(sessions)` | `sessions`: an array of 0 to 4 entries, each `{session, players, depth}`: `session` a string of 1 to 32 characters, `players` an array of 0 to 4 names (the players in it now, in the order they joined), `depth` an integer from 1 to 29 |
+| `created` | `created(session)` | the new session's id |
 | `joined` | `joined(session, name)` | the session joined, and the name played |
-| `refused` | `refused(reason)` | `reason`: one of `full`, `no-session`, `bad-password`, `name-taken`, `party-full`, `not-joined`, `malformed` |
+| `refused` | `refused(reason)` | `reason`: one of `full`, `no-session`, `name-taken`, `party-full`, `not-joined`, `malformed` |
 | `state` | `state(world, paused)` | `world`: a `world` (sent as its `data()`); `paused`: a boolean |
 | `saved` | `saved(save)` | `save`: a `save` (sent as its `data()`) |
 
-A constructor given anything else throws a `TypeError`.
+Sessions have no password: anyone may join any session the lobby lists.
+`lobby` copies its array and each entry (and each `players`), answering
+them frozen. A constructor given anything else throws a `TypeError`.
 
 # Fields:
 ## Field - kind:
@@ -46,8 +50,9 @@ of a new game.
 ## Field - session:
 Property `session` (`join`, `created`, `joined`).
 
-## Field - password:
-Property `password` (`join`, `created`).
+## Field - sessions:
+Property `sessions` (`lobby`): a frozen array of frozen `{session,
+players, depth}`.
 
 ## Field - name:
 Property `name` (`join`, `joined`).
@@ -71,15 +76,19 @@ Property `world` (`state`): a `world`.
 ## Intrinsic - valid:
 Each constructor answers a frozen message of its kind with its fields;
 `act(move(1, 0)).upward` is true and `refused('full').upward` false.
-`refused('nope')`, `join('', 'x', 'Ann')`, `join('ABCDEF', 'x', '')`,
+`refused('nope')`, `refused('bad-password')`, `join('', 'Ann')`, `join('ABCDEF', '')`,
+`lobby([{session: 'ABCDEF', players: ['Ann'], depth: 30}])`, `lobby` of
+five entries, `created('')`,
 `act({kind: 'move', dx: 1, dy: 0})` (a plain object), `pause('yes')` and
 `create({})` throw a `TypeError`. `parse` of `'nope'`, `'{}'`,
 `'{"kind":"fly"}'` and `'{"kind":"pause"}'` (its field missing) throws a
-`TypeError`.
+`TypeError`. `list().upward` is true and `lobby([]).upward` false;
+`lobby([{session: 'ABCDEF', players: ['Ann', 'Bob'], depth: 3}]).sessions[0].players[1]`
+is `'Bob'`, and the array, the entry and `players` are frozen.
 
 ## Intrinsic - round-trip:
-For one message of each of the ten kinds (an `act` of each of the five
-intent kinds, `descend()` among them; a `state` holding a small world
+For one message of each of the twelve kinds (a `lobby` of two entries
+and one of none, an `act` of each of the five intent kinds, `descend()` among them; a `state` holding a small world
 with one hero whose actor has `held` 300, `facing` `'left'` and a `last`, a `create` and a `saved` holding a save of one player, a
 `create(null)`), `parse(m.text())` passes `assert.deepStrictEqual` with
 `m`.

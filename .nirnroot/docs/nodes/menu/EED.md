@@ -9,7 +9,7 @@ centred), hidden (`display: none`) while closed, holding
 
 | element | what |
 |---|---|
-| `<p id="menu-session">` | `Session <id>   Password <password>`, or empty before `setSession` |
+| `<p id="menu-session">` | `Session <id>`, or empty before `setSession` |
 | `<button id="menu-settings">` | `Settings` (does nothing yet) |
 | `<button id="menu-save">` | `Save` |
 | `<button id="menu-pause">` | `Pause`, or `Resume` while the session is paused |
@@ -20,7 +20,7 @@ None
 
 # Functions:
 ## Function - mount:
-`mount(document, {settings, save, pause, back}) -> handle`. Puts the menu in `document.body`, closed. A click on a button calls its handler (`pause` with `true` when the button reads `Pause`, `false` when it reads `Resume`); `Back` also closes the menu. Answers a handle: `open()`, `close()`, `isOpen()`; `setPaused(paused)`, the pause button's text (`Resume` when true, `Pause` when false); `setSession(id, password)`, the session line; `remove()`, taking the menu out of the page.
+`mount(document, {settings, save, pause, back}) -> handle`. Puts the menu in `document.body`, closed. A click on a button calls its handler (`pause` with `true` when the button reads `Pause`, `false` when it reads `Resume`); `Back` also closes the menu. Answers a handle: `open()`, `close()`, `isOpen()`; `setPaused(paused)`, the pause button's text (`Resume` when true, `Pause` when false); `setSession(id)`, the session line; `remove()`, taking the menu out of the page.
 
 # Intrinsics:
 ## Intrinsic - closed:
@@ -33,4 +33,4 @@ Open, a click on `#menu-settings` calls `settings` once, `#menu-save` calls `sav
 `#menu-pause` reads `Pause`; after `setPaused(true)` it reads `Resume`, and a click calls `pause(false)`; after `setPaused(false)` it reads `Pause` again.
 
 ## Intrinsic - session:
-After `setSession('ABCDEF', 'xyz234')`, `#menu-session`'s text is `Session ABCDEF   Password xyz234`. After `remove()`, there is no `#menu` in the page.
+After `setSession('ABCDEF')`, `#menu-session`'s text is `Session ABCDEF`. After `remove()`, there is no `#menu` in the page.

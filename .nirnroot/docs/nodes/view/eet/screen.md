@@ -48,6 +48,12 @@ As the EED states.
 ## Intrinsic - animates:
 As the EED states.
 
+## Intrinsic - prices:
+As the EED states: the ware with `item`'s `of` and its `price`, Ann's `offer` with `hero`'s `of`.
+
+## Intrinsic - themes:
+As the EED states: the same world with `depth` 1, 6 and 7 (each `entry` of that depth).
+
 ## Intrinsic - sprites:
 As the EED states.
 

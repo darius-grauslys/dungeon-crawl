@@ -25,7 +25,9 @@ the background rgb(22, 13, 19):
    `visible`;
 3. the items lying on `visible` cells;
 4. the creatures standing on `visible` cells: the monsters, then the
-   alive heroes (heroes on top), each where its animation puts it.
+   alive heroes (heroes on top), each where its animation puts it;
+5. the price of every ware (an item whose `price` is above 0) on a
+   `visible` cell, over it (below).
 
 So an explored cell out of sight shows its tile alone, veiled (no items,
 no creatures). A hero that is not alive is not drawn.
@@ -39,6 +41,21 @@ standing wall is drawn as the join that fits its neighbours: the sprite
 8 (left) for each of those four neighbours that is itself a standing
 wall (a cell outside the grid is not). Whether a wall stands depends on
 the grid alone, never on what is seen.
+
+**Themes.** The floor's tiles (`floor`, `stairs` and the walls'
+`wall-<m>`) are those of the theme of the world's depth (the depths'
+themes: 1 to 5 `dungeon`, 6, 12, 18 and 24 `interior` (the shops), 7 to
+11 `frozen`, 13 to 17 `arid`, 19 to 23 `temple`, 25 to 29 `magma`),
+`atlas.tile(theme, name)`. Items and creatures are the same in every
+theme.
+
+**Prices.** A ware's price is written over its cell: the text
+`<price>g` in `bold 14px monospace`, centred on the cell's middle
+column (`textAlign` `center`), its baseline 4 pixels above the cell's
+top edge (so it stands in the bottom of the cell above), in rgb(255,
+215, 80); in rgb(120, 255, 120) when it is the `offer` of `me`'s hero
+(bumped once: one more bump buys it). Prices are written with or
+without the sprites.
 
 **Facing.** A creature whose actor's `facing` is `left` is drawn
 mirrored left to right (its sprite flipped about its own vertical
@@ -77,7 +94,8 @@ cell
 (`me`'s hero rgb(60, 120, 255), any other hero rgb(60, 200, 120), any
 monster rgb(220, 50, 50)); an item a square inset 16 pixels
 (rgb(240, 180, 40)). Once loaded, each is its sprite of the same name
-(`atlas`; every hero is `hero`; a standing wall its `wall-<m>`), drawn
+(`atlas`; every hero is `hero`; a tile its theme's `floor`, `stairs` or,
+for a standing wall, `wall-<m>`), drawn
 over the whole cell; then every
 hero but `me`'s gets a 3-pixel outline of rgb(60, 200, 120) inside its
 cell, so the player tells their own hero apart.
@@ -124,6 +142,12 @@ On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, 
 - `{kind: 'attack', dx: 1, dy: 0, at: 0}`: `draw(w, 'Ann', false, 150)` makes the pixel (72, 44) rgb(60, 120, 255) (Ann risen 16 pixels, into the cell above); `draw(w, 'Ann', false, 210)` makes (100, 72) rgb(60, 120, 255) (lunged 18 pixels right, into the stairs' cell); `draw(w, 'Ann', false, 400)` leaves (72, 44) the wall's rgb(90, 80, 90) and (100, 72) the stairs' rgb(230, 200, 60); so does `draw(w, 'Ann', false)` (`now` the world's time 0, at rest).
 - `{kind: 'move', dx: 1, dy: 0, at: 0}`: at `now` 80, (72, 46) is rgb(60, 120, 255) (hopped 12 pixels); at 200, it is rgb(90, 80, 90).
 - `{kind: 'attack', dx: 0, dy: -1, at: 0}`: at `now` 150, (54, 56) is rgb(60, 120, 255) (risen and grown to 40 pixels); at `now` 0, (54, 56) is the floor's rgb(50, 36, 44).
+
+## Intrinsic - prices:
+On the 800 by 600 canvas, before any `load`, a world on `['#######', '#.....#', '#.....#', '#######']` with every cell `visible` and `explored`, `Ann` alive at (1, 2), and a `sword` ware of `id` 12 and `price` 30 at (3, 2): after `draw(w, 'Ann', false)`, the band of pixels from (144, 64) to (191, 95) (the bottom two thirds of the cell (3, 1), above the ware) holds at least 5 pixels with red above 200, green from 160 to 240 and blue below 140, and none with green above 245 and red below 170; with Ann's `offer` 12, at least 5 pixels with green above 200 and red below 170. The same band over the cell (1, 1), above Ann, holds none of either.
+
+## Intrinsic - themes:
+After `load('/assets/')` resolves, the `flat-colours` world drawn at depth 1 and the same world at depth 7: the wall cell (2, 0) differs between the two in at least 10 pixels, and so does the floor cell (5, 1) (with the gold left out); at depth 6, (2, 0) differs from both. Ann's cell, at rest, holds the same `hero` sprite at every depth.
 
 ## Intrinsic - sprites:
 After `load('/assets/')` resolves and a `draw(w, 'Ann', false)` of the `flat-colours` world, Ann's cell (48 by 48 pixels) holds at least 3 different colours, and its centre pixel is not rgb(60, 120, 255); the pixel 1 in from the top-left corner of Bob's cell is rgb(60, 200, 120). With the monster a `snake` facing `right`, and then the same world with it facing `left`: at least 10 pixels of the monster's cell differ between the two (the floor under it is not mirrored, so compare no more than that), and the first is pixel for pixel the drawing of the snake with `facing` left out. The wall cells (2, 0) and (4, 0) (both `wall-10`) are pixel for pixel the same, and (0, 0) (`wall-6`) differs from (2, 0) in at least 10 pixels.

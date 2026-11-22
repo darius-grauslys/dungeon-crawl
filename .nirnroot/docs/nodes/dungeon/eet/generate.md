@@ -27,6 +27,9 @@ As the EED states.
 ## Intrinsic - spots-apart:
 As the EED states.
 
+## Intrinsic - shop:
+As the EED states.
+
 ## Intrinsic - refuses:
 As the EED states.
 

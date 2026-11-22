@@ -12,7 +12,7 @@ shape and Node that checks a name uses it.
 The module (`shapes/save/index.mjs`) exports:
 
 - `of({seed, depth, players})`: `seed` an integer from 0 to 4294967295;
-  `depth` an integer from 1 to 5; `players` an array of 0 to 4 entries,
+  `depth` an integer from 1 to 29 (the game's last floor); `players` an array of 0 to 4 entries,
   each `{name, stats}`, `name` a name, `stats` the four values of a
   `stats` (a `stats`, or a plain `{hp, maxHp, attack, defense}`: each is
   made a `stats` with `stats.of`, and refused as `stats.of` refuses it),
@@ -51,9 +51,10 @@ A method on the prototype, never an own property.
 # Intrinsics:
 ## Intrinsic - valid:
 `s = of({seed: 9, depth: 3, players: [{name: 'Cy', stats: stats.of({hp: 10, maxHp: 30, attack: 6, defense: 2})}]})`
-has those values, is frozen, and `s.players` is frozen.
+has those values, is frozen, and `s.players` is frozen. `depth: 29` is
+accepted.
 `parse(s.text())` passes `assert.deepStrictEqual` with `s`, and
-`s.data().format` is `'crawl-save'`. `depth: 6`, `seed: -1`, five
+`s.data().format` is `'crawl-save'`. `depth: 30`, `depth: 0`, `seed: -1`, five
 players, two players named `'Cy'`, a name `''`, a name of 17 characters,
 a name `' Cy'`, a name holding `'\n'`, and stats of `{}` or `{hp: 5, maxHp: 3, attack: 0, defense: 0}`
 each throw a `TypeError`; so do `parse('nope')`, `parse('{}')` and the

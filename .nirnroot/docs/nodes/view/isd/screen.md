@@ -8,8 +8,11 @@ outside the grid are left as background) in passes, as the EED's order
 says: the tiles, the veils (`rgba(0, 0, 0, 0.6)` over the cell), the
 items, the creatures. With sprites, a tile, an item or a creature at rest
 facing right is `ctx.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, px, py,
-48, 48)` for `s = atlas.sprite(name)` (the name: `wall-<m>` for a
-standing wall, else the tile's, the item's or the creature's kind). A
+48, 48)` for `s = atlas.sprite(name)` (a tile: `atlas.tile(level.theme(world.depth), name)`, the name
+`wall-<m>` for a standing wall, else the tile's kind; an item or a
+creature: `atlas.sprite(kind)`). The prices pass comes last on the map
+(before the panel): `ctx.font`, `textAlign`, `fillStyle`, then
+`fillText(price + 'g', px + 24, py - 4)`. A
 creature in general: `ctx.save()`, `ctx.translate(px + 24 + ox, py + 24
 + oy)`, `ctx.scale(facing === 'left' ? -k : k, k)`, draw it centred on the
 origin (`drawImage(..., -24, -24, 48, 48)`, or the flat square from -16 to
@@ -36,6 +39,7 @@ Children this specification reaches:
 - [shape:actor](../../../shapes/actor.md)
 - [shape:item](../../../shapes/item.md)
 - [shape:mask](../../../shapes/mask.md)
+- [shape:level](../../../shapes/level.md)
 
 # Inbound Side-Effects:
 The canvas given to `init`, and its size at each `draw`.

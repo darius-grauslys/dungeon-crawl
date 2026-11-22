@@ -1,7 +1,7 @@
 # atlas
 
-The game's pictures: it loads the five sprite sheets and answers where
-each named picture is. Runs in a browser.
+The game's pictures: it loads the fifteen sprite sheets and answers where
+each named picture is, and each theme's terrain tiles. Runs in a browser.
 
 The sheets are 16-pixel pixel art on an opaque background colour,
 rgb(22, 13, 19): the atlas makes every pixel of exactly that colour fully
@@ -47,6 +47,25 @@ neighbours are walls too, as the sum of 1 (up), 2 (right), 4 (down) and
 bottom, `wall-15` a crossing, `wall-14` a T (walls left, right and down), `wall-1` the
 bottom end of a wall that goes up, and `wall-0` a lone pillar.
 
+**Themes.** Each floor is drawn in its theme's terrain: its `floor`,
+its `stairs` and its sixteen `wall-<m>`. A theme's `wall-<m>` lies on
+its wall sheet at the same `sx` and `sy` as the table's `wall-<m>` (the
+sheets share the layout of their walls); its `floor` and `stairs` where
+this table says:
+
+| theme | wall sheet | floor | stairs |
+|---|---|---|---|
+| `dungeon` | `sheets/dungeon.png` | `sheets/floor.png` 0, 48 | `sheets/dungeon.png` 0, 96 |
+| `frozen` | `sheets/frozen.png` | `sheets/frozen-floor.png` 0, 48 | `sheets/frozen.png` 16, 256 |
+| `arid` | `sheets/arid.png` | `sheets/arid-floor.png` 0, 0 | `sheets/arid.png` 0, 352 |
+| `temple` | `sheets/temple.png` | `sheets/temple-floor.png` 0, 0 | `sheets/temple.png` 16, 256 |
+| `magma` | `sheets/magma.png` | `sheets/magma-floor.png` 0, 0 | `sheets/magma.png` 0, 112 |
+| `interior` | `sheets/interior.png` | `sheets/interior-floor.png` 224, 112 | `sheets/dungeon.png` 32, 96 |
+
+So the `dungeon` theme's tiles are the table's `floor`, `stairs` and
+`wall-<m>`. The fifteen sheets are the five of the first table and the
+ten new ones of this one; each is loaded once, and keyed as above.
+
 Every sprite is 16 by 16.
 
 # API Shapes:
@@ -54,10 +73,13 @@ Every sprite is 16 by 16.
 
 # Functions:
 ## Function - load:
-`load(base) -> promise`. `base` a URL prefix ending in `/` (the page's is `/assets/`); each sheet is fetched from `base` plus its path in the table. Resolves, with nothing, once all five are loaded and keyed; rejects, with an `Error` whose message contains the sheet's path, as soon as one fails to load. A later `load` replaces what an earlier one loaded once it resolves.
+`load(base) -> promise`. `base` a URL prefix ending in `/` (the page's is `/assets/`); each sheet is fetched from `base` plus its path in the table. Resolves, with nothing, once all fifteen are loaded and keyed; rejects, with an `Error` whose message contains the sheet's path, as soon as one fails to load. A later `load` replaces what an earlier one loaded once it resolves.
 
 ## Function - sprite:
 `sprite(name) -> sprite`. The `sprite` for a name of the table: its `image` the keyed sheet (a canvas), its rectangle the table's, 16 by 16. Before a `load` has resolved, answers `null`. A name not in the table throws a `TypeError`, loaded or not.
+
+## Function - tile:
+`tile(theme, name) -> sprite`. The `sprite` of the terrain tile `name` (`floor`, `stairs`, or `wall-0` to `wall-15`) of the theme `theme` (one of the six of the themes' table), as that table says: its `image` the keyed sheet, 16 by 16. Before a `load` has resolved, answers `null`. A theme or a name not of those throws a `TypeError`, loaded or not.
 
 ## Function - names:
 `names() -> array`. The twenty-nine names, in the table's order, a fresh array each call.
@@ -65,6 +87,9 @@ Every sprite is 16 by 16.
 # Intrinsics:
 ## Intrinsic - table:
 `names()` is the table's names in order. Before any `load`, `sprite('hero')` is `null`; `sprite('dragon')` throws a `TypeError`. After `load('/assets/')` resolves, each name's sprite has the table's `sx`, `sy`, `sw` 16 and `sh` 16. `names()` has 29 names, `wall-0` to `wall-15` the last sixteen in order; `sprite('wall-6')` has `sx` 32 and `sy` 0, `sprite('wall-9')` `sx` 48 and `sy` 16; `sprite('wall-16')` throws a `TypeError`.
+
+## Intrinsic - themes:
+Before any `load`, `tile('frozen', 'floor')` is `null`; `tile('lava', 'floor')`, `tile('frozen', 'wall-16')` and `tile('frozen', 'hero')` throw a `TypeError`. After `load('/assets/')` resolves: `tile('dungeon', n)` has the same `image`, `sx` and `sy` as `sprite(n)` for `n` `floor`, `stairs`, `wall-0` and `wall-15`; `tile('frozen', 'wall-6')` has `sx` 32 and `sy` 0 and an `image` other than `sprite('wall-6')`'s; `tile('interior', 'floor')` has `sx` 224 and `sy` 112; `tile('magma', 'stairs')` `sx` 0 and `sy` 112; `tile('interior', 'stairs')` has `sx` 32, `sy` 96 and the same `image` as `sprite('stairs')`; `tile('arid', 'wall-15')`, drawn at its own size on a canvas filled with pure green, leaves at least 100 of the 256 pixels not pure green; for each of the six themes, `tile(theme, 'floor')` and `tile(theme, 'wall-10')` are each 16 by 16.
 
 ## Intrinsic - keyed:
 After `load('/assets/')`, on a canvas filled with pure green (0, 255, 0), drawing `sprite('hero')` at (0, 0) at its own size leaves the pixel (0, 0) pure green (the sheet's background there is transparent), and leaves at least 20 of the 256 pixels not pure green (the hero is drawn).

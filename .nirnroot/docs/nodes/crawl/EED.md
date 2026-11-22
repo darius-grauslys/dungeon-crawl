@@ -1,10 +1,12 @@
 # crawl
 
 The root of Crawl, a real-time cooperative dungeon crawler played in the
-browser by up to four players a session: the party goes down five floors
-of rooms and corridors, fighting bats, slimes, snakes, skeletons and
-demons, picking up potions, gold, swords and armor, and wins by reaching
-the stairs of the fifth floor together. The root owns nothing but the
+browser by up to four players a session, found in a lobby: the party
+goes down 29 floors, five themes of five floors of rooms and corridors
+with a shop between two themes, fighting bats, slimes, snakes,
+skeletons and demons, picking up potions, gold, swords and armor (or
+buying them in the shops), and wins by reaching the stairs of the last
+floor together. The root owns nothing but the
 program's entry, run by the launcher (`npm start`): it starts the game's
 server, which hands the game to browsers and runs every session.
 
