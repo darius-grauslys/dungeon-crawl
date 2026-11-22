@@ -30,6 +30,8 @@ test("entry('archer'): correct row, frozen", () => {
     hp: 7,
     attack: 3,
     defense: 1,
+    magic: 0,
+    magicPower: 1,
     range: 4,
     slows: false,
     reach: 7,
@@ -44,11 +46,14 @@ test("entry('blue-snake').slows is true", () => {
   assert.equal(entry("blue-snake").slows, true);
 });
 
-test("entry('golem'): size 3, step 1600, defense 12", () => {
+test("entry('golem'): size 3, step 1600, attack 12, defense 12, magic 6, magicPower 2", () => {
   const e = entry("golem");
   assert.equal(e.size, 3);
   assert.equal(e.step, 1600);
+  assert.equal(e.attack, 12);
   assert.equal(e.defense, 12);
+  assert.equal(e.magic, 6);
+  assert.equal(e.magicPower, 2);
 });
 
 test("entry('cultist').range is 4", () => {
