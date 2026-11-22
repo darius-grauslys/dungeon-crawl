@@ -68,7 +68,7 @@ function isActor(v) {
   if (![1, 2, 3].includes(v.size)) return false;
   if (v.kind === 'hero' && v.size !== 1) return false;
   if (typeof v.small !== 'boolean') return false;
-  return Object.keys(v).length === 13;
+  return Object.keys(v).length === 14;
 }
 
 function isItem(v) {
@@ -204,23 +204,17 @@ class World {
         mode: h.actor.mode,
         size: h.actor.size,
         small: h.actor.small,
+        gesture: h.actor.gesture ? { kind: h.actor.gesture.kind, at: h.actor.gesture.at } : null,
       };
-      if ('gesture' in h.actor) {
-        actorData.gesture = h.actor.gesture ? { kind: h.actor.gesture.kind, at: h.actor.gesture.at } : null;
-      }
       const heroData = {
         name: h.name,
         alive: h.alive,
         pending: h.pending ? { kind: h.pending.kind, dx: h.pending.dx, dy: h.pending.dy } : null,
         offer: h.offer,
+        colour: h.colour ?? 0,
+        group: h.group ?? 0,
         actor: actorData,
       };
-      if ('colour' in h) {
-        heroData.colour = h.colour;
-      }
-      if ('group' in h) {
-        heroData.group = h.group;
-      }
       return heroData;
     });
 
@@ -248,10 +242,8 @@ class World {
         mode: m.mode,
         size: m.size,
         small: m.small,
+        gesture: m.gesture ? { kind: m.gesture.kind, at: m.gesture.at } : null,
       };
-      if ('gesture' in m) {
-        monsterData.gesture = m.gesture ? { kind: m.gesture.kind, at: m.gesture.at } : null;
-      }
       return monsterData;
     });
 
@@ -575,7 +567,7 @@ export function fromData(data) {
       size: actorData.size,
       small: actorData.small,
     });
-    const heroObj = heroShape.of({ name: h.name, actor: actorObj, pending, alive: h.alive, offer: h.offer });
+    const heroObj = heroShape.of({ name: h.name, actor: actorObj, pending, alive: h.alive, offer: h.offer, colour: h.colour ?? 0, group: h.group ?? 0 });
     heroObjs.push(heroObj);
   }
 
@@ -604,6 +596,7 @@ export function fromData(data) {
       mode: m.mode,
       size: m.size,
       small: m.small,
+      gesture: m.gesture ? { kind: m.gesture.kind, at: m.gesture.at } : null,
     });
     if (monsterObj.kind === 'hero') {
       throw new TypeError('world: monsters must not be of kind hero');
