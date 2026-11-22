@@ -156,17 +156,21 @@ function tryCarve(gen) {
   return floorPlan.of({ grid: gridShape, start: startPt, stairs: stairsPt, spots: spotsArr });
 }
 
-/** `generate(seed, depth) -> floor-plan`. `seed` an integer from 0 to 4294967295, `depth` an integer from 1 to 29; anything else throws a `TypeError`. On a shop depth (`level.kind(depth)` is `interior`), the shop above, whatever the seed. On any other depth, a floor 48 cells wide and 32 high: every cell of its outer border is `wall`; rooms and corridors are `floor`; exactly one cell is `stairs`. `start` is where the hero arrives. `spots` holds from 12 to 40 points, each at a Manhattan distance of at least 5 from `start`. Every `floor` and `stairs` cell can be reached from `start` by orthogonal steps over `floor` and `stairs` cells. */
+/** `generate(seed, depth) -> floor-plan`. `seed` an integer from 0 to 4294967295, `depth` an integer from 1 to 33 (`level`'s `MAX_DEPTH`); anything else throws a `TypeError`. On a shop depth (`level.kind(depth)` is `interior`), the shop above, whatever the seed; on a lair depth (`boss`), the lair above, whatever the seed. On any other depth, a floor 48 cells wide and 32 high: every cell of its outer border is `wall`; rooms and corridors are `floor`; exactly one cell is `stairs`. `start` is where the hero arrives. `spots` holds from 12 to 40 points, each at a Manhattan distance of at least 5 from `start`. No `boss`, no `levers`. Every `floor` and `stairs` cell can be reached from `start` by orthogonal steps over `floor` and `stairs` cells. */
 export function generate(seed, depth) {
   if (!Number.isInteger(seed) || seed < 0 || seed > 4294967295) {
     throw new TypeError("seed must be an integer from 0 to 4294967295");
   }
   if (!Number.isInteger(depth) || depth < 1 || depth > level.MAX_DEPTH) {
-    throw new TypeError("depth must be an integer from 1 to 29");
+    throw new TypeError("depth must be an integer from 1 to 33");
   }
 
-  if (level.kind(depth) === 'interior') {
+  const kind = level.kind(depth);
+  if (kind === 'interior') {
     return buildShopPlan();
+  }
+  if (kind === 'boss') {
+    return buildLairPlan(level.round(depth));
   }
 
   let gen = makeGenerator(seed, depth);
@@ -195,4 +199,35 @@ function buildShopPlan() {
     point.of(31, 13)
   ];
   return floorPlan.of({ grid: gridShape, start: startPt, stairs: stairsPt, spots: spotsArr });
+}
+
+function buildLairPlan(round) {
+  const tiles = new Array(WIDTH * HEIGHT).fill("wall");
+  for (let y = 4; y <= 27; y++) {
+    for (let x = 6; x <= 41; x++) {
+      tiles[y * WIDTH + x] = (x === 33 && y === 16) ? "stairs" : "floor";
+    }
+  }
+  const gridShape = tileGrid.of(WIDTH, HEIGHT, tiles);
+  const startPt = point.of(8, 16);
+  const stairsPt = point.of(33, 16);
+
+  let bossPt = null;
+  let leversArr = [];
+  let spotsArr = [];
+
+  if (round === 1) {
+    bossPt = point.of(32, 15);
+    leversArr = [point.of(12, 8), point.of(12, 24), point.of(22, 16)];
+    for (const lever of leversArr) {
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          spotsArr.push(point.of(lever.x + dx, lever.y + dy));
+        }
+      }
+    }
+  }
+
+  return floorPlan.of({ grid: gridShape, start: startPt, stairs: stairsPt, spots: spotsArr, boss: bossPt, levers: leversArr });
 }
