@@ -4,6 +4,7 @@
 import * as atlas from "../../edges/edge_to_atlas.mjs";
 import * as hud from "../../edges/edge_to_hud.mjs";
 import * as point from "../../shapes/point/index.mjs";
+import * as level from "../../shapes/level/index.mjs";
 
 let canvas_ = null;
 let ctx_ = null;
@@ -151,8 +152,9 @@ function drawTile(world, px, py, cx, cy) {
   if (kind === "wall") {
     if (!stands(world.grid, cx, cy)) return; // background
     const m = wallJoin(world.grid, cx, cy);
+    const name = `wall-${m}`;
     if (loaded_) {
-      const s = atlas.sprite(`wall-${m}`);
+      const s = atlas.tile(level.theme(world.depth), name);
       if (s) ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, px, py, 48, 48);
     } else {
       drawTileFlat(ctx_, "wall", px, py);
@@ -160,7 +162,7 @@ function drawTile(world, px, py, cx, cy) {
     return;
   }
   if (loaded_) {
-    const s = atlas.sprite(kind);
+    const s = atlas.tile(level.theme(world.depth), kind);
     if (s) ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, px, py, 48, 48);
   } else {
     drawTileFlat(ctx_, kind, px, py);
@@ -292,6 +294,35 @@ export function draw(world, me, paused, nowIn) {
             if (!isMe) drawOutline(h.actor.facing, c * 48, r * 48, anim.ox, anim.oy, anim.k);
           } else {
             drawCreatureFlat(ctx_, true, isMe, c * 48, r * 48, anim.ox, anim.oy, anim.k);
+          }
+        }
+      }
+    }
+  }
+
+  // Pass 5: the prices of wares on visible cells.
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cx = cam.x + c;
+      const cy = cam.y + r;
+      if (cx < 0 || cy < 0 || cx >= world.grid.width || cy >= world.grid.height) continue;
+      if (!world.visible.at(cx, cy)) continue;
+      for (const it of world.items) {
+        if (it.pos.x === cx && it.pos.y === cy) {
+          const price = it.price !== undefined ? it.price : 0;
+          if (price > 0) {
+            const priceText = price + "g";
+            ctx_.font = "bold 14px monospace";
+            ctx_.textAlign = "center";
+            let color = "rgb(255,215,80)";
+            for (const h of world.heroes) {
+              if (h.name === me && h.offer === it.id) {
+                color = "rgb(120,255,120)";
+                break;
+              }
+            }
+            ctx_.fillStyle = color;
+            ctx_.fillText(priceText, c * 48 + 24, r * 48 - 4);
           }
         }
       }
