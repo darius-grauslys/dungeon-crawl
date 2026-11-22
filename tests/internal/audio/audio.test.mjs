@@ -1,0 +1,95 @@
+// audio: internal tests of the Node's surface (create, controls, silent mode).
+
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import * as tileGrid from "../../../shapes/tile-grid/index.mjs";
+import * as mask from "../../../shapes/mask/index.mjs";
+import * as save from "../../../shapes/save/index.mjs";
+import * as world from "../../../shapes/world/index.mjs";
+import { create, load, update, volume, mute, resume } from "../../../src/audio/index.mjs";
+
+function makeWorld(depth = 1, state = "playing") {
+  const grid = tileGrid.fromRows(["#####", "#...#", "#####"]);
+  const visible = mask.empty(5, 3);
+  const explored = mask.empty(5, 3);
+  const entry = save.of({ seed: 1, depth, players: [] });
+  return world.of({
+    seed: 1, rng: 2, depth, time: 0, state, grid,
+    heroes: [], monsters: [], items: [], visible, explored, gold: 0, log: [], entry,
+  });
+}
+
+test("create: default volume and mute", () => {
+  const a = create({ context: null });
+  assert.strictEqual(a.volume(), 0.7);
+  assert.strictEqual(a.muted(), false);
+});
+
+test("create: controls with silent context", () => {
+  const a = create({ context: null });
+  assert.strictEqual(a.louder(), 0.8);
+  assert.strictEqual(a.louder(), 0.9);
+  assert.strictEqual(a.louder(), 1);
+  assert.strictEqual(a.louder(), 1);
+  assert.strictEqual(a.volume(), 1);
+  assert.strictEqual(a.quieter(), 0.9);
+});
+
+test("create: quieter floors to 0", () => {
+  const b = create({ context: null });
+  assert.strictEqual(b.quieter(), 0.6);
+  assert.strictEqual(b.quieter(), 0.5);
+  assert.strictEqual(b.quieter(), 0.4);
+  assert.strictEqual(b.quieter(), 0.3);
+  assert.strictEqual(b.quieter(), 0.2);
+  assert.strictEqual(b.quieter(), 0.1);
+  assert.strictEqual(b.quieter(), 0);
+  assert.strictEqual(b.quieter(), 0);
+});
+
+test("create: toggleMute", () => {
+  const a = create({ context: null });
+  assert.strictEqual(a.toggleMute(), true);
+  assert.strictEqual(a.muted(), true);
+  assert.strictEqual(a.toggleMute(), false);
+  assert.strictEqual(a.muted(), false);
+});
+
+test("create: load and resume resolve", async () => {
+  const a = create({ context: null });
+  await load(a);
+  await resume(a);
+});
+
+test("update: validates arguments", () => {
+  const a = create({ context: null });
+  const next = makeWorld();
+  assert.throws(() => update(a, {}, next, "Ann"), TypeError);
+  assert.throws(() => update(a, null, {}, "Ann"), TypeError);
+  assert.throws(() => update(a, null, next, 5), TypeError);
+  assert.throws(() => update(a, null, next), TypeError);
+});
+
+test("update: silent mode does nothing and doesn't throw", () => {
+  const a = create({ context: null });
+  const prev = makeWorld(1, "playing");
+  const next = makeWorld(2, "playing");
+  assert.doesNotThrow(() => update(a, prev, next, "Ann"));
+  assert.doesNotThrow(() => update(a, null, next, "Ann"));
+});
+
+test("volume wrapper", () => {
+  const a = create({ context: null });
+  const v = volume(a);
+  assert.strictEqual(v.get(), 0.7);
+  assert.strictEqual(v.louder(), 0.8);
+});
+
+test("mute wrapper", () => {
+  const a = create({ context: null });
+  const m = mute(a);
+  assert.strictEqual(m.get(), false);
+  assert.strictEqual(m.toggle(), true);
+  assert.strictEqual(m.get(), true);
+});
