@@ -152,7 +152,7 @@ test("message/valid: invalid inputs throw TypeError", async () => {
   assert.throws(() => m.refused("bad-password"), TypeError);
   assert.throws(() => m.join("", "Ann"), TypeError);
   assert.throws(() => m.join("ABCDEF", ""), TypeError);
-  assert.throws(() => m.lobby([{ session: "ABCDEF", players: ["Ann"], depth: 30 }]), TypeError);
+  assert.throws(() => m.lobby([{ session: "ABCDEF", players: ["Ann"], depth: 34 }]), TypeError);
   assert.throws(
     () =>
       m.lobby([
@@ -221,11 +221,12 @@ test("message/round-trip: parse(m.text()) is deepStrictEqual to m for all twelve
 
   // act of each intent kind
   const intentKinds = [
-    intent.move(1, 0),
-    intent.attack(1, 0),
+    intent.move(-1, 1),
+    intent.attack(),
     intent.use(),
     intent.wait(),
     intent.descend(),
+    intent.face(1, -1),
   ];
   for (const it of intentKinds) {
     const mAct = m.act(it);
