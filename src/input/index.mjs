@@ -19,6 +19,12 @@ const CMD_MAP = new Map([
   ["Escape", "menu"],
   ["p", "pause"],
   ["P", "pause"],
+  ["m", "mute"],
+  ["M", "mute"],
+  ["-", "quieter"],
+  ["_", "quieter"],
+  ["=", "louder"],
+  ["+", "louder"],
 ]);
 
 /** `intentFor(key, shift) -> intent`. The intent of one key alone, without chords: a direction key's `move` (or, with `shift` true, `face`), or the second table's; `null` for any other key (and for anything not a string). */
@@ -42,7 +48,7 @@ export function intentFor(key, shift) {
   return shift ? intent.face(dx, dy) : intent.move(dx, dy);
 }
 
-/** `commandFor(key) -> string`. The last table's command (`menu` or `pause`) for a key; `null` for any other. */
+/** `commandFor(key) -> string`. The last table's command (`menu`, `pause`, `mute`, `quieter` or `louder`) for a key; `null` for any other. */
 export function commandFor(key) {
   if (typeof key !== "string") return null;
   return CMD_MAP.get(key) ?? null;
