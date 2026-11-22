@@ -83,13 +83,14 @@ test("creates", async () => {
   await delay(10);
   socket.open();
 
-  assert.strictEqual(socket.sent()[0], messageShape.create(null).text());
+  assert.strictEqual(socket.sent()[0], messageShape.list().text());
+  assert.strictEqual(socket.sent()[1], messageShape.create(null).text());
 
-  socket.message(messageShape.created("ABCDEF", "xyz234").text());
-  while (socket.sent().length < 2) {
+  socket.message(messageShape.created("ABCDEF").text());
+  while (socket.sent().length < 3) {
     await delay(10);
   }
-  assert.strictEqual(socket.sent()[1], messageShape.join("ABCDEF", "xyz234", "Ann").text());
+  assert.strictEqual(socket.sent()[2], messageShape.join("ABCDEF", "Ann").text());
 
   socket.message(messageShape.joined("ABCDEF", "Ann").text());
   await delay(500);
@@ -105,6 +106,37 @@ test("creates", async () => {
   h.stop();
 });
 
+test("lobby", async () => {
+  let socket;
+  const open = (url) => {
+    socket = makeFakeSocket();
+    return socket;
+  };
+  const h = playEdge.start(document, { open });
+
+  await delay(10);
+  socket.open();
+
+  assert.strictEqual(socket.sent()[0], messageShape.list().text());
+
+  await delay(2100);
+  assert.strictEqual(socket.sent()[1], messageShape.list().text());
+
+  socket.message(messageShape.lobby([{ session: "ABCDEF", players: ["Bob"], depth: 2 }]).text());
+  await delay(500);
+
+  const joinButton = document.querySelector("#landing-lobby button.landing-join");
+  assert.ok(joinButton);
+  assert.strictEqual(joinButton.getAttribute("data-session"), "ABCDEF");
+
+  document.querySelector("#landing-name").value = "Ann";
+  joinButton.click();
+  await delay(50);
+  assert.strictEqual(socket.sent()[2], messageShape.join("ABCDEF", "Ann").text());
+
+  h.stop();
+});
+
 test("refused", async () => {
   let socket;
   const open = (url) => {
@@ -116,9 +148,9 @@ test("refused", async () => {
   await delay(10);
   socket.open();
 
-  socket.message(messageShape.refused("bad-password").text());
+  socket.message(messageShape.refused("no-session").text());
   await delay(500);
-  assert.strictEqual(document.querySelector("#landing-error").textContent, "Wrong password.");
+  assert.strictEqual(document.querySelector("#landing-error").textContent, "No such session.");
   assert.strictEqual(h.screen(), "landing");
 
   h.stop();
@@ -137,7 +169,7 @@ test("keys", async () => {
 
   await delay(10);
   socket.open();
-  socket.message(messageShape.created("ABCDEF", "xyz234").text());
+  socket.message(messageShape.created("ABCDEF").text());
   socket.message(messageShape.joined("ABCDEF", "Ann").text());
   const w = makeSmallWorld();
   socket.message(messageShape.state(w, false).text());
@@ -182,7 +214,7 @@ test("menu", async () => {
 
   await delay(10);
   socket.open();
-  socket.message(messageShape.created("ABCDEF", "xyz234").text());
+  socket.message(messageShape.created("ABCDEF").text());
   socket.message(messageShape.joined("ABCDEF", "Ann").text());
   const w = makeSmallWorld();
   socket.message(messageShape.state(w, false).text());
@@ -193,7 +225,6 @@ test("menu", async () => {
   assert.strictEqual(h.menuOpen(), true);
   assert.notStrictEqual(getComputedStyle(document.querySelector("#menu")).display, "none");
   assert.ok(document.querySelector("#menu-session").textContent.includes("ABCDEF"));
-  assert.ok(document.querySelector("#menu-session").textContent.includes("xyz234"));
 
   const evArrow = new KeyboardEvent("keydown", { key: "ArrowLeft", cancelable: true });
   document.dispatchEvent(evArrow);
