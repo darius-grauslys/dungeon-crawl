@@ -1,10 +1,21 @@
 // hud: a status panel under the map
 
-/** `lines(world, me) -> array of strings`. First the status line of `me`'s hero, `<name>   HP <hp>/<maxHp>   ATK <attack>   DEF <defense>   Gold <gold>   Depth <depth>/29` (three spaces between the parts; ` (fallen)` after the HP part of a hero not alive), or `Watching   Gold <gold>   Depth <depth>/29` with no hero of that name; then the party line, `Party: ` and each hero in order as `<name> <hp>/<maxHp>`, or `<name> fallen` for one not alive, joined by `, ` (`Party: none` with no heroes); then the last two lines of the world's log, oldest first (fewer when the log is shorter). */
+import * as level from "../../shapes/level/index.mjs";
+
+function where(depth) {
+  const lbl = level.label(depth);
+  if (lbl.startsWith("Level ")) {
+    return lbl + "/25";
+  }
+  return lbl;
+}
+
+/** `lines(world, me) -> array of strings`. First the status line of `me`'s hero, `<name>   HP <hp>/<maxHp>   ATK <attack>   DEF <defense>   Gold <gold>   <where>` (three spaces between the parts; ` (fallen)` after the HP part of a hero not alive; `   Slowed <slow>` at the end while its actor's `slow` is above 0), or `Watching   Gold <gold>   <where>` with no hero of that name; `<where>` is `Level <n>/25` on a dungeon floor (`n` `level.number(depth)`), `Shop` on a shop and `Lair` on a lair (shops and lairs have no number); then the party line, `Party: ` and each hero in order as `<name> <hp>/<maxHp>`, or `<name> fallen` for one not alive, joined by `, ` (`Party: none` with no heroes); then the last two lines of the world's log, oldest first (fewer when the log is shorter). */
 export function lines(world, me) {
   const gold = world.gold;
   const depth = world.depth;
   const log = world.log;
+  const whereText = where(depth);
 
   // status line
   const hero = world.heroes.find((h) => h.name === me);
@@ -16,9 +27,14 @@ export function lines(world, me) {
     const attack = stats.attack;
     const defense = stats.defense;
     const hpPart = hero.alive ? `HP ${hp}/${maxHp}` : `HP ${hp}/${maxHp} (fallen)`;
-    statusLine = `${hero.name}   ${hpPart}   ATK ${attack}   DEF ${defense}   Gold ${gold}   Depth ${depth}/29`;
+    let slowPart = "";
+    const slow = hero.actor.slow;
+    if (slow > 0) {
+      slowPart = `   Slowed ${slow}`;
+    }
+    statusLine = `${hero.name}   ${hpPart}   ATK ${attack}   DEF ${defense}   Gold ${gold}   ${whereText}${slowPart}`;
   } else {
-    statusLine = `Watching   Gold ${gold}   Depth ${depth}/29`;
+    statusLine = `Watching   Gold ${gold}   ${whereText}`;
   }
 
   // party line
