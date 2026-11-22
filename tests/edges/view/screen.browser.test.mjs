@@ -334,6 +334,36 @@ test("animates", async () => {
     draw(w, "Ann", false, 80);
     let p = getData(72, 46);
     assert.equal(p.r, 60); assert.equal(p.g, 120); assert.equal(p.b, 255);
+    p = getData(72, 42);
+    assert.equal(p.r, 60); assert.equal(p.g, 120); assert.equal(p.b, 255);
+    draw(w, "Ann", false, 200);
+    p = getData(72, 46);
+    assert.equal(p.r, 90); assert.equal(p.g, 80); assert.equal(p.b, 90);
+  }
+
+  // {kind: 'move', dx: 0, dy: 1, at: 0}
+  {
+    const hAnn = makeAnn({ kind: "move", dx: 0, dy: 1, at: 0 });
+    const w = makeWorld(hAnn);
+    draw(w, "Ann", false, 80);
+    let p = getData(72, 46);
+    assert.equal(p.r, 60); assert.equal(p.g, 120); assert.equal(p.b, 255);
+    p = getData(72, 42);
+    assert.equal(p.r, 60); assert.equal(p.g, 120); assert.equal(p.b, 255);
+    draw(w, "Ann", false, 200);
+    p = getData(72, 46);
+    assert.equal(p.r, 90); assert.equal(p.g, 80); assert.equal(p.b, 90);
+  }
+
+  // {kind: 'move', dx: -1, dy: 1, at: 0}
+  {
+    const hAnn = makeAnn({ kind: "move", dx: -1, dy: 1, at: 0 });
+    const w = makeWorld(hAnn);
+    draw(w, "Ann", false, 80);
+    let p = getData(72, 46);
+    assert.equal(p.r, 60); assert.equal(p.g, 120); assert.equal(p.b, 255);
+    p = getData(72, 42);
+    assert.equal(p.r, 60); assert.equal(p.g, 120); assert.equal(p.b, 255);
     draw(w, "Ann", false, 200);
     p = getData(72, 46);
     assert.equal(p.r, 90); assert.equal(p.g, 80); assert.equal(p.b, 90);
@@ -381,7 +411,7 @@ test("aim", async () => {
   {
     const hAnn = makeAnn({ dx: 1, dy: 0 }, 1);
     const w = makeWorld(hAnn);
-    draw(w, "Ann", false, 300);
+    draw(w, "Ann", false, 300, true);
     let p = getData(120, 72);
     assert.equal(p.r, 255); assert.equal(p.g, 140); assert.equal(p.b, 0);
     draw(w, "Ann", false, 0);
@@ -390,13 +420,20 @@ test("aim", async () => {
     draw(w, "Ann", false, 600);
     p = getData(120, 72);
     assert.equal(p.r, 230); assert.equal(p.g, 200); assert.equal(p.b, 60);
+    // not aiming: no dot when aiming is left out or false
+    draw(w, "Ann", false, 300);
+    p = getData(120, 72);
+    assert.equal(p.r, 230); assert.equal(p.g, 200); assert.equal(p.b, 60);
+    draw(w, "Ann", false, 300, false);
+    p = getData(120, 72);
+    assert.equal(p.r, 230); assert.equal(p.g, 200); assert.equal(p.b, 60);
   }
 
   // range 3, aiming (1,0)
   {
     const hAnn = makeAnn({ dx: 1, dy: 0 }, 3);
     const w = makeWorld(hAnn);
-    draw(w, "Ann", false, 300);
+    draw(w, "Ann", false, 300, true);
     let p = getData(216, 72);
     assert.equal(p.r, 255); assert.equal(p.g, 140); assert.equal(p.b, 0);
     p = getData(120, 72);
@@ -407,7 +444,7 @@ test("aim", async () => {
   {
     const hAnn = makeAnn({ dx: -1, dy: 0 }, 1);
     const w = makeWorld(hAnn);
-    draw(w, "Ann", false, 300);
+    draw(w, "Ann", false, 300, true);
     const data = ctx.getImageData(0, 0, 800, 480).data;
     let hasDot = false;
     for (let i = 0; i < data.length; i += 4) {
@@ -420,7 +457,7 @@ test("aim", async () => {
   {
     const hAnn = makeAnn({ dx: 1, dy: 0 }, 1);
     const w = makeWorld(hAnn);
-    draw(w, "Eve", false, 300);
+    draw(w, "Eve", false, 300, true);
     const data = ctx.getImageData(0, 0, 800, 480).data;
     let hasDot = false;
     for (let i = 0; i < data.length; i += 4) {
