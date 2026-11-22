@@ -940,6 +940,7 @@ function advance(world, ms) {
       acted = true; continue;
     } else {
       newMonsters.push(m.with({ ready: newTime + bestiary.entry(m.kind).step, mode }));
+      acted = true;
     }
     if (!acted) newMonsters.push(m);
   }
