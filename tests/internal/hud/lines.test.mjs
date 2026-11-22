@@ -55,8 +55,24 @@ test("lines: where is Level n/25 at dungeon floors", () => {
 
 test("lines: Slowed line when slow above 0", () => {
   const world = makeWorld(7, 2, ["a", "b", "c", "d"], [
-    { name: "Ann", alive: true, actor: { stats: { hp: 18, maxHp: 24, attack: 4, defense: 1 }, slow: 2 } },
-    { name: "Bob", alive: false, actor: { stats: { hp: 0, maxHp: 28, attack: 4, defense: 1 }, slow: 0 } }
+    { name: "Ann", alive: true, actor: { stats: { hp: 18, maxHp: 24, attack: 4, defense: 1, magicPower: 1, magicResist: 0 }, slow: 2 } },
+    { name: "Bob", alive: false, actor: { stats: { hp: 0, maxHp: 28, attack: 4, defense: 1, magicPower: 1, magicResist: 0 }, slow: 0 } }
   ]);
   assert.strictEqual(lines(world, "Ann")[0], "Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Level 2/25   Slowed 2");
+});
+
+test("lines: MP/MR when magicPower above 1", () => {
+  const world = makeWorld(7, 2, ["a", "b", "c", "d"], [
+    { name: "Ann", alive: true, actor: { stats: { hp: 18, maxHp: 24, attack: 4, defense: 1, magicPower: 2, magicResist: 0 }, slow: 0 } },
+    { name: "Bob", alive: false, actor: { stats: { hp: 0, maxHp: 28, attack: 4, defense: 1, magicPower: 1, magicResist: 0 }, slow: 0 } }
+  ]);
+  assert.strictEqual(lines(world, "Ann")[0], "Ann   HP 18/24   ATK 4   DEF 1   MP 2   MR 0   Gold 7   Level 2/25");
+});
+
+test("lines: MP/MR when magicResist above 0", () => {
+  const world = makeWorld(7, 2, ["a", "b", "c", "d"], [
+    { name: "Ann", alive: true, actor: { stats: { hp: 18, maxHp: 24, attack: 4, defense: 1, magicPower: 1, magicResist: 1 }, slow: 0 } },
+    { name: "Bob", alive: false, actor: { stats: { hp: 0, maxHp: 28, attack: 4, defense: 1, magicPower: 1, magicResist: 0 }, slow: 0 } }
+  ]);
+  assert.strictEqual(lines(world, "Ann")[0], "Ann   HP 18/24   ATK 4   DEF 1   MP 1   MR 1   Gold 7   Level 2/25");
 });
