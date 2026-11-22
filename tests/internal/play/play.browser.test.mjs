@@ -160,6 +160,10 @@ test("keys", async () => {
   document.dispatchEvent(evP);
   assert.strictEqual(socket.sent()[5], messageShape.pause(true).text());
 
+  const evDescend = new KeyboardEvent("keydown", { key: ">", cancelable: true });
+  document.dispatchEvent(evDescend);
+  assert.strictEqual(socket.sent()[6], messageShape.act(intentShape.descend()).text());
+
   h.stop();
 });
 

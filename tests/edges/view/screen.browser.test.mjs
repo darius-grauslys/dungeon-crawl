@@ -247,15 +247,13 @@ test("paused", async () => {
   assert.ok(!(p[0] === 0 && p[1] === 0 && p[2] === 0), "row 240 not paused band");
 });
 
-test("sprites", async () => {
+test("walls", async () => {
   const canvas = document.querySelector("canvas");
   init(canvas);
 
-  await load("/assets/");
-
-  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
-  const visible = fullMask(7, 3);
-  const explored = fullMask(7, 3);
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######", "#######"]);
+  const visible = fullMask(7, 4);
+  const explored = fullMask(7, 4);
   const hAnn = makeHero("Ann", 0, 1, 1, true);
   const hBob = makeHero("Bob", 1, 3, 1, true);
   const monster = makeMonster(2, "slime", 4, 1);
@@ -267,6 +265,112 @@ test("sprites", async () => {
   });
 
   draw(w, "Ann", false);
+
+  const ctx = canvas.getContext("2d");
+  const getData = (cx, cy) => {
+    const data = ctx.getImageData(cx, cy, 1, 1).data;
+    return { r: data[0], g: data[1], b: data[2], a: data[3] };
+  };
+
+  let p = getData(3 * 48 + 24, 2 * 48 + 24);
+  assert.equal(p.r, 90); assert.equal(p.g, 80); assert.equal(p.b, 90);
+
+  p = getData(3 * 48 + 24, 3 * 48 + 24);
+  assert.equal(p.r, 22); assert.equal(p.g, 13); assert.equal(p.b, 19);
+});
+
+test("animates", async () => {
+  const canvas = document.querySelector("canvas");
+  init(canvas);
+
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const visible = fullMask(7, 3);
+  const explored = fullMask(7, 3);
+
+  const ctx = canvas.getContext("2d");
+  const getData = (cx, cy) => {
+    const data = ctx.getImageData(cx, cy, 1, 1).data;
+    return { r: data[0], g: data[1], b: data[2], a: data[3] };
+  };
+
+  const makeAnn = (last) => {
+    const a = actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: makeStats(), last });
+    return hero.of({ name: "Ann", actor: a, pending: null, alive: true });
+  };
+
+  const makeWorld = (hAnn) => world.of({
+    seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+    grid, heroes: [hAnn], monsters: [], items: [],
+    visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
+  });
+
+  // {kind: 'attack', dx: 1, dy: 0, at: 0}
+  {
+    const hAnn = makeAnn({ kind: "attack", dx: 1, dy: 0, at: 0 });
+    const w = makeWorld(hAnn);
+    draw(w, "Ann", false, 150);
+    let p = getData(72, 44);
+    assert.equal(p.r, 60); assert.equal(p.g, 120); assert.equal(p.b, 255);
+    draw(w, "Ann", false, 210);
+    p = getData(100, 72);
+    assert.equal(p.r, 60); assert.equal(p.g, 120); assert.equal(p.b, 255);
+    draw(w, "Ann", false, 400);
+    p = getData(72, 44);
+    assert.equal(p.r, 90); assert.equal(p.g, 80); assert.equal(p.b, 90);
+    p = getData(100, 72);
+    assert.equal(p.r, 230); assert.equal(p.g, 200); assert.equal(p.b, 60);
+    draw(w, "Ann", false);
+    p = getData(72, 44);
+    assert.equal(p.r, 90); assert.equal(p.g, 80); assert.equal(p.b, 90);
+    p = getData(100, 72);
+    assert.equal(p.r, 230); assert.equal(p.g, 200); assert.equal(p.b, 60);
+  }
+
+  // {kind: 'move', dx: 1, dy: 0, at: 0}
+  {
+    const hAnn = makeAnn({ kind: "move", dx: 1, dy: 0, at: 0 });
+    const w = makeWorld(hAnn);
+    draw(w, "Ann", false, 80);
+    let p = getData(72, 46);
+    assert.equal(p.r, 60); assert.equal(p.g, 120); assert.equal(p.b, 255);
+    draw(w, "Ann", false, 200);
+    p = getData(72, 46);
+    assert.equal(p.r, 90); assert.equal(p.g, 80); assert.equal(p.b, 90);
+  }
+
+  // {kind: 'attack', dx: 0, dy: -1, at: 0}
+  {
+    const hAnn = makeAnn({ kind: "attack", dx: 0, dy: -1, at: 0 });
+    const w = makeWorld(hAnn);
+    draw(w, "Ann", false, 150);
+    let p = getData(54, 56);
+    assert.equal(p.r, 60); assert.equal(p.g, 120); assert.equal(p.b, 255);
+    draw(w, "Ann", false, 0);
+    p = getData(54, 56);
+    assert.equal(p.r, 50); assert.equal(p.g, 36); assert.equal(p.b, 44);
+  }
+});
+
+test("sprites", async () => {
+  const canvas = document.querySelector("canvas");
+  init(canvas);
+
+  await load("/assets/");
+
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const visible = fullMask(7, 3);
+  const explored = fullMask(7, 3);
+  const hAnn = makeHero("Ann", 0, 1, 1, true);
+  const hBob = makeHero("Bob", 1, 3, 1, true);
+  const monsterRight = actor.of({ id: 2, kind: "snake", pos: point.of(4, 1), stats: makeStats(), facing: "right" });
+  const itemGold = makeItem(0, "gold", 5, 1, 10);
+  const wRight = world.of({
+    seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+    grid, heroes: [hAnn, hBob], monsters: [monsterRight], items: [itemGold],
+    visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
+  });
+
+  draw(wRight, "Ann", false);
 
   const ctx = canvas.getContext("2d");
   const data = ctx.getImageData(48, 48, 48, 48).data;
@@ -282,6 +386,55 @@ test("sprites", async () => {
 
   const bdata = ctx.getImageData(145, 49, 1, 1).data;
   assert.equal(bdata[0], 60); assert.equal(bdata[1], 200); assert.equal(bdata[2], 120);
+
+  const monsterRightData = ctx.getImageData(192, 48, 48, 48).data;
+
+  const monsterLeft = actor.of({ id: 2, kind: "snake", pos: point.of(4, 1), stats: makeStats(), facing: "left" });
+  const wLeft = world.of({
+    seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+    grid, heroes: [hAnn, hBob], monsters: [monsterLeft], items: [itemGold],
+    visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
+  });
+
+  draw(wLeft, "Ann", false);
+  const monsterLeftData = ctx.getImageData(192, 48, 48, 48).data;
+
+  let diffCount = 0;
+  for (let i = 0; i < monsterRightData.length; i += 4) {
+    const rDiff = monsterRightData[i] !== monsterLeftData[i];
+    const gDiff = monsterRightData[i + 1] !== monsterLeftData[i + 1];
+    const bDiff = monsterRightData[i + 2] !== monsterLeftData[i + 2];
+    const aDiff = monsterRightData[i + 3] !== monsterLeftData[i + 3];
+    if (rDiff || gDiff || bDiff || aDiff) diffCount++;
+  }
+  assert.ok(diffCount >= 10, "at least 10 pixels differ between right and left facing");
+
+  const monsterDefault = actor.of({ id: 2, kind: "snake", pos: point.of(4, 1), stats: makeStats() });
+  const wDefault = world.of({
+    seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+    grid, heroes: [hAnn, hBob], monsters: [monsterDefault], items: [itemGold],
+    visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
+  });
+  draw(wDefault, "Ann", false);
+  const monsterDefaultData = ctx.getImageData(192, 48, 48, 48).data;
+
+  for (let i = 0; i < monsterRightData.length; i++) {
+    assert.equal(monsterRightData[i], monsterDefaultData[i], `pixel ${i} matches default facing`);
+  }
+
+  const wall20 = ctx.getImageData(96, 0, 48, 48).data;
+  const wall40 = ctx.getImageData(192, 0, 48, 48).data;
+  const wall00 = ctx.getImageData(0, 0, 48, 48).data;
+
+  for (let i = 0; i < wall20.length; i++) {
+    assert.equal(wall20[i], wall40[i], "wall-10 cells (2,0) and (4,0) pixel for pixel same");
+  }
+
+  let wallDiff = 0;
+  for (let i = 0; i < wall00.length; i++) {
+    if (wall00[i] !== wall20[i]) wallDiff++;
+  }
+  assert.ok(wallDiff >= 10, "wall-6 (0,0) differs from wall-10 (2,0) in at least 10 pixels");
 });
 
 test("world/valid", () => {
