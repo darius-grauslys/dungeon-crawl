@@ -2,8 +2,8 @@
 
 import { of as pointOf } from '../point/index.mjs';
 
-/** The five kind names, in the table's order. */
-export const KINDS = Object.freeze(['potion', 'gold', 'sword', 'armor', 'lever']);
+/** The seven kind names, in the table's order. */
+export const KINDS = Object.freeze(['potion', 'gold', 'sword', 'armor', 'ring', 'necklace', 'lever']);
 
 /**
  * Create an immutable item.

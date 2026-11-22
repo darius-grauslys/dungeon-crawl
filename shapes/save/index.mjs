@@ -158,6 +158,9 @@ export class Save {
           attack: p.stats.attack,
           defense: p.stats.defense,
           range: p.stats.range,
+          magic: p.stats.magic,
+          magicPower: p.stats.magicPower,
+          magicResist: p.stats.magicResist,
         },
       })),
     };

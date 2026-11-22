@@ -30,6 +30,10 @@ test("save: valid creation has values and is frozen", () => {
   assert.ok(Object.isFrozen(s.players[0].stats));
 
   assert.strictEqual(s.data().format, "crawl-save");
+  assert.strictEqual(s.data().players[0].stats.range, 1);
+  assert.strictEqual(s.data().players[0].stats.magic, 0);
+  assert.strictEqual(s.data().players[0].stats.magicPower, 1);
+  assert.strictEqual(s.data().players[0].stats.magicResist, 0);
 
   const parsed = parse(s.text());
   assert.deepStrictEqual(parsed, s);
@@ -194,4 +198,35 @@ test("save: range round-trips through parse", () => {
   });
   const parsed = parse(s.text());
   assert.strictEqual(parsed.players[0].stats.range, 4);
+});
+
+test("save: stats without magic defaults", () => {
+  const s = of({
+    seed: 9,
+    depth: 3,
+    players: [{ name: "Cy", stats: { hp: 10, maxHp: 30, attack: 6, defense: 2 } }],
+  });
+  assert.strictEqual(s.players[0].stats.range, 1);
+  assert.strictEqual(s.players[0].stats.magic, 0);
+  assert.strictEqual(s.players[0].stats.magicPower, 1);
+  assert.strictEqual(s.players[0].stats.magicResist, 0);
+  assert.strictEqual(s.data().players[0].stats.range, 1);
+  assert.strictEqual(s.data().players[0].stats.magic, 0);
+  assert.strictEqual(s.data().players[0].stats.magicPower, 1);
+  assert.strictEqual(s.data().players[0].stats.magicResist, 0);
+});
+
+test("save: magic fields round-trip through parse", () => {
+  const s = of({
+    seed: 9,
+    depth: 3,
+    players: [
+      { name: "Cy", stats: { hp: 10, maxHp: 30, attack: 6, defense: 2, range: 4, magic: 6, magicPower: 2, magicResist: 3 } },
+    ],
+  });
+  const parsed = parse(s.text());
+  assert.strictEqual(parsed.players[0].stats.range, 4);
+  assert.strictEqual(parsed.players[0].stats.magic, 6);
+  assert.strictEqual(parsed.players[0].stats.magicPower, 2);
+  assert.strictEqual(parsed.players[0].stats.magicResist, 3);
 });

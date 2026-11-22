@@ -255,10 +255,12 @@ test('world: intrinsic data - fromData(data()) round trip passes deepStrictEqual
   const swordItem = itemShape.of({ id: 12, kind: 'sword', pos: pointShape.of(3, 1), price: 30 });
   const leverItem = itemShape.of({ id: 13, kind: 'lever', pos: pointShape.of(2, 1), pulled: true });
   const flungGold = itemShape.of({ id: 14, kind: 'gold', pos: pointShape.of(4, 0), amount: 5, flung: { x: 1, y: 1, at: 40 } });
+  const ringItem = itemShape.of({ id: 15, kind: 'ring', pos: pointShape.of(1, 0), price: 35 });
+  const necklaceItem = itemShape.of({ id: 16, kind: 'necklace', pos: pointShape.of(0, 0) });
   const visibleWithOne = maskShape.of(5, 3, [false, false, false, false, false, false, true, false, false, false, false, false, false, false, false]);
   const fields = {
     seed: 123, rng: 456, depth: 2, time: 0, state: 'playing',
-    grid, heroes: [heroWithPending], monsters: [monster, golem, archer], items: [item, swordItem, leverItem, flungGold],
+    grid, heroes: [heroWithPending], monsters: [monster, golem, archer], items: [item, swordItem, leverItem, flungGold, ringItem, necklaceItem],
     visible: visibleWithOne, explored, gold: 7, log: ['start'], entry
   };
   const w = worldOf(fields);
@@ -307,10 +309,12 @@ test('world: intrinsic data - data().grid and data().visible[1]', () => {
   const swordItem = itemShape.of({ id: 12, kind: 'sword', pos: pointShape.of(3, 1), price: 30 });
   const leverItem = itemShape.of({ id: 13, kind: 'lever', pos: pointShape.of(2, 1), pulled: true });
   const flungGold = itemShape.of({ id: 14, kind: 'gold', pos: pointShape.of(4, 0), amount: 5, flung: { x: 1, y: 1, at: 40 } });
+  const ringItem = itemShape.of({ id: 15, kind: 'ring', pos: pointShape.of(1, 0), price: 35 });
+  const necklaceItem = itemShape.of({ id: 16, kind: 'necklace', pos: pointShape.of(0, 0) });
   const visibleWithOne = maskShape.of(5, 3, [false, false, false, false, false, false, true, false, false, false, false, false, false, false, false]);
   const fields = {
     seed: 123, rng: 456, depth: 2, time: 0, state: 'playing',
-    grid, heroes: [heroWithPending], monsters: [monster, golem, archer], items: [item, swordItem, leverItem, flungGold],
+    grid, heroes: [heroWithPending], monsters: [monster, golem, archer], items: [item, swordItem, leverItem, flungGold, ringItem, necklaceItem],
     visible: visibleWithOne, explored, gold: 7, log: ['start'], entry
   };
   const w = worldOf(fields);
@@ -320,6 +324,10 @@ test('world: intrinsic data - data().grid and data().visible[1]', () => {
   assert.strictEqual(w.data().heroes[0].offer, 12);
   assert.strictEqual(w.data().items[2].pulled, true);
   assert.deepStrictEqual(w.data().items[3].flung, { x: 1, y: 1, at: 40 });
+  assert.strictEqual(w.data().items[4].kind, 'ring');
+  assert.strictEqual(w.data().items[4].price, 35);
+  assert.strictEqual(w.data().items[5].kind, 'necklace');
+  assert.strictEqual(w.data().items[5].price, 0);
   assert.strictEqual(w.data().monsters[2].last.reach, 3);
   assert.strictEqual(w.data().monsters[2].stats.range, 4);
 });
@@ -332,4 +340,21 @@ test('world: intrinsic data - data() with depth 34 throws TypeError', () => {
   const { world } = makeWorld();
   const d = world.data();
   assert.throws(() => worldFromData({ ...d, depth: 34 }), TypeError);
+});
+
+test('world: items may be ring or necklace', () => {
+  const { grid, hero, monster, visible, explored, entry } = makeValidComponents();
+  const ringItem = itemShape.of({ id: 15, kind: 'ring', pos: pointShape.of(1, 0), price: 35 });
+  const necklaceItem = itemShape.of({ id: 16, kind: 'necklace', pos: pointShape.of(0, 0) });
+  const w = worldOf({
+    seed: 123, rng: 456, depth: 2, time: 0, state: 'playing',
+    grid, heroes: [hero], monsters: [monster], items: [ringItem, necklaceItem],
+    visible, explored, gold: 7, log: [], entry
+  });
+  assert.strictEqual(w.items[0].kind, 'ring');
+  assert.strictEqual(w.items[0].price, 35);
+  assert.strictEqual(w.items[1].kind, 'necklace');
+  assert.strictEqual(w.items[1].price, 0);
+  const round = worldFromData(JSON.parse(JSON.stringify(w.data())));
+  assert.deepStrictEqual(round, w);
 });
