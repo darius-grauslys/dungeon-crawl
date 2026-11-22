@@ -14,6 +14,7 @@ import * as actor from "../../../shapes/actor/index.mjs";
 import * as item from "../../../shapes/item/index.mjs";
 import * as stats from "../../../shapes/stats/index.mjs";
 import * as mask from "../../../shapes/mask/index.mjs";
+import * as level from "../../../shapes/level/index.mjs";
 
 function makeStats() {
   return stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 });
@@ -351,6 +352,181 @@ test("animates", async () => {
   }
 });
 
+test("aim", async () => {
+  const canvas = document.querySelector("canvas");
+  init(canvas);
+
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const visible = fullMask(7, 3);
+  const explored = fullMask(7, 3);
+
+  const ctx = canvas.getContext("2d");
+  const getData = (cx, cy) => {
+    const data = ctx.getImageData(cx, cy, 1, 1).data;
+    return { r: data[0], g: data[1], b: data[2], a: data[3] };
+  };
+
+  const makeAnn = (aim, range) => {
+    const a = actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1, range: range ?? 1 }), aim: aim ?? { dx: 1, dy: 0 } });
+    return hero.of({ name: "Ann", actor: a, pending: null, alive: true });
+  };
+
+  const makeWorld = (hAnn) => world.of({
+    seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+    grid, heroes: [hAnn], monsters: [], items: [],
+    visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
+  });
+
+  // range 1, aiming (1,0)
+  {
+    const hAnn = makeAnn({ dx: 1, dy: 0 }, 1);
+    const w = makeWorld(hAnn);
+    draw(w, "Ann", false, 300);
+    let p = getData(120, 72);
+    assert.equal(p.r, 255); assert.equal(p.g, 140); assert.equal(p.b, 0);
+    draw(w, "Ann", false, 0);
+    p = getData(120, 72);
+    assert.equal(p.r, 230); assert.equal(p.g, 200); assert.equal(p.b, 60);
+    draw(w, "Ann", false, 600);
+    p = getData(120, 72);
+    assert.equal(p.r, 230); assert.equal(p.g, 200); assert.equal(p.b, 60);
+  }
+
+  // range 3, aiming (1,0)
+  {
+    const hAnn = makeAnn({ dx: 1, dy: 0 }, 3);
+    const w = makeWorld(hAnn);
+    draw(w, "Ann", false, 300);
+    let p = getData(216, 72);
+    assert.equal(p.r, 255); assert.equal(p.g, 140); assert.equal(p.b, 0);
+    p = getData(120, 72);
+    assert.equal(p.r, 230); assert.equal(p.g, 200); assert.equal(p.b, 60);
+  }
+
+  // aiming (-1,0), wall next to her
+  {
+    const hAnn = makeAnn({ dx: -1, dy: 0 }, 1);
+    const w = makeWorld(hAnn);
+    draw(w, "Ann", false, 300);
+    const data = ctx.getImageData(0, 0, 800, 480).data;
+    let hasDot = false;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i] === 255 && data[i + 1] === 140 && data[i + 2] === 0) hasDot = true;
+    }
+    assert.ok(!hasDot, "no aim dot when aiming at wall");
+  }
+
+  // draw for 'Eve' (not in world) draws no dot
+  {
+    const hAnn = makeAnn({ dx: 1, dy: 0 }, 1);
+    const w = makeWorld(hAnn);
+    draw(w, "Eve", false, 300);
+    const data = ctx.getImageData(0, 0, 800, 480).data;
+    let hasDot = false;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i] === 255 && data[i + 1] === 140 && data[i + 2] === 0) hasDot = true;
+    }
+    assert.ok(!hasDot, "no aim dot when me is not in world");
+  }
+});
+
+test("sizes", async () => {
+  const canvas = document.querySelector("canvas");
+  init(canvas);
+
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const visible = fullMask(7, 3);
+  const explored = fullMask(7, 3);
+  const hAnn = makeHero("Ann", 0, 1, 1, true);
+
+  const ctx = canvas.getContext("2d");
+  const getData = (cx, cy) => {
+    const data = ctx.getImageData(cx, cy, 1, 1).data;
+    return { r: data[0], g: data[1], b: data[2], a: data[3] };
+  };
+
+  // golem of size 3 at (3,0)
+  {
+    const golem = actor.of({ id: 2, kind: "golem", pos: point.of(3, 0), stats: makeStats(), size: 3 });
+    const w = world.of({
+      seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+      grid, heroes: [hAnn], monsters: [golem], items: [],
+      visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
+    });
+    draw(w, "Ann", false);
+    let p = getData(168, 24);
+    assert.equal(p.r, 220); assert.equal(p.g, 50); assert.equal(p.b, 50);
+    p = getData(216, 72);
+    assert.equal(p.r, 220); assert.equal(p.g, 50); assert.equal(p.b, 50);
+    p = getData(264, 120);
+    assert.equal(p.r, 220); assert.equal(p.g, 50); assert.equal(p.b, 50);
+  }
+
+  // golem small at size 1 at (4,1)
+  {
+    const golem = actor.of({ id: 2, kind: "golem", pos: point.of(4, 1), stats: makeStats(), size: 1, small: true });
+    const w = world.of({
+      seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+      grid, heroes: [hAnn], monsters: [golem], items: [],
+      visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
+    });
+    draw(w, "Ann", false);
+    let p = getData(216, 72);
+    assert.equal(p.r, 220); assert.equal(p.g, 50); assert.equal(p.b, 50);
+    p = getData(204, 60);
+    assert.equal(p.r, 50); assert.equal(p.g, 36); assert.equal(p.b, 44);
+  }
+});
+
+test("flies", async () => {
+  const canvas = document.querySelector("canvas");
+  init(canvas);
+
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const visible = fullMask(7, 3);
+  const explored = fullMask(7, 3);
+  const hAnn = makeHero("Ann", 0, 1, 1, true);
+
+  const ctx = canvas.getContext("2d");
+  const getData = (cx, cy) => {
+    const data = ctx.getImageData(cx, cy, 1, 1).data;
+    return { r: data[0], g: data[1], b: data[2], a: data[3] };
+  };
+
+  // flung gold
+  {
+    const gold = item.of({ id: 0, kind: "gold", pos: point.of(5, 1), amount: 5, flung: { x: 3, y: 1, at: 0 } });
+    const w = world.of({
+      seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+      grid, heroes: [hAnn], monsters: [], items: [gold],
+      visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
+    });
+    draw(w, "Ann", false, 200);
+    let p = getData(216, 40);
+    assert.equal(p.r, 240); assert.equal(p.g, 180); assert.equal(p.b, 40);
+    p = getData(264, 72);
+    assert.equal(p.r, 50); assert.equal(p.g, 36); assert.equal(p.b, 44);
+
+    draw(w, "Ann", false, 400);
+    p = getData(264, 72);
+    assert.equal(p.r, 240); assert.equal(p.g, 180); assert.equal(p.b, 40);
+  }
+
+  // projectile from ranged attack
+  {
+    const a = actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: makeStats(), last: { kind: "attack", dx: 1, dy: 0, at: 0, reach: 3 } });
+    const hAnn2 = hero.of({ name: "Ann", actor: a, pending: null, alive: true });
+    const w = world.of({
+      seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+      grid, heroes: [hAnn2], monsters: [], items: [],
+      visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
+    });
+    draw(w, "Ann", false, 180);
+    let p = getData(144, 72);
+    assert.equal(p.r, 255); assert.equal(p.g, 160); assert.equal(p.b, 40);
+  }
+});
+
 test("prices", async () => {
   const canvas = document.querySelector("canvas");
   init(canvas);
@@ -451,16 +627,66 @@ test("themes", async () => {
   };
 
   const wall1 = collectPixels(makeWorldForDepth(1), 96, 0, 48);
-  const wall7 = collectPixels(makeWorldForDepth(7), 96, 0, 48);
+  const wall8 = collectPixels(makeWorldForDepth(8), 96, 0, 48);
   const floor1 = collectPixels(makeWorldForDepth(1), 240, 48, 48);
-  const floor7 = collectPixels(makeWorldForDepth(7), 240, 48, 48);
+  const floor8 = collectPixels(makeWorldForDepth(8), 240, 48, 48);
 
-  assert.ok(diffPixels(wall1, wall7) >= 10, "wall cell (2,0) differs between depth 1 and 7 by at least 10 pixels");
-  assert.ok(diffPixels(floor1, floor7) >= 10, "floor cell (5,1) differs between depth 1 and 7 by at least 10 pixels");
+  assert.ok(diffPixels(wall1, wall8) >= 10, "wall cell (2,0) differs between depth 1 and 8 by at least 10 pixels");
+  assert.ok(diffPixels(floor1, floor8) >= 10, "floor cell (5,1) differs between depth 1 and 8 by at least 10 pixels");
 
   const wall6 = collectPixels(makeWorldForDepth(6), 96, 0, 48);
   assert.ok(diffPixels(wall1, wall6) >= 1, "wall cell (2,0) at depth 6 differs from depth 1");
-  assert.ok(diffPixels(wall7, wall6) >= 1, "wall cell (2,0) at depth 6 differs from depth 7");
+  assert.ok(diffPixels(wall8, wall6) >= 1, "wall cell (2,0) at depth 6 differs from depth 8");
+
+  // lair blend comparison
+  const makeGrid32x3 = () => tileGrid.fromRows([
+    "#".repeat(32),
+    "#" + ".".repeat(30) + "#",
+    "#".repeat(32)
+  ]);
+
+  const makeHeroForPos = (name, id, px, py) => {
+    const a = actor.of({ id, kind: "hero", pos: point.of(px, py), stats: makeStats() });
+    return hero.of({ name, actor: a, pending: null, alive: true });
+  };
+
+  const makeWorld32x3 = (depth, px, py) => {
+    const grid = makeGrid32x3();
+    const visible = fullMask(32, 3);
+    const explored = fullMask(32, 3);
+    const hAnn = makeHeroForPos("Ann", 0, px, py);
+    return world.of({
+      seed: 1, rng: 1, depth, time: 0, state: "playing",
+      grid, heroes: [hAnn], monsters: [], items: [],
+      visible, explored, gold: 0, log: ["hello"], entry: save.of({ seed: 1, depth, players: [] })
+    });
+  };
+
+  const collectCellPixels32x3 = (w, cx, cy) => {
+    draw(w, "Ann", false);
+    const ctx = canvas.getContext("2d");
+    const data = ctx.getImageData(cx * 48, cy * 48, 48, 48).data;
+    const pixels = [];
+    for (let i = 0; i < data.length; i += 4) {
+      pixels.push(`${data[i]},${data[i+1]},${data[i+2]},${data[i+3]}`);
+    }
+    return pixels;
+  };
+
+  const worldDepth1A = makeWorld32x3(1, 1, 1);
+  const worldDepth7A = makeWorld32x3(7, 1, 1);
+  const pixel1A = collectCellPixels32x3(worldDepth1A, 3, 1);
+  const pixel7A = collectCellPixels32x3(worldDepth7A, 3, 1);
+  assert.deepEqual(pixel1A, pixel7A, "cell (3,1) at depth 7 is pixel for pixel same as depth 1");
+
+  const worldDepth1B = makeWorld32x3(1, 30, 1);
+  const worldDepth8B = makeWorld32x3(8, 30, 1);
+  const worldDepth7B = makeWorld32x3(7, 30, 1);
+  const pixel1B = collectCellPixels32x3(worldDepth1B, 28, 1);
+  const pixel8B = collectCellPixels32x3(worldDepth8B, 28, 1);
+  const pixel7B = collectCellPixels32x3(worldDepth7B, 28, 1);
+  assert.deepEqual(pixel7B, pixel8B, "cell (28,1) at depth 7 is pixel for pixel same as depth 8");
+  assert.ok(diffPixels(pixel1B, pixel7B) >= 10, "cell (28,1) at depth 7 differs from depth 1 in at least 10 pixels");
 });
 
 test("sprites", async () => {
@@ -578,7 +804,7 @@ test("world/valid", () => {
   assert.equal(wDepth29.depth, 29);
 
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "dead", grid: grid5x3, heroes: [heroAnn], monsters: [monster], items: [itemGold], visible, explored, gold: 0, log: ["hello"], entry }), TypeError);
-  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 30, time: 0, state: "playing", grid: grid5x3, heroes: [heroAnn], monsters: [monster], items: [itemGold], visible, explored, gold: 0, log: ["hello"], entry }), TypeError);
+  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 34, time: 0, state: "playing", grid: grid5x3, heroes: [heroAnn], monsters: [monster], items: [itemGold], visible, explored, gold: 0, log: ["hello"], entry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: -1, state: "playing", grid: grid5x3, heroes: [heroAnn], monsters: [monster], items: [itemGold], visible, explored, gold: 0, log: ["hello"], entry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "playing", grid: grid5x3, heroes: [heroAnn], monsters: [monster], items: [itemGold], visible: mask.empty(4, 3), explored, gold: 0, log: ["hello"], entry }), TypeError);
   const heroMonster = actor.of({ id: 1, kind: "hero", pos: point.of(2, 1), stats: heroStats });
@@ -631,7 +857,7 @@ test("world/data", () => {
 
   assert.throws(() => world.fromData({}), TypeError);
   const badData = w.data();
-  badData.depth = 30;
+  badData.depth = 34;
   assert.throws(() => world.fromData(badData), TypeError);
 });
 
@@ -648,4 +874,78 @@ test("point/valid", () => {
 
   assert.ok(point.equals(point.of(1, 2), point.of(1, 2)));
   assert.ok(!point.equals(point.of(1, 2), point.of(2, 1)));
+});
+
+test("level/valid", () => {
+  assert.equal(level.MAX_DEPTH, 33);
+  assert.equal(level.MAX_LEVEL, 25);
+  assert.deepEqual(level.THEMES, ['dungeon', 'frozen', 'arid', 'temple', 'magma', 'interior']);
+  assert.ok(Object.isFrozen(level.THEMES));
+  assert.deepEqual(level.DUNGEON_THEMES, ['dungeon', 'frozen', 'arid', 'temple', 'magma']);
+  assert.ok(Object.isFrozen(level.DUNGEON_THEMES));
+
+  assert.equal(level.kind(1), 'dungeon');
+  assert.equal(level.kind(5), 'dungeon');
+  assert.equal(level.kind(8), 'dungeon');
+  assert.equal(level.kind(33), 'dungeon');
+  assert.equal(level.kind(6), 'interior');
+  assert.equal(level.kind(13), 'interior');
+  assert.equal(level.kind(20), 'interior');
+  assert.equal(level.kind(27), 'interior');
+  assert.equal(level.kind(7), 'boss');
+  assert.equal(level.kind(14), 'boss');
+  assert.equal(level.kind(21), 'boss');
+  assert.equal(level.kind(28), 'boss');
+
+  assert.equal(level.theme(1), 'dungeon');
+  assert.equal(level.theme(6), 'interior');
+  assert.equal(level.theme(7), 'dungeon');
+  assert.equal(level.theme(8), 'frozen');
+  assert.equal(level.theme(15), 'arid');
+  assert.equal(level.theme(26), 'temple');
+  assert.equal(level.theme(28), 'temple');
+  assert.equal(level.theme(29), 'magma');
+  assert.equal(level.theme(33), 'magma');
+
+  assert.deepEqual(level.blend(7), ['dungeon', 'frozen']);
+  assert.ok(Object.isFrozen(level.blend(7)));
+  assert.deepEqual(level.blend(28), ['temple', 'magma']);
+  assert.equal(level.blend(6), null);
+  assert.equal(level.blend(8), null);
+
+  assert.equal(level.tier(5), 0);
+  assert.equal(level.tier(6), 0);
+  assert.equal(level.tier(7), 0);
+  assert.equal(level.tier(8), 1);
+  assert.equal(level.tier(33), 4);
+
+  assert.equal(level.stage(1), 1);
+  assert.equal(level.stage(12), 5);
+  assert.equal(level.stage(13), 6);
+  assert.equal(level.stage(14), 7);
+  assert.equal(level.stage(29), 1);
+
+  assert.equal(level.round(6), 1);
+  assert.equal(level.round(7), 1);
+  assert.equal(level.round(27), 4);
+  assert.equal(level.round(8), 0);
+
+  assert.equal(level.number(1), 1);
+  assert.equal(level.number(5), 5);
+  assert.equal(level.number(8), 6);
+  assert.equal(level.number(12), 10);
+  assert.equal(level.number(33), 25);
+  assert.equal(level.number(6), 0);
+  assert.equal(level.number(7), 0);
+
+  assert.equal(level.label(8), 'Level 6');
+  assert.equal(level.label(13), 'Shop');
+  assert.equal(level.label(14), 'Lair');
+
+  assert.throws(() => level.kind(0), TypeError);
+  assert.throws(() => level.theme(34), TypeError);
+  assert.throws(() => level.tier(1.5), TypeError);
+  assert.throws(() => level.blend(40), TypeError);
+  assert.throws(() => level.number('3'), TypeError);
+  assert.throws(() => level.label(null), TypeError);
 });
