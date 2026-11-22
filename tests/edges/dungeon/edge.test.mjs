@@ -8,6 +8,7 @@ import { generate } from "../../../edges/edge_to_dungeon.mjs";
 import * as floorPlan from "../../../shapes/floor-plan/index.mjs";
 import * as tileGrid from "../../../shapes/tile-grid/index.mjs";
 import * as point from "../../../shapes/point/index.mjs";
+import * as level from "../../../shapes/level/index.mjs";
 
 // Intrinsic - deterministic:
 test("generate: deterministic", () => {
@@ -41,7 +42,7 @@ test("generate: deterministic", () => {
 
 // Intrinsic - bounded:
 test("generate: bounded", () => {
-  const depths = [1, 2, 3, 4, 5, 7, 11, 13, 23, 25, 29];
+  const depths = [1, 2, 3, 4, 5, 8, 12, 15, 26, 29, 33];
   for (let s = 0; s <= 19; s++) {
     for (const d of depths) {
       const plan = generate(s, d);
@@ -61,13 +62,15 @@ test("generate: bounded", () => {
         }
       }
       assert.strictEqual(stairsCount, 1);
+      assert.strictEqual(plan.boss, null);
+      assert.deepStrictEqual(plan.levers, []);
     }
   }
 });
 
 // Intrinsic - connected:
 test("generate: connected", () => {
-  const depths = [1, 2, 3, 4, 5, 7, 11, 13, 23, 25, 29, 6, 24];
+  const depths = [1, 2, 3, 4, 5, 8, 12, 15, 26, 29, 33, 6, 7, 14, 27];
   for (let s = 0; s <= 19; s++) {
     for (const d of depths) {
       const plan = generate(s, d);
@@ -100,7 +103,7 @@ test("generate: connected", () => {
 
 // Intrinsic - spots-apart:
 test("generate: spots-apart", () => {
-  const depths = [1, 2, 3, 4, 5, 7, 11, 13, 23, 25, 29];
+  const depths = [1, 2, 3, 4, 5, 8, 12, 15, 26, 29, 33];
   for (let s = 0; s <= 19; s++) {
     for (const d of depths) {
       const plan = generate(s, d);
@@ -126,7 +129,7 @@ test("generate: spots-apart", () => {
 // Intrinsic - shop:
 test("generate: shop", () => {
   const seeds = [0, 1, 4294967295];
-  const depths = [6, 12, 18, 24];
+  const depths = [6, 13, 20, 27];
   const shopTiles = generate(0, 6).grid.tiles();
   for (const s of seeds) {
     for (const d of depths) {
@@ -155,8 +158,57 @@ test("generate: shop", () => {
       for (let i = 0; i < 6; i++) {
         assert.ok(point.equals(plan.spots[i], expectedSpots[i]));
       }
+      assert.strictEqual(plan.boss, null);
       assert.deepStrictEqual(g.tiles(), shopTiles);
     }
+  }
+});
+
+// Intrinsic - lair:
+test("generate: lair", () => {
+  const s7Tiles = generate(0, 7).grid.tiles();
+  // depth 7: boss, levers, 72 spots
+  for (const s of [0, 4294967295]) {
+    const plan = generate(s, 7);
+    const g = plan.grid;
+    assert.strictEqual(g.width, 48);
+    assert.strictEqual(g.height, 32);
+    assert.strictEqual(g.at(6, 4), "floor");
+    assert.strictEqual(g.at(41, 27), "floor");
+    assert.strictEqual(g.at(20, 20), "floor");
+    assert.strictEqual(g.at(5, 4), "wall");
+    assert.strictEqual(g.at(42, 16), "wall");
+    assert.strictEqual(g.at(20, 3), "wall");
+    assert.strictEqual(g.at(33, 16), "stairs");
+    assert.ok(point.equals(plan.stairs, point.of(33, 16)));
+    assert.ok(point.equals(plan.start, point.of(8, 16)));
+    assert.ok(point.equals(plan.boss, point.of(32, 15)));
+    assert.strictEqual(plan.levers.length, 3);
+    assert.ok(point.equals(plan.levers[0], point.of(12, 8)));
+    assert.ok(point.equals(plan.levers[1], point.of(12, 24)));
+    assert.ok(point.equals(plan.levers[2], point.of(22, 16)));
+    assert.strictEqual(plan.spots.length, 72);
+    assert.ok(point.equals(plan.spots[0], point.of(10, 6)));
+    assert.ok(point.equals(plan.spots[23], point.of(14, 10)));
+    assert.ok(point.equals(plan.spots[24], point.of(10, 22)));
+    assert.ok(point.equals(plan.spots[71], point.of(24, 18)));
+    for (const sp of plan.spots) {
+      for (const lever of plan.levers) {
+        assert.ok(!point.equals(sp, lever));
+      }
+    }
+    assert.deepStrictEqual(g.tiles(), s7Tiles);
+  }
+  // depths 14, 21, 28: no boss, no levers, no spots
+  for (const d of [14, 21, 28]) {
+    const plan = generate(0, d);
+    const g = plan.grid;
+    assert.deepStrictEqual(g.tiles(), s7Tiles);
+    assert.ok(point.equals(plan.stairs, point.of(33, 16)));
+    assert.ok(point.equals(plan.start, point.of(8, 16)));
+    assert.strictEqual(plan.boss, null);
+    assert.deepStrictEqual(plan.levers, []);
+    assert.deepStrictEqual(plan.spots, []);
   }
 });
 
@@ -167,7 +219,7 @@ test("generate: refuses", () => {
     () => generate(1.5, 1),
     () => generate(4294967296, 1),
     () => generate(1, 0),
-    () => generate(1, 30),
+    () => generate(1, 34),
     () => generate("1", 1),
   ];
   for (const fn of bad) {
@@ -192,4 +244,81 @@ test("floor-plan: valid", () => {
   assert.throws(() => floorPlan.of({ grid: g, start: point.of(1, 1), stairs: point.of(3, 1), spots: [point.of(1, 1)] }), TypeError);
   assert.throws(() => floorPlan.of({ grid: g, start: point.of(1, 1), stairs: point.of(3, 1), spots: [point.of(2, 1), point.of(2, 1)] }), TypeError);
   assert.throws(() => floorPlan.of({ grid: g, start: point.of(1, 1), stairs: point.of(3, 1), spots: {} }), TypeError);
+});
+
+// Intrinsic - level/valid:
+test("level: valid", () => {
+  assert.strictEqual(level.MAX_DEPTH, 33);
+  assert.strictEqual(level.MAX_LEVEL, 25);
+  assert.ok(Object.isFrozen(level.THEMES));
+  assert.deepStrictEqual([...level.THEMES], ['dungeon', 'frozen', 'arid', 'temple', 'magma', 'interior']);
+  assert.ok(Object.isFrozen(level.DUNGEON_THEMES));
+  assert.deepStrictEqual([...level.DUNGEON_THEMES], ['dungeon', 'frozen', 'arid', 'temple', 'magma']);
+
+  assert.strictEqual(level.kind(1), 'dungeon');
+  assert.strictEqual(level.kind(5), 'dungeon');
+  assert.strictEqual(level.kind(8), 'dungeon');
+  assert.strictEqual(level.kind(33), 'dungeon');
+  assert.strictEqual(level.kind(6), 'interior');
+  assert.strictEqual(level.kind(13), 'interior');
+  assert.strictEqual(level.kind(20), 'interior');
+  assert.strictEqual(level.kind(27), 'interior');
+  assert.strictEqual(level.kind(7), 'boss');
+  assert.strictEqual(level.kind(14), 'boss');
+  assert.strictEqual(level.kind(21), 'boss');
+  assert.strictEqual(level.kind(28), 'boss');
+
+  assert.strictEqual(level.theme(1), 'dungeon');
+  assert.strictEqual(level.theme(6), 'interior');
+  assert.strictEqual(level.theme(7), 'dungeon');
+  assert.strictEqual(level.theme(8), 'frozen');
+  assert.strictEqual(level.theme(15), 'arid');
+  assert.strictEqual(level.theme(26), 'temple');
+  assert.strictEqual(level.theme(28), 'temple');
+  assert.strictEqual(level.theme(29), 'magma');
+  assert.strictEqual(level.theme(33), 'magma');
+
+  const blend7 = level.blend(7);
+  assert.deepStrictEqual([...blend7], ['dungeon', 'frozen']);
+  assert.ok(Object.isFrozen(blend7));
+  const blend28 = level.blend(28);
+  assert.deepStrictEqual([...blend28], ['temple', 'magma']);
+  assert.strictEqual(level.blend(6), null);
+  assert.strictEqual(level.blend(8), null);
+
+  assert.strictEqual(level.tier(5), 0);
+  assert.strictEqual(level.tier(6), 0);
+  assert.strictEqual(level.tier(7), 0);
+  assert.strictEqual(level.tier(8), 1);
+  assert.strictEqual(level.tier(33), 4);
+
+  assert.strictEqual(level.stage(1), 1);
+  assert.strictEqual(level.stage(12), 5);
+  assert.strictEqual(level.stage(13), 6);
+  assert.strictEqual(level.stage(14), 7);
+  assert.strictEqual(level.stage(29), 1);
+
+  assert.strictEqual(level.round(6), 1);
+  assert.strictEqual(level.round(7), 1);
+  assert.strictEqual(level.round(27), 4);
+  assert.strictEqual(level.round(8), 0);
+
+  assert.strictEqual(level.number(1), 1);
+  assert.strictEqual(level.number(5), 5);
+  assert.strictEqual(level.number(8), 6);
+  assert.strictEqual(level.number(12), 10);
+  assert.strictEqual(level.number(33), 25);
+  assert.strictEqual(level.number(6), 0);
+  assert.strictEqual(level.number(7), 0);
+
+  assert.strictEqual(level.label(8), 'Level 6');
+  assert.strictEqual(level.label(13), 'Shop');
+  assert.strictEqual(level.label(14), 'Lair');
+
+  assert.throws(() => level.kind(0), TypeError);
+  assert.throws(() => level.theme(34), TypeError);
+  assert.throws(() => level.tier(1.5), TypeError);
+  assert.throws(() => level.blend(40), TypeError);
+  assert.throws(() => level.number('3'), TypeError);
+  assert.throws(() => level.label(null), TypeError);
 });
