@@ -50,7 +50,7 @@ None
 
 # Functions:
 ## Function - start:
-`start({port, root, idle}) -> promise`. `port` an integer from 0 to 65535 (0: any free port); `root` the project's directory; `idle` the milliseconds a session may go without activity (left out: 1800000, thirty minutes). Starts `serve` on that port and root, then the loop. Resolves to `{port, url, close}`: `serve`'s port and url, and `close()`, answering a promise that resolves once the loop and the server have stopped. Rejects as `serve` does.
+`start({port, root, idle, host}) -> promise`. `port` an integer from 0 to 65535 (0: any free port); `root` the project's directory; `idle` the milliseconds a session may go without activity (left out: 1800000, thirty minutes); `host` (left out: none) the address to listen on, handed to `serve` as it is. Starts `serve` on that port, root and host, then the loop. Resolves to `{port, url, close}`: `serve`'s port and url, and `close()`, answering a promise that resolves once the loop and the server have stopped. Rejects as `serve` does.
 
 # Intrinsics:
 ## Intrinsic - page:
@@ -82,6 +82,9 @@ With `Ann` joined, `requestSave()` is answered `saved(s)`: `s.depth` 1 and `s.pl
 
 ## Intrinsic - idle:
 With `start({port: 0, root, idle: 300})`: a session made and then left alone for 600 milliseconds is gone: a `join` to it gets `refused('no-session')`, and four more `create(null)` are all answered `created`.
+
+## Intrinsic - host:
+`start({port: 0, root, host: '0.0.0.0'})` resolves with a `url` beginning `http://0.0.0.0:`; without `host`, one beginning `http://127.0.0.1:`. Close each.
 
 ## Intrinsic - closes:
 After `close()` resolves, a request to the port fails to connect.

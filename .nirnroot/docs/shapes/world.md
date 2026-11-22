@@ -131,7 +131,11 @@ passes `assert.deepStrictEqual` with `w`; `w.data().grid` is
 `w.data().visible[1]` is `'01000'`. `w.data().items[1].price` is 30 and
 `w.data().heroes[0].offer` 12; `w.data().items[2].pulled` is true and
 `w.data().items[3].flung` `{x: 1, y: 1, at: 40}`; `w.data().monsters[2].last.reach`
-is 3 and `w.data().monsters[2].stats.range` 4. `fromData({})`, and `w.data()` with
+is 3 and `w.data().monsters[2].stats.range` 4. With Ann's `pending`
+each of `move(1, 1)`, `attack()`, `attack(-1, 0)`, `use()`, `wait()`,
+`descend()` and `face(0, 1)` in turn (every kind of `intent`'s `KINDS`),
+`fromData(JSON.parse(JSON.stringify(w.data())))` passes
+`assert.deepStrictEqual` with `w` too. `fromData({})`, and `w.data()` with
 `depth` 34, throw a `TypeError`.
 
 # Callbacks:

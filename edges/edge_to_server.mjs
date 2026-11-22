@@ -4,7 +4,7 @@
 import * as target from "../src/server/index.mjs";
 
 // __nirnroot_begin__ start
-// `start({port, root, idle}) -> promise`. `port` an integer from 0 to 65535 (0: any free port); `root` the project's directory; `idle` the milliseconds a session may go without activity (left out: 1800000, thirty minutes). Starts `serve` on that port and root, then the loop. Resolves to `{port, url, close}`: `serve`'s port and url, and `close()`, answering a promise that resolves once the loop and the server have stopped. Rejects as `serve` does.
+// `start({port, root, idle, host}) -> promise`. `port` an integer from 0 to 65535 (0: any free port); `root` the project's directory; `idle` the milliseconds a session may go without activity (left out: 1800000, thirty minutes); `host` (left out: none) the address to listen on, handed to `serve` as it is. Starts `serve` on that port, root and host, then the loop. Resolves to `{port, url, close}`: `serve`'s port and url, and `close()`, answering a promise that resolves once the loop and the server have stopped. Rejects as `serve` does.
 // __nirnroot_end__
 export function start(...args) {
   return target.start(...args);
