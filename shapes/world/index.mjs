@@ -55,7 +55,8 @@ function isItem(v) {
   if (typeof v.pos.y !== 'number' || !Number.isInteger(v.pos.y)) return false;
   if (Object.keys(v.pos).length !== 2) return false;
   if (typeof v.amount !== 'number' || !Number.isInteger(v.amount)) return false;
-  return Object.keys(v).length === 4;
+  if (typeof v.price !== 'number' || !Number.isInteger(v.price) || v.price < 0) return false;
+  return Object.keys(v).length === 5;
 }
 
 function isHero(v) {
@@ -66,7 +67,8 @@ function isHero(v) {
     if (!(v.pending instanceof intentShape.Intent)) return false;
   }
   if (typeof v.alive !== 'boolean') return false;
-  return Object.keys(v).length === 4;
+  if (v.offer !== null && (typeof v.offer !== 'number' || !Number.isInteger(v.offer) || v.offer < 0)) return false;
+  return Object.keys(v).length === 5;
 }
 
 /**
@@ -149,6 +151,7 @@ class World {
       name: h.name,
       alive: h.alive,
       pending: h.pending ? { kind: h.pending.kind, dx: h.pending.dx, dy: h.pending.dy } : null,
+      offer: h.offer,
       actor: {
         id: h.actor.id,
         kind: h.actor.kind,
@@ -187,6 +190,7 @@ class World {
       kind: it.kind,
       pos: { x: it.pos.x, y: it.pos.y },
       amount: it.amount,
+      price: it.price,
     }));
 
     return {
@@ -244,8 +248,8 @@ export function of(fields) {
   if (typeof rng !== 'number' || !Number.isInteger(rng) || rng < 0 || rng > MAX_INT) {
     throw new TypeError('world: rng must be an integer from 0 to 4294967295');
   }
-  if (typeof depth !== 'number' || !Number.isInteger(depth) || depth < 1 || depth > 5) {
-    throw new TypeError('world: depth must be an integer from 1 to 5');
+  if (typeof depth !== 'number' || !Number.isInteger(depth) || depth < 1 || depth > 29) {
+    throw new TypeError('world: depth must be an integer from 1 to 29');
   }
   if (typeof time !== 'number' || !Number.isInteger(time) || time < 0) {
     throw new TypeError('world: time must be an integer of 0 or more');
@@ -379,8 +383,8 @@ export function fromData(data) {
   if (typeof rng !== 'number' || !Number.isInteger(rng) || rng < 0 || rng > MAX_INT) {
     throw new TypeError('world: rng must be an integer from 0 to 4294967295');
   }
-  if (typeof depth !== 'number' || !Number.isInteger(depth) || depth < 1 || depth > 5) {
-    throw new TypeError('world: depth must be an integer from 1 to 5');
+  if (typeof depth !== 'number' || !Number.isInteger(depth) || depth < 1 || depth > 29) {
+    throw new TypeError('world: depth must be an integer from 1 to 29');
   }
   if (typeof time !== 'number' || !Number.isInteger(time) || time < 0) {
     throw new TypeError('world: time must be an integer of 0 or more');
@@ -490,7 +494,7 @@ export function fromData(data) {
       facing: actorData.facing,
       last: actorData.last ? { kind: actorData.last.kind, dx: actorData.last.dx, dy: actorData.last.dy, at: actorData.last.at } : null,
     });
-    const heroObj = heroShape.of({ name: h.name, actor: actorObj, pending, alive: h.alive });
+    const heroObj = heroShape.of({ name: h.name, actor: actorObj, pending, alive: h.alive, offer: h.offer });
     heroObjs.push(heroObj);
   }
 
@@ -524,6 +528,7 @@ export function fromData(data) {
       kind: it.kind,
       pos: pointShape.of(it.pos.x, it.pos.y),
       amount: it.amount,
+      price: it.price,
     });
     itemObjs.push(itemObj);
   }

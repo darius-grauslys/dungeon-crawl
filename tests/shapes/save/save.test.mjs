@@ -50,7 +50,14 @@ test("save: fromData round-trips", () => {
 });
 
 test("save: depth out of range throws", () => {
-  assert.throws(() => of({ seed: 9, depth: 6, players: [] }), TypeError);
+  assert.throws(() => of({ seed: 9, depth: 30, players: [] }), TypeError);
+  assert.throws(() => of({ seed: 9, depth: 0, players: [] }), TypeError);
+});
+
+test("save: depth 29 accepted", () => {
+  const s = of({ seed: 0, depth: 29, players: [] });
+  assert.strictEqual(s.depth, 29);
+  assert.ok(Object.isFrozen(s));
 });
 
 test("save: seed out of range throws", () => {

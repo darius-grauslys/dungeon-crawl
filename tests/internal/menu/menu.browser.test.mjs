@@ -82,8 +82,8 @@ test("menu: session line and remove", () => {
   const sessionEl = document.getElementById("menu-session");
   assert.strictEqual(sessionEl.textContent, "", "session line empty before setSession");
 
-  menu.setSession("ABCDEF", "xyz234");
-  assert.strictEqual(sessionEl.textContent, "Session ABCDEF   Password xyz234", "session line text after setSession");
+  menu.setSession("ABCDEF");
+  assert.strictEqual(sessionEl.textContent, "Session ABCDEF", "session line text after setSession");
 
   menu.remove();
   assert.strictEqual(document.getElementById("menu"), null, "no #menu in page after remove");
