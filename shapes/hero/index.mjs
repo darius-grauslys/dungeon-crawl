@@ -1,4 +1,4 @@
-// hero: an API Shape, a player in the world: their name, body, pending action, alive state and offer. Immutable.
+// hero: an API Shape, a player in the world: their name, body, pending action, alive state, offer, colour and group. Immutable.
 
 import * as saveShape from '../save/index.mjs';
 import * as intentShape from '../intent/index.mjs';
@@ -43,12 +43,14 @@ function isIntent(v) {
  * Hero class: a player in the world. Immutable.
  */
 class Hero {
-  constructor({ name, actor, pending, alive, offer }) {
+  constructor({ name, actor, pending, alive, offer, colour = 0, group = 0 }) {
     this.name = name;
     this.actor = actor;
     this.pending = pending;
     this.alive = alive;
     this.offer = offer;
+    this.colour = colour;
+    this.group = group;
   }
 
   with(changes) {
@@ -57,16 +59,18 @@ class Hero {
     const newPending = 'pending' in c ? c.pending : this.pending;
     const newAlive = 'alive' in c ? c.alive : this.alive;
     const newOffer = 'offer' in c ? c.offer : this.offer;
-    return of({ name: this.name, actor: newActor, pending: newPending, alive: newAlive, offer: newOffer });
+    const newColour = 'colour' in c ? c.colour : this.colour;
+    const newGroup = 'group' in c ? c.group : this.group;
+    return of({ name: this.name, actor: newActor, pending: newPending, alive: newAlive, offer: newOffer, colour: newColour, group: newGroup });
   }
 }
 
 /**
  * Create a hero.
- * @param {{name: string, actor: object, pending?: object|null, alive?: boolean, offer?: number|null}} input
+ * @param {{name: string, actor: object, pending?: object|null, alive?: boolean, offer?: number|null, colour?: number, group?: number}} input
  * @returns {object} a frozen hero
  */
-export function of({ name, actor, pending = null, alive = true, offer = null }) {
+export function of({ name, actor, pending = null, alive = true, offer = null, colour = 0, group = 0 }) {
   if (typeof name !== 'string' || !saveShape.isName(name)) {
     throw new TypeError('hero name must be a valid name');
   }
@@ -90,6 +94,14 @@ export function of({ name, actor, pending = null, alive = true, offer = null }) 
     throw new TypeError('hero offer must be an integer of 0 or more, or null');
   }
 
+  if (typeof colour !== 'number' || !Number.isInteger(colour) || colour < 0 || colour > 3) {
+    throw new TypeError('hero colour must be an integer from 0 to 3');
+  }
+
+  if (typeof group !== 'number' || !Number.isInteger(group) || group < 0 || group > 5) {
+    throw new TypeError('hero group must be an integer from 0 to 5');
+  }
+
   // A hero that is not alive has 0 hit points; an alive one more than 0.
   const hp = actor.stats.hp;
   if (alive === false && hp !== 0) {
@@ -99,6 +111,6 @@ export function of({ name, actor, pending = null, alive = true, offer = null }) 
     throw new TypeError('hero alive must have more than 0 hit points');
   }
 
-  const hero = new Hero({ name, actor, pending, alive, offer });
+  const hero = new Hero({ name, actor, pending, alive, offer, colour, group });
   return Object.freeze(hero);
 }
