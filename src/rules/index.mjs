@@ -824,7 +824,6 @@ function advance(world, ms) {
       for (let i = 0; i < size; i++) for (let j = 0; j < size; j++) { const c = pointShape.of(m.pos.x + dx + i, m.pos.y + dy + j); movedCells.push(c); if (blockedSet.has(`${c.x},${c.y}`) || !currentGrid.open(c.x, c.y)) free = false; }
       const isDiag = dx !== 0 && dy !== 0;
       if (isDiag && (!currentGrid.open(m.pos.x + dx, m.pos.y) || !currentGrid.open(m.pos.x, m.pos.y + dy))) free = false;
-      if (!free) { newMonsters.push(m); acted = true; continue; }
       let meleeTarget = null;
       for (const h of heroes) {
         if (!h.alive) continue;
@@ -878,6 +877,7 @@ function advance(world, ms) {
         newMonsters = monstersAfter2.concat([updatedM]);
         acted = true; continue;
       }
+      if (!free) { newMonsters.push(m); acted = true; continue; }
       const updatedM = m.with({ mode, pos: pointShape.of(m.pos.x + dx, m.pos.y + dy), ready: newTime + bestiary.entry(m.kind).step, facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 } });
       newMonsters = monstersAfter.concat([updatedM]);
       acted = true; continue;
