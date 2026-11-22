@@ -51,7 +51,7 @@ test("joins: Ann joins, dup returns same, full returns null, bad name throws", (
   assert.equal(h.name, "Ann");
   assert.ok(h.alive);
   assert.equal(h.pending, null);
-  assert.deepEqual(h.actor.stats, { hp: 24, maxHp: 24, attack: 4, defense: 1, range: 1 });
+  assert.deepEqual(h.actor.stats, { hp: 24, maxHp: 24, attack: 4, defense: 1, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
   assert.equal(h.actor.ready, 0);
   assert.ok(wAnn.grid.open(h.actor.pos.x, h.actor.pos.y));
   assert.ok(wAnn.visible.at(h.actor.pos.x, h.actor.pos.y));
@@ -383,7 +383,7 @@ test("saves: toSave and fromSave round-trip, hp 0 becomes 1", () => {
   assert.equal(w.heroes.length, 1);
   assert.equal(w.heroes[0].name, "Cy");
   assert.ok(w.heroes[0].alive);
-  assert.deepEqual(w.heroes[0].actor.stats, { hp: 10, maxHp: 30, attack: 6, defense: 2, range: 1 });
+  assert.deepEqual(w.heroes[0].actor.stats, { hp: 10, maxHp: 30, attack: 6, defense: 2, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
   assert.deepEqual(w.entry, s);
   const w2 = rules.fromSave(s);
   assert.deepStrictEqual(w, w2);
