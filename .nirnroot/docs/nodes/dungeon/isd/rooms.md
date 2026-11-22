@@ -1,8 +1,9 @@
 # dungeon: `rooms`
 
 A shop depth (`level.kind(depth)` is `interior`) answers the EED's shop,
-built cell by cell, without drawing from any generator. Every other
-depth is carved as below.
+and a lair depth (`boss`) the EED's lair (its boss, levers and guards'
+spots on `level.round(depth)` 1 alone), each built cell by cell, without
+drawing from any generator. Every other depth is carved as below.
 
 How a floor is carved. Everything random comes from one generator seeded
 by `seed` and `depth` together: mulberry32 (a 32-bit generator; its state

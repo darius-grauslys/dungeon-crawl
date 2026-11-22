@@ -13,6 +13,7 @@ The edge under test:
 - [shape:floor-plan](../../../shapes/floor-plan.md)
 - [shape:tile-grid](../../../shapes/tile-grid.md)
 - [shape:point](../../../shapes/point.md)
+- [shape:level](../../../shapes/level.md)
 
 # Intrinsics:
 ## Intrinsic - deterministic:
@@ -30,8 +31,14 @@ As the EED states.
 ## Intrinsic - shop:
 As the EED states.
 
+## Intrinsic - lair:
+As the EED states.
+
 ## Intrinsic - refuses:
 As the EED states.
 
 ## Intrinsic - floor-plan/valid:
 As the shape states, built with `tile-grid`'s `fromRows` and `point`'s `of`.
+
+## Intrinsic - level/valid:
+As the shape states.

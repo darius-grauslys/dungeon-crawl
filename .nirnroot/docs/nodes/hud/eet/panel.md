@@ -15,6 +15,7 @@ The edge under test:
 - [eed:hud](../EED.md)
 
 # API Shapes:
+- [shape:level](../../../shapes/level.md)
 - [shape:world](../../../shapes/world.md)
 - [shape:hero](../../../shapes/hero.md)
 - [shape:save](../../../shapes/save.md)
@@ -38,4 +39,7 @@ As the EED states.
 As the shape states.
 
 ## Intrinsic - world/data:
+As the shape states.
+
+## Intrinsic - level/valid:
 As the shape states.

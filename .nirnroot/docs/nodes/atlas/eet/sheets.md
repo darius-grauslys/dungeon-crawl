@@ -1,7 +1,7 @@
 # atlas: edge test `sheets`
 
 Browser tests (`*.browser.test.mjs`): the page serves the project's
-asset area under `/assets/`, and the fifteen sheets listed below are there.
+asset area under `/assets/`, and the twenty sheets listed below are there.
 Use the page's canvas, or a fresh `document.createElement('canvas')`,
 for drawing, with image smoothing off.
 
@@ -28,6 +28,11 @@ The edge under test:
 - [asset:sheets/magma-floor.png](../../../../../assets/sheets/magma-floor.png)
 - [asset:sheets/interior.png](../../../../../assets/sheets/interior.png)
 - [asset:sheets/interior-floor.png](../../../../../assets/sheets/interior-floor.png)
+- [asset:sheets/generics.png](../../../../../assets/sheets/generics.png)
+- [asset:sheets/frozen-monsters.png](../../../../../assets/sheets/frozen-monsters.png)
+- [asset:sheets/arid-monsters.png](../../../../../assets/sheets/arid-monsters.png)
+- [asset:sheets/temple-monsters.png](../../../../../assets/sheets/temple-monsters.png)
+- [asset:sheets/magma-monsters.png](../../../../../assets/sheets/magma-monsters.png)
 
 # Intrinsics:
 ## Intrinsic - table:

@@ -10,7 +10,7 @@ around an `actor` of kind `hero`, `{hp: 24, maxHp: 24, attack: 4,
 defense: 1}`, or 0 hit points and `alive: false` for one not alive; a
 monster a `slime` of any stats, unless the intrinsic says another kind;
 actors' `held` 0, `facing` and `last` left out unless said). Read pixels back with `getImageData`.
-Write the `flat-colours`, `fog`, `paused`, `walls` and `animates` tests before the `sprites`
+Write the `flat-colours`, `fog`, `paused`, `walls`, `animates`, `aim`, `sizes` and `flies` tests before the `sprites`
 one, in the same file or in files whose names sort before it: once
 loaded, the sprites are used for good.
 
@@ -28,6 +28,7 @@ The edge under test:
 - [shape:item](../../../shapes/item.md)
 - [shape:stats](../../../shapes/stats.md)
 - [shape:mask](../../../shapes/mask.md)
+- [shape:level](../../../shapes/level.md)
 
 # Intrinsics:
 ## Intrinsic - camera:
@@ -48,11 +49,20 @@ As the EED states.
 ## Intrinsic - animates:
 As the EED states.
 
+## Intrinsic - aim:
+As the EED states.
+
+## Intrinsic - sizes:
+As the EED states.
+
+## Intrinsic - flies:
+As the EED states.
+
 ## Intrinsic - prices:
 As the EED states: the ware with `item`'s `of` and its `price`, Ann's `offer` with `hero`'s `of`.
 
 ## Intrinsic - themes:
-As the EED states: the same world with `depth` 1, 6 and 7 (each `entry` of that depth).
+As the EED states: the same world with `depth` 1, 6, 7 and 8 (each `entry` of that depth).
 
 ## Intrinsic - sprites:
 As the EED states.
@@ -64,4 +74,7 @@ As the shape states.
 As the shape states.
 
 ## Intrinsic - point/valid:
+As the shape states.
+
+## Intrinsic - level/valid:
 As the shape states.

@@ -17,7 +17,7 @@ whom, and what its player wants to do.
 | `list` | `list()` | none: ask for the lobby, the sessions there are |
 | `create` | `create(save)` | `save`: a `save` (sent as its `data()`) or `null`: make a session, from that save or new |
 | `join` | `join(session, name)` | `session`: a string of 1 to 32 characters; `name`: a name (`save`'s `isName`) |
-| `act` | `act(intent)` | `intent`: an `intent` (sent as `{kind, dx, dy}`) |
+| `act` | `act(intent)` | `intent`: an `intent` of any of its six kinds (sent as `{kind, dx, dy}`, and read back with the kind's constructor: `attack` with its `dx`, `dy`, `(0, 0)` included) |
 | `pause` | `pause(paused)` | `paused`: a boolean |
 | `save` | `requestSave()` | none: ask for the session's save |
 
@@ -25,7 +25,7 @@ whom, and what its player wants to do.
 
 | kind | constructor | fields |
 |---|---|---|
-| `lobby` | `lobby(sessions)` | `sessions`: an array of 0 to 4 entries, each `{session, players, depth}`: `session` a string of 1 to 32 characters, `players` an array of 0 to 4 names (the players in it now, in the order they joined), `depth` an integer from 1 to 29 |
+| `lobby` | `lobby(sessions)` | `sessions`: an array of 0 to 4 entries, each `{session, players, depth}`: `session` a string of 1 to 32 characters, `players` an array of 0 to 4 names (the players in it now, in the order they joined), `depth` an integer from 1 to 33 (`level`'s `MAX_DEPTH`) |
 | `created` | `created(session)` | the new session's id |
 | `joined` | `joined(session, name)` | the session joined, and the name played |
 | `refused` | `refused(reason)` | `reason`: one of `full`, `no-session`, `name-taken`, `party-full`, `not-joined`, `malformed` |
@@ -77,7 +77,7 @@ Property `world` (`state`): a `world`.
 Each constructor answers a frozen message of its kind with its fields;
 `act(move(1, 0)).upward` is true and `refused('full').upward` false.
 `refused('nope')`, `refused('bad-password')`, `join('', 'Ann')`, `join('ABCDEF', '')`,
-`lobby([{session: 'ABCDEF', players: ['Ann'], depth: 30}])`, `lobby` of
+`lobby([{session: 'ABCDEF', players: ['Ann'], depth: 34}])`, `lobby` of
 five entries, `created('')`,
 `act({kind: 'move', dx: 1, dy: 0})` (a plain object), `pause('yes')` and
 `create({})` throw a `TypeError`. `parse` of `'nope'`, `'{}'`,
@@ -88,8 +88,8 @@ is `'Bob'`, and the array, the entry and `players` are frozen.
 
 ## Intrinsic - round-trip:
 For one message of each of the twelve kinds (a `lobby` of two entries
-and one of none, an `act` of each of the five intent kinds, `descend()` among them; a `state` holding a small world
-with one hero whose actor has `held` 300, `facing` `'left'` and a `last`, a `create` and a `saved` holding a save of one player, a
+and one of none, an `act` of each of the six intent kinds, `descend()`, `face(1, -1)`, `move(-1, 1)` and `attack()` among them; a `state` holding a small world
+with one hero whose actor has `held` 300, `facing` `'left'`, a `last`, `aim` `{dx: 1, dy: 1}` and `slow` 2, a `create` and a `saved` holding a save of one player, a
 `create(null)`), `parse(m.text())` passes `assert.deepStrictEqual` with
 `m`.
 
@@ -100,3 +100,4 @@ None
 - [shape:save](save.md)
 - [shape:intent](intent.md)
 - [shape:world](world.md)
+- [shape:level](level.md)

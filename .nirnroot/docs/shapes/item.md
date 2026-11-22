@@ -1,7 +1,8 @@
 # item
 
-A thing lying on the floor that a hero picks up by stepping on it, or,
-in a shop, a **ware**: a thing for sale, with a price. Immutable.
+A thing lying on the floor that a hero picks up by stepping on it; in a
+shop, a **ware**: a thing for sale, with a price; or, in a lair, a
+**lever**. Immutable.
 
 | kind | what picking it up does |
 |---|---|
@@ -9,17 +10,27 @@ in a shop, a **ware**: a thing for sale, with a price. Immutable.
 | `gold` | adds `amount` to the party's gold |
 | `sword` | adds 2 to that hero's `attack` |
 | `armor` | adds 1 to that hero's `defense` |
+| `lever` | never picked up: a hero pulls it (`rules` says how) |
 
 An item with a `price` above 0 is a ware: it is never picked up by
 stepping on it, but bought (`rules` says how), and its effect is then the
-table's. A `gold` is never a ware.
+table's. A `gold` is never a ware, nor is a `lever`. A lever is `pulled`
+or not; no other item is ever `pulled`.
 
-The module (`shapes/item/index.mjs`) exports `of({id, kind, pos, amount, price})`:
-`id` an integer of 0 or more; `kind` one of the four; `pos` a `point`;
-`amount` an integer, at least 1 for `gold` and exactly 0 for the others
-(left out: 0); `price` an integer of 0 or more, 0 for a `gold` (left out:
-0). Any other input is refused with a `TypeError`. `KINDS` is
-the four kind names, in the table's order (a frozen array).
+An item can have been **flung**: thrown onto its cell from another, at a
+moment (gold spilling from a slain boss). `flung` says from where and
+when, so the screen can draw it flying.
+
+The module (`shapes/item/index.mjs`) exports `of({id, kind, pos, amount,
+price, pulled, flung})`: `id` an integer of 0 or more; `kind` one of the
+five; `pos` a `point`; `amount` an integer, at least 1 for `gold` and
+exactly 0 for the others (left out: 0); `price` an integer of 0 or more,
+0 for a `gold` and a `lever` (left out: 0); `pulled` a boolean, `false`
+for any kind but `lever` (left out: `false`); `flung` `null` or `{x, y,
+at}`, the cell it was thrown from and the world time it was thrown, all
+integers of 0 or more (left out: `null`; the item keeps a frozen copy
+with those three keys). Any other input is refused with a `TypeError`.
+`KINDS` is the five kind names, in the table's order (a frozen array).
 
 # Fields:
 ## Field - id:
@@ -37,14 +48,27 @@ Property `amount`.
 ## Field - price:
 Property `price`: 0 for a thing to pick up, the gold it costs for a ware.
 
+## Field - pulled:
+Property `pulled`: whether a lever has been pulled.
+
+## Field - flung:
+Property `flung`: a frozen `{x, y, at}`, or `null`.
+
 # Intrinsics:
 ## Intrinsic - valid:
 `of({id: 4, kind: 'gold', pos: point.of(2, 2), amount: 10})` has those
-values and is frozen; `of({id: 5, kind: 'potion', pos: point.of(1, 1)})`
-has `amount` 0 and `price` 0; `of({id: 6, kind: 'sword', pos: point.of(1,
-1), price: 30})` has `price` 30. `kind: 'gem'`, a `gold` of `amount` 0, a
-`sword` of `amount` 3, `pos: [1, 1]`, a `price` of -1 or 2.5, and a
-`gold` of `price` 5 each throw a `TypeError`.
+values, `pulled` false and `flung` null, and is frozen; `of({id: 5,
+kind: 'potion', pos: point.of(1, 1)})` has `amount` 0 and `price` 0;
+`of({id: 6, kind: 'sword', pos: point.of(1, 1), price: 30})` has `price`
+30; `of({id: 7, kind: 'lever', pos: point.of(3, 3), pulled: true})` has
+`pulled` true; `of({id: 8, kind: 'gold', pos: point.of(2, 2), amount: 5,
+flung: {x: 4, y: 4, at: 100}})` has `flung` frozen and deep equal to
+`{x: 4, y: 4, at: 100}`. `kind: 'gem'`, a `gold` of `amount` 0, a
+`sword` of `amount` 3, `pos: [1, 1]`, a `price` of -1 or 2.5, a `gold`
+of `price` 5, a `lever` of `price` 5, a `potion` that is `pulled`,
+`pulled: 'yes'`, and `flung` of `{x: 1, y: 1}` or `{x: -1, y: 1, at: 0}`
+each throw a `TypeError`. `KINDS` is `['potion', 'gold', 'sword',
+'armor', 'lever']`.
 
 # Callbacks:
 None

@@ -4,7 +4,7 @@ Load each sheet as an `Image` (`img.src = base + path`, awaiting
 `img.decode()`, or its `onload`/`onerror`), draw it onto a canvas of
 its size (`document.createElement('canvas')`), read its pixels with
 `getImageData`, set the alpha of every pixel exactly rgb(22, 13, 19) to 0,
-put them back, and keep that canvas as the sheet. Load the fifteen together
+put them back, and keep that canvas as the sheet. Load the twenty together
 (`Promise.all`); when one rejects, reject with `new Error('atlas: could not
 load ' + path)`. Build each name's `sprite` once the sheets are in, and
 answer them from a map, and each theme's eighteen tiles (keyed
@@ -34,9 +34,14 @@ This Node's edge:
 - [asset:sheets/magma-floor.png](../../../../../assets/sheets/magma-floor.png)
 - [asset:sheets/interior.png](../../../../../assets/sheets/interior.png)
 - [asset:sheets/interior-floor.png](../../../../../assets/sheets/interior-floor.png)
+- [asset:sheets/generics.png](../../../../../assets/sheets/generics.png)
+- [asset:sheets/frozen-monsters.png](../../../../../assets/sheets/frozen-monsters.png)
+- [asset:sheets/arid-monsters.png](../../../../../assets/sheets/arid-monsters.png)
+- [asset:sheets/temple-monsters.png](../../../../../assets/sheets/temple-monsters.png)
+- [asset:sheets/magma-monsters.png](../../../../../assets/sheets/magma-monsters.png)
 
 # Inbound Side-Effects:
-The fifteen sheets, fetched over HTTP from `base`.
+The twenty sheets, fetched over HTTP from `base`.
 
 # Outbound Side-Effects:
 Canvases it creates for the keyed sheets (never attached to the page).

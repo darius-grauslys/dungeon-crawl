@@ -8,15 +8,20 @@ outside the grid are left as background) in passes, as the EED's order
 says: the tiles, the veils (`rgba(0, 0, 0, 0.6)` over the cell), the
 items, the creatures. With sprites, a tile, an item or a creature at rest
 facing right is `ctx.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, px, py,
-48, 48)` for `s = atlas.sprite(name)` (a tile: `atlas.tile(level.theme(world.depth), name)`, the name
-`wall-<m>` for a standing wall, else the tile's kind; an item or a
-creature: `atlas.sprite(kind)`). The prices pass comes last on the map
+48, 48)` for `s = atlas.sprite(name)` (a tile: `atlas.tile(theme, name)`, `theme`
+`level.theme(world.depth)`, or on a lair the cell's side of
+`level.blend(world.depth)`; the name `wall-<m>` for a standing wall, else
+the tile's kind; an item: `atlas.sprite(kind)`, `lever-pulled` for a
+pulled lever; a creature: `atlas.sprite(kind)`). The prices pass comes last on the map
 (before the panel): `ctx.font`, `textAlign`, `fillStyle`, then
 `fillText(price + 'g', px + 24, py - 4)`. A
 creature in general: `ctx.save()`, `ctx.translate(px + 24 + ox, py + 24
-+ oy)`, `ctx.scale(facing === 'left' ? -k : k, k)`, draw it centred on the
-origin (`drawImage(..., -24, -24, 48, 48)`, or the flat square from -16 to
-16), the outline likewise, `ctx.restore()`. Work out a cell's join mask
++ oy)` (for a creature of size s, its square's centre: `px + 24 s + ox`),
+`ctx.scale(facing === 'left' ? -k : k, k)` (times 0.5 when `small`), draw
+it centred on the origin (`drawImage(..., -24 s, -24 s, 48 s, 48 s)`, or
+the flat square from `-24 s + 8` to `24 s - 8`), the outline likewise,
+`ctx.restore()`. Then the projectiles, the aim dot (`ctx.arc`, `fill`)
+and the prices. Work out a cell's join mask
 with a small helper (`stands(grid, x, y)`, then the four orthogonal
 bits). Then `hud.draw(ctx, 0, rows * 48, W, H - rows * 48, world, me)`,
 then the paused band.

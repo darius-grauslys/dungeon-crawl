@@ -11,6 +11,7 @@ This Node's edge:
 # API Shapes:
 - [shape:world](../../../shapes/world.md)
 - [shape:hero](../../../shapes/hero.md)
+- [shape:level](../../../shapes/level.md)
 
 # Inbound Side-Effects:
 None.

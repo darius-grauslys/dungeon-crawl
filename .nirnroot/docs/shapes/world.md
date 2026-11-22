@@ -12,7 +12,7 @@ frozen world, with `fields` an object of these keys:
 |---|---|
 | `seed` | integer, 0 to 4294967295: the game's seed |
 | `rng` | integer, 0 to 4294967295: the random generator's state |
-| `depth` | integer, 1 to 29: the floor the party is on |
+| `depth` | integer, 1 to 33 (`level`'s `MAX_DEPTH`): the floor the party is on |
 | `time` | integer of 0 or more: milliseconds of play on this session (it stops while paused) |
 | `state` | `playing` or `won` |
 | `grid` | a `tile-grid` |
@@ -42,11 +42,11 @@ the constructors of the shapes it holds.
 | `visible`, `explored` | an array of strings, one per row, `1` for true and `0` for false |
 | `heroes` | `[{name, alive, pending, offer, actor}]`: `pending` `null` or `{kind, dx, dy}`; `offer` `null` or a ware's id |
 | `monsters` | `[actor]` |
-| `items` | `[{id, kind, pos: {x, y}, amount, price}]` |
+| `items` | `[{id, kind, pos: {x, y}, amount, price, pulled, flung}]`: `flung` `null` or `{x, y, at}` |
 | `entry` | the save's `data()` |
 
-An actor's data is `{id, kind, pos: {x, y}, stats: {hp, maxHp, attack, defense}, ready, held, facing, last}`,
-`last` `null` or `{kind, dx, dy, at}`.
+An actor's data is `{id, kind, pos: {x, y}, stats: {hp, maxHp, attack, defense, range}, ready, held, facing, last, aim: {dx, dy}, slow, mode, size, small}`,
+`last` `null` or `{kind, dx, dy, at, reach}`.
 
 # Fields:
 ## Field - seed:
@@ -108,7 +108,7 @@ A world built from a 5 by 3 grid (`fromRows`), one hero `Ann` at (1, 1),
 one `slime` monster, one `gold` item, `empty(5, 3)` masks, an `entry` of
 `save.of({seed: 1, depth: 1, players: []})`, and the other keys in range,
 has every value it was given, is frozen, and its `heroes`, `monsters`,
-`items` and `log` are frozen. `depth: 29` is accepted. `state: 'dead'`, `depth: 30`, `time: -1`,
+`items` and `log` are frozen. `depth: 33` is accepted. `state: 'dead'`, `depth: 34`, `time: -1`,
 `visible: empty(4, 3)`, a monster of kind `hero`, five heroes, two heroes
 named `Ann`, a `log` of 51 strings, a missing `gold` and a missing
 `entry` each throw a `TypeError`. `w.with({time: 9}).time` is 9 and
@@ -119,13 +119,20 @@ named `Ann`, a `log` of 51 strings, a missing `gold` and a missing
 For that world `w` (with Ann's `pending` `move(1, 0)`, her actor's
 `held` 300, `facing` `'left'` and `last` `{kind: 'attack', dx: -1, dy: 0,
 at: 50}` and `offer` 12, the slime's `last` `{kind: 'move', dx: 0, dy: 1, at: 20}`,
-a second item, a `sword` ware of `id` 12 and `price` 30 at (3, 1), and
+a second item, a `sword` ware of `id` 12 and `price` 30 at (3, 1), a
+third, a `lever` `pulled` at (2, 1), a fourth, a `gold` of amount 5
+`flung` from (1, 1) at 40, a second monster, a `golem` of `size` 2,
+`small` true, `mode` `'dormant'`, `slow` 1, `aim` `{dx: -1, dy: 1}` and
+stats of `range` 1, an `archer` third monster whose `last` is `{kind:
+'attack', dx: 1, dy: 1, at: 30, reach: 3}` and stats of `range` 4, and
 a `visible` true at (1, 1) alone): `fromData(JSON.parse(JSON.stringify(w.data())))`
 passes `assert.deepStrictEqual` with `w`; `w.data().grid` is
 `['#####', '#...#', '#####']` for `fromRows` of those rows, and
 `w.data().visible[1]` is `'01000'`. `w.data().items[1].price` is 30 and
-`w.data().heroes[0].offer` 12. `fromData({})`, and `w.data()` with
-`depth` 30, throw a `TypeError`.
+`w.data().heroes[0].offer` 12; `w.data().items[2].pulled` is true and
+`w.data().items[3].flung` `{x: 1, y: 1, at: 40}`; `w.data().monsters[2].last.reach`
+is 3 and `w.data().monsters[2].stats.range` 4. `fromData({})`, and `w.data()` with
+`depth` 34, throw a `TypeError`.
 
 # Callbacks:
 None
@@ -140,3 +147,5 @@ None
 - [shape:intent](intent.md)
 - [shape:point](point.md)
 - [shape:stats](stats.md)
+- [shape:level](level.md)
+- [shape:bestiary](bestiary.md)

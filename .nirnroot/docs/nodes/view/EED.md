@@ -23,10 +23,14 @@ the background rgb(22, 13, 19):
    nothing, the background);
 2. a black veil of alpha 0.6 over every cell in `explored` but not
    `visible`;
-3. the items lying on `visible` cells;
-4. the creatures standing on `visible` cells: the monsters, then the
+3. the items lying on `visible` cells (a flung item while it flies:
+   below);
+4. the creatures standing on `visible` cells (a creature bigger than a
+   cell when any cell it covers is `visible`): the monsters, then the
    alive heroes (heroes on top), each where its animation puts it;
-5. the price of every ware (an item whose `price` is above 0) on a
+5. the projectiles of ranged attacks in flight (below);
+6. the aim dot of `me`'s hero (below);
+7. the price of every ware (an item whose `price` is above 0) on a
    `visible` cell, over it (below).
 
 So an explored cell out of sight shows its tile alone, veiled (no items,
@@ -43,11 +47,13 @@ wall (a cell outside the grid is not). Whether a wall stands depends on
 the grid alone, never on what is seen.
 
 **Themes.** The floor's tiles (`floor`, `stairs` and the walls'
-`wall-<m>`) are those of the theme of the world's depth (the depths'
-themes: 1 to 5 `dungeon`, 6, 12, 18 and 24 `interior` (the shops), 7 to
-11 `frozen`, 13 to 17 `arid`, 19 to 23 `temple`, 25 to 29 `magma`),
-`atlas.tile(theme, name)`. Items and creatures are the same in every
-theme.
+`wall-<m>`) are those of the theme of the world's depth,
+`level.theme(depth)` (1 to 5 `dungeon`, the shops `interior`, ...),
+`atlas.tile(theme, name)`. A lair (`level.blend(depth)` not `null`)
+blends the theme before it with the one after it: the cell `(x, y)` is
+drawn in `blend[1]` when `x + (x * 7 + y * 13) % 5 >= 26`, else in
+`blend[0]` (the hall's west in the old theme, its east in the new, with
+a ragged seam). Items and creatures are the same in every theme.
 
 **Prices.** A ware's price is written over its cell: the text
 `<price>g` in `bold 14px monospace`, centred on the cell's middle
@@ -60,6 +66,33 @@ without the sprites.
 **Facing.** A creature whose actor's `facing` is `left` is drawn
 mirrored left to right (its sprite flipped about its own vertical
 middle); `right` is the sprite as it is on the sheet.
+
+**Size.** A creature of `size` s is drawn over the `48 s` pixels square
+of the cells it covers (its sprite scaled to it; in flat colours, that
+square inset 8 pixels), its centre the square's centre. A `small`
+one is drawn at half that, about the same centre.
+
+**The aim dot.** For `me`'s hero, alive: along its `aim` `(dx, dy)`,
+the cells `pos + k * (dx, dy)` for `k` from 1 to its `stats.range`, up
+to the last open one before a cell that is not open (at `k` 1, a
+diagonal that cuts a corner, as `rules` says, counts as not open). On
+that last cell, when there is one, a filled circle of radius 6 pixels
+centred on the cell's centre, rgb(255, 140, 0), drawn only while
+`Math.floor(now / 300) % 2` is 1 (it blinks: off for 300 ms, on for 300
+ms). Drawn with or without the sprites, whatever the cell holds.
+
+**Projectiles.** An attack whose actor's `last` has a `reach` above 1
+also draws, while `t` is from 150 below 210 (the strike), a square of 8
+by 8 pixels, rgb(255, 160, 40), its centre going in a straight line from
+the attacker's centre at rest (`p` 0) to the centre of the cell `reach`
+cells away toward `(dx, dy)` (`p` 1), `p = (t - 150) / 60`.
+
+**Flung items.** An item whose `flung` is `{x, y, at}` flies while `t
+= now - at` is from 0 below 400: with `p = t / 400`, it is drawn as if
+its cell were the point going in a straight line from `(x, y)` (`p` 0)
+to its `pos` (`p` 1), raised by `32 sin(π p)` pixels; at or past 400
+ms, or before `at`, on its own cell. (It is drawn when its own cell is
+`visible`.)
 
 **Animations.** A creature is drawn at its cell, moved by an offset
 `(ox, oy)` in canvas pixels and scaled by `k` about its own centre (its
@@ -94,8 +127,9 @@ cell
 (`me`'s hero rgb(60, 120, 255), any other hero rgb(60, 200, 120), any
 monster rgb(220, 50, 50)); an item a square inset 16 pixels
 (rgb(240, 180, 40)). Once loaded, each is its sprite of the same name
-(`atlas`; every hero is `hero`; a tile its theme's `floor`, `stairs` or,
-for a standing wall, `wall-<m>`), drawn
+(`atlas`; every hero is `hero`; a monster its kind; an item its kind,
+but a `pulled` lever `lever-pulled`; a tile its theme's `floor`,
+`stairs` or, for a standing wall, `wall-<m>`), drawn
 over the whole cell; then every
 hero but `me`'s gets a 3-pixel outline of rgb(60, 200, 120) inside its
 cell, so the player tells their own hero apart.
@@ -107,6 +141,7 @@ with `PAUSED` in rgb(230, 220, 200), `bold 24px monospace`, centred in it.
 # API Shapes:
 - [shape:world](../../shapes/world.md)
 - [shape:point](../../shapes/point.md)
+- [shape:level](../../shapes/level.md)
 
 # Functions:
 ## Function - init:
@@ -147,7 +182,16 @@ On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, 
 On the 800 by 600 canvas, before any `load`, a world on `['#######', '#.....#', '#.....#', '#######']` with every cell `visible` and `explored`, `Ann` alive at (1, 2), and a `sword` ware of `id` 12 and `price` 30 at (3, 2): after `draw(w, 'Ann', false)`, the band of pixels from (144, 64) to (191, 95) (the bottom two thirds of the cell (3, 1), above the ware) holds at least 5 pixels with red above 200, green from 160 to 240 and blue below 140, and none with green above 245 and red below 170; with Ann's `offer` 12, at least 5 pixels with green above 200 and red below 170. The same band over the cell (1, 1), above Ann, holds none of either.
 
 ## Intrinsic - themes:
-After `load('/assets/')` resolves, the `flat-colours` world drawn at depth 1 and the same world at depth 7: the wall cell (2, 0) differs between the two in at least 10 pixels, and so does the floor cell (5, 1) (with the gold left out); at depth 6, (2, 0) differs from both. (Only the terrain changes with the theme: compare tiles' cells, never a creature's cell, whose floor is the theme's too.)
+After `load('/assets/')` resolves, the `flat-colours` world drawn at depth 1 and the same world at depth 8: the wall cell (2, 0) differs between the two in at least 10 pixels, and so does the floor cell (5, 1) (with the gold left out); at depth 6, (2, 0) differs from both. (Only the terrain changes with the theme: compare tiles' cells, never a creature's cell, whose floor is the theme's too.) A world on a 32 by 3 grid (a row of 32 `#`, then `#`, 30 `.` and `#`, then 32 `#`), every cell `visible` and `explored`, with `Ann` alone: with Ann at (1, 1), the cell (3, 1) drawn at depth 7 (the first lair) is pixel for pixel the same as at depth 1; with Ann at (30, 1), the cell (28, 1) at depth 7 is pixel for pixel the same as at depth 8, and differs from depth 1's in at least 10 pixels.
+
+## Intrinsic - aim:
+On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, the monster and the gold left out (Ann at (1, 1), aiming `(1, 0)`, `range` 1): `draw(w, 'Ann', false, 300)` makes the centre pixel of (2, 1) rgb(255, 140, 0); at `now` 0 and 600 it is the stairs' rgb(230, 200, 60). With Ann's `range` 3, at `now` 300 the centre of (4, 1) is rgb(255, 140, 0) and of (2, 1) the stairs' colour. With Ann aiming `(-1, 0)` (a wall next to her), no pixel of the map is rgb(255, 140, 0). `draw(w, 'Eve', false, 300)` draws no dot.
+
+## Intrinsic - sizes:
+On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, the monster and the gold left out, plus a `golem` of `size` 3 at (3, 0): `draw(w, 'Ann', false)` makes the centre pixels of (3, 0), (4, 1) and (5, 2) rgb(220, 50, 50). The golem `small` at `size` 1 at (4, 1): the pixel (216, 72) (the cell's centre) is rgb(220, 50, 50) and (204, 60) (12 pixels up and left of it) the floor's rgb(50, 36, 44).
+
+## Intrinsic - flies:
+On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, the monster and the gold left out, plus a `gold` at (5, 1) `flung` from (3, 1) at 0: `draw(w, 'Ann', false, 200)` makes the pixel (216, 40) rgb(240, 180, 40) (halfway, at (4, 1), raised 32) and the centre of (5, 1) the floor's rgb(50, 36, 44); at `now` 400 the centre of (5, 1) is rgb(240, 180, 40). With Ann's `last` `{kind: 'attack', dx: 1, dy: 0, at: 0, reach: 3}` (and no gold), at `now` 180 the pixel (144, 72) is rgb(255, 160, 40).
 
 ## Intrinsic - sprites:
 After `load('/assets/')` resolves and a `draw(w, 'Ann', false)` of the `flat-colours` world, Ann's cell (48 by 48 pixels) holds at least 3 different colours, and its centre pixel is not rgb(60, 120, 255); the pixel 1 in from the top-left corner of Bob's cell is rgb(60, 200, 120). With the monster a `snake` facing `right`, and then the same world with it facing `left`: at least 10 pixels of the monster's cell differ between the two (the floor under it is not mirrored, so compare no more than that), and the first is pixel for pixel the drawing of the snake with `facing` left out. The wall cells (2, 0) and (4, 0) (both `wall-10`) are pixel for pixel the same, and (0, 0) (`wall-6`) differs from (2, 0) in at least 10 pixels.

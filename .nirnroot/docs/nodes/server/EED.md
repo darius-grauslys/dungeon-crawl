@@ -78,7 +78,7 @@ With `Ann` joined and a `state` in hand, `act(move(dx, dy))` toward a neighbouri
 `pause(true)` is followed by a `state` with `paused` true; over the next 300 milliseconds no `state` arrives whose world's `time` differs from that one's. `pause(false)` is followed by `state`s with `paused` false and a growing `time`.
 
 ## Intrinsic - save-load:
-With `Ann` joined, `requestSave()` is answered `saved(s)`: `s.depth` 1 and `s.players` one entry, `Ann` with `{hp: 24, maxHp: 24, attack: 4, defense: 1}`. `create(save.of({seed: 9, depth: 3, players: [{name: 'Cy', stats: {hp: 10, maxHp: 30, attack: 6, defense: 2}}]}))` (the stats a `stats`), then a `join` as `Cy`: the `state`'s world is at depth 3 with the one hero `Cy` of those stats, alive.
+With `Ann` joined, `requestSave()` is answered `saved(s)`: `s.depth` 1 and `s.players` one entry, `Ann` with stats of `hp` 24, `maxHp` 24, `attack` 4, `defense` 1 and `range` 1. `create(save.of({seed: 9, depth: 3, players: [{name: 'Cy', stats: {hp: 10, maxHp: 30, attack: 6, defense: 2}}]}))` (the stats a `stats`), then a `join` as `Cy`: the `state`'s world is at depth 3 with the one hero `Cy` of those stats, alive.
 
 ## Intrinsic - idle:
 With `start({port: 0, root, idle: 300})`: a session made and then left alone for 600 milliseconds is gone: a `join` to it gets `refused('no-session')`, and four more `create(null)` are all answered `created`.

@@ -63,7 +63,7 @@ With the name `Ann` in `#landing-name` and a click on `#landing-create`, once th
 On the landing, the test delivers `refused('no-session')`: within half a second `#landing-error` reads `No such session.` and `h.screen()` is still `landing`. After `joined` no more `list()` is sent (none in the 2500 milliseconds after).
 
 ## Intrinsic - keys:
-In the game (after `joined` and a `state`): a `keydown` of `ArrowLeft` sends `act(move(-1, 0)).text()` and is `defaultPrevented`; with `shiftKey` true, `act(attack(-1, 0))`; of `e`, `act(use())`; of `>` (with `shiftKey` true), `act(descend())`; of `p`, `pause(true)`.
+In the game (after `joined` and a `state`): a `keydown` of `ArrowLeft` sends `act(move(-1, 0)).text()` and is `defaultPrevented`; with `shiftKey` true, `act(face(-1, 0))`; of `u`, `act(move(1, -1))`; of ` ` (space), `act(attack())`; of `e`, `act(use())`; of `>` (with `shiftKey` true), `act(descend())`; of `p`, `pause(true)`.
 
 ## Intrinsic - menu:
 In the game, a `keydown` of `Escape` opens the menu (`#menu` displayed, `h.menuOpen()` true), whose `#menu-session` text is `Session ABCDEF`; while it is open a `keydown` of `ArrowLeft` sends nothing. A click on `#menu-save` sends `requestSave().text()`; the test delivers `saved(s)` (a save of depth 2): within half a second `download` has been called once with `'crawl-depth2.json'` and `s.text()`. A click on `#menu-pause` sends `pause(true).text()`; after the test delivers `state(w, true)`, `#menu-pause` reads `Resume`. A click on `#menu-back` closes the menu; `Escape` opens it again, and `Escape` closes it.
