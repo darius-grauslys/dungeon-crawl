@@ -55,7 +55,7 @@ every key).
 `commandFor(key) -> string`. The last table's command (`menu`, `pause`, `mute`, `quieter` or `louder`) for a key; `null` for any other.
 
 ## Function - listen:
-`listen(target, {intent, command}) -> function`. Adds a `keydown`, a `keyup` and a `blur` listener to `target` (any `EventTarget`). For a `keydown` with none of `ctrlKey`, `altKey`, `metaKey` true, whose `key` has an intent (as `intentFor(key, shiftKey)`, made diagonal by a chord as above) or a command, it calls `event.preventDefault()` and then `intent(i)` or `command(c)`, once; other events are left alone. A `keyup` (and a `blur`) only lets keys go. Answers `stop`, a function that removes the listeners (calling it again does nothing).
+`listen(target, {intent, command, aiming}) -> function`. Adds a `keydown`, a `keyup` and a `blur` listener to `target` (any `EventTarget`). For a `keydown` with none of `ctrlKey`, `altKey`, `metaKey` true, whose `key` has an intent (as `intentFor(key, shiftKey)`, made diagonal by a chord as above) or a command, it calls `event.preventDefault()` and then `intent(i)` or `command(c)`, once; other events are left alone. A `keyup` (and a `blur`) only lets keys go. **Aiming**: Shift held down means the player is aiming. A `keydown` with `key` `'Shift'` while Shift was not held calls `aiming(true)`; a `keyup` with `key` `'Shift'`, or a `blur`, while it was held calls `aiming(false)`; a repeat of the held Shift calls nothing. `aiming` left out: nothing is called. A Shift `keydown` is not prevented. Answers `stop`, a function that removes the listeners (calling it again does nothing).
 
 # Intrinsics:
 ## Intrinsic - keys:
@@ -63,6 +63,9 @@ Every direction key answers its `move` without Shift and its `face` with Shift (
 
 ## Intrinsic - listens:
 With `stop = listen(t, {intent: f, command: g})` on a fresh `EventTarget` `t`: a cancelable `keydown` with `key` `'ArrowLeft'` calls `f` once with `move(-1, 0)` and is `defaultPrevented`; with `shiftKey` true too, `face(-1, 0)`; one with `key` `' '`, `attack()`; one with `key` `'>'` and `shiftKey` true calls `f` once with `descend()`; one with `key` `'Escape'` calls `g` once with `'menu'`; one with `key` `'x'` calls neither and isn't prevented; one with `key` `'w'` and `ctrlKey` true calls neither; a `keyup` with `key` `'w'` calls neither. After `stop()`, a `keydown` with `key` `'w'` calls neither; `stop()` again doesn't throw.
+
+## Intrinsic - aiming:
+With `listen(t, {intent: f, command: g, aiming: a})` on a fresh `EventTarget`: a `keydown` with `key` `'Shift'` calls `a` once with `true` (and neither `f` nor `g`, and isn't prevented); another (a repeat) calls nothing; a `keydown` of `ArrowLeft` with `shiftKey` true calls `f` with `face(-1, 0)`; a `keyup` with `key` `'Shift'` calls `a` with `false`; another `keyup` of Shift calls nothing. Shift down again (`a(true)`), then a `blur`: `a(false)`. With no `aiming` handler, a Shift `keydown` throws nothing.
 
 ## Intrinsic - chords:
 On a fresh `EventTarget` with `listen`: `keydown` `ArrowUp` (calls `f` with `move(0, -1)`), then `keydown` `ArrowRight` without a `keyup` of `ArrowUp`: `f` with `move(1, -1)`; another `keydown` `ArrowRight` (a repeat): `move(1, -1)` again. After `keyup` `ArrowUp`, a `keydown` `ArrowRight` gives `move(1, 0)`. Holding `s`, a `keydown` of `a` with `shiftKey` true gives `face(-1, 1)`. Holding `ArrowUp`, a `keydown` of `ArrowDown` gives `move(0, 1)` (the same axis: the latest counts). Holding `ArrowLeft`, after a `blur` event, a `keydown` of `ArrowUp` gives `move(0, -1)`.

@@ -72,7 +72,8 @@ of the cells it covers (its sprite scaled to it; in flat colours, that
 square inset 8 pixels), its centre the square's centre. A `small`
 one is drawn at half that, about the same centre.
 
-**The aim dot.** For `me`'s hero, alive: along its `aim` `(dx, dy)`,
+**The aim dot.** Only while the player is aiming (`draw`'s `aiming`
+true: they hold Shift), for `me`'s hero, alive: along its `aim` `(dx, dy)`,
 the cells `pos + k * (dx, dy)` for `k` from 1 to its `stats.range`, up
 to the last open one before a cell that is not open (at `k` 1, a
 diagonal that cuts a corner, as `rules` says, counts as not open). On
@@ -121,7 +122,8 @@ draw's, below):
 
 - a **move** (a hop, 160 ms: the sudden step onto the new cell is the
   world's, the hop is drawn on top of it): `h = sin(π t / 160)`, the
-  offset `(0, -12 h)`; for a step up (`dy` -1) also `k = 1 + 0.15 h`.
+  offset `(0, -12 h)` and `k = 1 + 0.15 h`, whatever its direction (it
+  grows a little as it hops).
 - an **attack** (300 ms), toward `(dx, dy)`:
   - the rise, `t` below 150: `p = t / 150`, `e = p * p * (3 - 2 p)`; the
     offset `(0, -16 e)`; for an attack up (`dy` -1) also `k = 1 +
@@ -171,7 +173,7 @@ with `PAUSED` in rgb(230, 220, 200), `bold 24px monospace`, centred in it.
 `camera(world, me, cols, rows) -> point`. The camera, as the layout says, for the player `me` (a string; any name) and a view of `cols` by `rows` cells.
 
 ## Function - draw:
-`draw(world, me, paused, now)`. Draws the world for the player `me`, as above, onto the canvas given to `init` (throws an `Error` if none was given), with the paused band when `paused` is true. `now` is the world time to animate at, a number of 0 or more (left out: the world's `time`): the page draws every frame, with `now` running on from the last world's `time` between two worlds.
+`draw(world, me, paused, now, aiming)`. Draws the world for the player `me`, as above, onto the canvas given to `init` (throws an `Error` if none was given), with the paused band when `paused` is true. `now` is the world time to animate at, a number of 0 or more (left out: the world's `time`): the page draws every frame, with `now` running on from the last world's `time` between two worlds. `aiming` (left out: `false`): whether the player is aiming, so the aim dot is drawn.
 
 # Intrinsics:
 ## Intrinsic - camera:
@@ -192,7 +194,7 @@ On the 800 by 600 canvas, before any `load`, a world on `['#######', '#.>...#', 
 ## Intrinsic - animates:
 On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, the monster and the gold left out, at time 0, and Ann's `last` as said:
 - `{kind: 'attack', dx: 1, dy: 0, at: 0}`: `draw(w, 'Ann', false, 150)` makes the pixel (72, 44) rgb(60, 120, 255) (Ann risen 16 pixels, into the cell above); `draw(w, 'Ann', false, 210)` makes (100, 72) rgb(60, 120, 255) (lunged 18 pixels right, into the stairs' cell); `draw(w, 'Ann', false, 400)` leaves (72, 44) the wall's rgb(90, 80, 90) and (100, 72) the stairs' rgb(230, 200, 60); so does `draw(w, 'Ann', false)` (`now` the world's time 0, at rest).
-- `{kind: 'move', dx: 1, dy: 0, at: 0}`: at `now` 80, (72, 46) is rgb(60, 120, 255) (hopped 12 pixels); at 200, it is rgb(90, 80, 90).
+- `{kind: 'move', dx: 1, dy: 0, at: 0}`: at `now` 80, (72, 46) is rgb(60, 120, 255) (hopped 12 pixels), and so is (72, 42) (grown by 15%: its top edge at 41.6, where an ungrown square's would be at 44); at 200, (72, 46) is rgb(90, 80, 90). The same for `{kind: 'move', dx: 0, dy: 1, at: 0}` and `{kind: 'move', dx: -1, dy: 1, at: 0}`.
 - `{kind: 'attack', dx: 0, dy: -1, at: 0}`: at `now` 150, (54, 56) is rgb(60, 120, 255) (risen and grown to 40 pixels); at `now` 0, (54, 56) is the floor's rgb(50, 36, 44).
 
 ## Intrinsic - prices:
@@ -202,7 +204,7 @@ On the 800 by 600 canvas, before any `load`, a world on `['#######', '#.....#', 
 After `load('/assets/')` resolves, the `flat-colours` world drawn at depth 1 and the same world at depth 8: the wall cell (2, 0) differs between the two in at least 10 pixels, and so does the floor cell (5, 1) (with the gold left out); at depth 6, (2, 0) differs from both. (Only the terrain changes with the theme: compare tiles' cells, never a creature's cell, whose floor is the theme's too.) A world on a 32 by 3 grid (a row of 32 `#`, then `#`, 30 `.` and `#`, then 32 `#`), every cell `visible` and `explored`, with `Ann` alone: with Ann at (1, 1), the cell (3, 1) drawn at depth 7 (the first lair) is pixel for pixel the same as at depth 1; with Ann at (30, 1), the cell (28, 1) at depth 7 is pixel for pixel the same as at depth 8, and differs from depth 1's in at least 10 pixels.
 
 ## Intrinsic - aim:
-On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, the monster and the gold left out (Ann at (1, 1), aiming `(1, 0)`, `range` 1): `draw(w, 'Ann', false, 300)` makes the centre pixel of (2, 1) rgb(255, 140, 0); at `now` 0 and 600 it is the stairs' rgb(230, 200, 60). With Ann's `range` 3, at `now` 300 the centre of (4, 1) is rgb(255, 140, 0) and of (2, 1) the stairs' colour. With Ann aiming `(-1, 0)` (a wall next to her), no pixel of the map is rgb(255, 140, 0). `draw(w, 'Eve', false, 300)` draws no dot.
+On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, the monster and the gold left out (Ann at (1, 1), aiming `(1, 0)`, `range` 1): `draw(w, 'Ann', false, 300, true)` makes the centre pixel of (2, 1) rgb(255, 140, 0); at `now` 0 and 600 it is the stairs' rgb(230, 200, 60); `draw(w, 'Ann', false, 300)` and `draw(w, 'Ann', false, 300, false)` (not aiming) leave it the stairs' colour, and no pixel of the map rgb(255, 140, 0). With Ann's `range` 3, `draw(w, 'Ann', false, 300, true)` makes the centre of (4, 1) rgb(255, 140, 0) and of (2, 1) the stairs' colour. With Ann aiming `(-1, 0)` (a wall next to her), no pixel of the map is rgb(255, 140, 0). `draw(w, 'Eve', false, 300, true)` draws no dot.
 
 ## Intrinsic - sizes:
 On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, the monster and the gold left out, plus a `golem` of `size` 3 at (3, 0): `draw(w, 'Ann', false)` makes the centre pixels of (3, 0), (4, 1) and (5, 2) rgb(220, 50, 50). The golem `small` at `size` 1 at (4, 1): the pixel (216, 72) (the cell's centre) is rgb(220, 50, 50) and (204, 60) (12 pixels up and left of it) the floor's rgb(50, 36, 44).

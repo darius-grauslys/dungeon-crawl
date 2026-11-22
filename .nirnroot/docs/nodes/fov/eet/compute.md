@@ -22,6 +22,9 @@ As the EED states.
 ## Intrinsic - corridor:
 As the EED states.
 
+## Intrinsic - wall-edges:
+As the EED states.
+
 ## Intrinsic - origin-seen:
 As the EED states.
 
