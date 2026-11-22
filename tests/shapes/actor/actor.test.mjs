@@ -21,7 +21,14 @@ test("actor of builds a frozen actor with the given values", () => {
   assert.strictEqual(a.held, 0);
   assert.strictEqual(a.facing, 'right');
   assert.strictEqual(a.last, null);
+  assert.deepStrictEqual(a.aim, { dx: 1, dy: 0 });
+  assert.strictEqual(a.slow, 0);
+  assert.strictEqual(a.mode, 'roam');
+  assert.strictEqual(a.size, 1);
+  assert.strictEqual(a.small, false);
   assert.strictEqual(Object.isFrozen(a), true);
+  assert.strictEqual(Object.isFrozen(a.last), true);
+  assert.strictEqual(Object.isFrozen(a.aim), true);
 });
 
 test("actor of with ready: 250 has ready 250", () => {
@@ -30,9 +37,28 @@ test("actor of with ready: 250 has ready 250", () => {
   assert.strictEqual(a.ready, 250);
 });
 
-test("actor KINDS is the six kind names in order and frozen", () => {
-  assert.deepStrictEqual(KINDS, ['hero', 'bat', 'slime', 'snake', 'skeleton', 'demon']);
+test("actor KINDS has 19 kinds, first hero, then bat, last golem, and frozen", () => {
+  assert.strictEqual(KINDS.length, 19);
+  assert.strictEqual(KINDS[0], 'hero');
+  assert.strictEqual(KINDS[1], 'bat');
+  assert.strictEqual(KINDS[18], 'golem');
   assert.strictEqual(Object.isFrozen(KINDS), true);
+});
+
+test("actor of accepts a golem of size 3, mode dormant", () => {
+  const s = statsShape.of({ hp: 40, maxHp: 40, attack: 16, defense: 12 });
+  const a = of({ id: 1, kind: 'golem', pos: pointShape.of(0, 0), stats: s, size: 3, mode: 'dormant' });
+  assert.strictEqual(a.kind, 'golem');
+  assert.strictEqual(a.size, 3);
+  assert.strictEqual(a.mode, 'dormant');
+});
+
+test("actor of accepts an archer of aim {dx: -1, dy: 1} and slow 2", () => {
+  const s = statsShape.of({ hp: 7, maxHp: 7, attack: 3, defense: 1 });
+  const a = of({ id: 2, kind: 'archer', pos: pointShape.of(0, 0), stats: s, aim: { dx: -1, dy: 1 }, slow: 2 });
+  assert.strictEqual(a.kind, 'archer');
+  assert.deepStrictEqual(a.aim, { dx: -1, dy: 1 });
+  assert.strictEqual(a.slow, 2);
 });
 
 test("actor of refuses kind: 'dragon'", () => {
@@ -74,19 +100,70 @@ test("actor of refuses facing: 'up'", () => {
   assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, facing: 'up' }), TypeError);
 });
 
+test("actor of refuses aim: {dx: 0, dy: 0}", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, aim: { dx: 0, dy: 0 } }), TypeError);
+});
+
+test("actor of refuses aim: {dx: 2, dy: 0}", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, aim: { dx: 2, dy: 0 } }), TypeError);
+});
+
+test("actor of refuses slow: 4", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, slow: 4 }), TypeError);
+});
+
+test("actor of refuses mode: 'sleep'", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, mode: 'sleep' }), TypeError);
+});
+
+test("actor of refuses size: 4", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'golem', pos: pointShape.of(1, 2), stats: s, size: 4 }), TypeError);
+});
+
+test("actor of refuses a hero of size 2", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, size: 2 }), TypeError);
+});
+
+test("actor of refuses a hero of mode 'guard'", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, mode: 'guard' }), TypeError);
+});
+
+test("actor of refuses small: 1", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, small: 1 }), TypeError);
+});
+
 test("actor of refuses last: {kind: 'use', dx: 0, dy: 0, at: 0}", () => {
   const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
   assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, last: { kind: 'use', dx: 0, dy: 0, at: 0 } }), TypeError);
 });
 
-test("actor of refuses last: {kind: 'move', dx: 1, dy: 1, at: 0}", () => {
+test("actor of refuses last: {kind: 'move', dx: 0, dy: 0, at: 0}", () => {
   const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
-  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, last: { kind: 'move', dx: 1, dy: 1, at: 0 } }), TypeError);
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, last: { kind: 'move', dx: 0, dy: 0, at: 0 } }), TypeError);
 });
 
 test("actor of refuses last: {kind: 'move', dx: 1, dy: 0, at: -5}", () => {
   const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
   assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, last: { kind: 'move', dx: 1, dy: 0, at: -5 } }), TypeError);
+});
+
+test("actor of refuses last: {kind: 'attack', dx: 1, dy: 0, at: 0, reach: 0}", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, last: { kind: 'attack', dx: 1, dy: 0, at: 0, reach: 0 } }), TypeError);
+});
+
+test("actor of accepts last: {kind: 'move', dx: 1, dy: 1, at: 0}", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  const a = of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, last: { kind: 'move', dx: 1, dy: 1, at: 0 } });
+  assert.deepStrictEqual(a.last, { kind: 'move', dx: 1, dy: 1, at: 0, reach: 1 });
 });
 
 test("actor with returns a new actor with changed pos, leaving the original unchanged", () => {
@@ -102,6 +179,11 @@ test("actor with returns a new actor with changed pos, leaving the original unch
   assert.strictEqual(b.held, a.held);
   assert.strictEqual(b.facing, a.facing);
   assert.strictEqual(b.last, a.last);
+  assert.deepStrictEqual(b.aim, a.aim);
+  assert.strictEqual(b.slow, a.slow);
+  assert.strictEqual(b.mode, a.mode);
+  assert.strictEqual(b.size, a.size);
+  assert.strictEqual(b.small, a.small);
   assert.strictEqual(a.pos.x, 1);
   assert.strictEqual(a.pos.y, 2);
   assert.notStrictEqual(a, b);
@@ -119,11 +201,11 @@ test("actor with returns a new actor with changed ready, leaving the original un
 test("actor with returns a new actor with changed held, facing, last", () => {
   const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
   const a = of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s });
-  const b = a.with({ held: 300, facing: 'left', last: { kind: 'attack', dx: -1, dy: 0, at: 50 } });
+  const b = a.with({ held: 300, facing: 'left', last: { kind: 'attack', dx: -1, dy: 1, at: 50 } });
   assert.strictEqual(b.held, 300);
   assert.strictEqual(b.facing, 'left');
   assert.strictEqual(Object.isFrozen(b.last), true);
-  assert.deepStrictEqual(b.last, { kind: 'attack', dx: -1, dy: 0, at: 50 });
+  assert.deepStrictEqual(b.last, { kind: 'attack', dx: -1, dy: 1, at: 50, reach: 1 });
   assert.strictEqual(a.held, 0);
   assert.strictEqual(a.facing, 'right');
   assert.strictEqual(a.last, null);
@@ -149,19 +231,53 @@ test("with is a shared method, not an own property of an actor", () => {
   assert.strictEqual(Object.hasOwn(a, 'held'), true);
   assert.strictEqual(Object.hasOwn(a, 'facing'), true);
   assert.strictEqual(Object.hasOwn(a, 'last'), true);
+  assert.strictEqual(Object.hasOwn(a, 'aim'), true);
+  assert.strictEqual(Object.hasOwn(a, 'slow'), true);
+  assert.strictEqual(Object.hasOwn(a, 'mode'), true);
+  assert.strictEqual(Object.hasOwn(a, 'size'), true);
+  assert.strictEqual(Object.hasOwn(a, 'small'), true);
+  assert.strictEqual(Object.hasOwn(a, 'covers'), false);
+  assert.strictEqual(Object.hasOwn(a, 'cells'), false);
 });
 
-test("facingFor returns left for (-1, 0) and (0, 1)", () => {
+test("covers: golem of size 3 at (4, 5)", () => {
+  const s = statsShape.of({ hp: 40, maxHp: 40, attack: 16, defense: 12 });
+  const a = of({ id: 1, kind: 'golem', pos: pointShape.of(4, 5), stats: s, size: 3 });
+  assert.strictEqual(a.covers(4, 5), true);
+  assert.strictEqual(a.covers(6, 7), true);
+  assert.strictEqual(a.covers(5, 6), true);
+  assert.strictEqual(a.covers(7, 5), false);
+  assert.strictEqual(a.covers(3, 5), false);
+  const cells = a.cells();
+  assert.strictEqual(cells.length, 9);
+  assert.deepStrictEqual(cells[0], pointShape.of(4, 5));
+  assert.deepStrictEqual(cells[1], pointShape.of(5, 5));
+  assert.deepStrictEqual(cells[8], pointShape.of(6, 7));
+});
+
+test("covers: actor of size 1 at (2, 2)", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  const a = of({ id: 0, kind: 'hero', pos: pointShape.of(2, 2), stats: s });
+  assert.strictEqual(a.covers(2, 2), true);
+  assert.strictEqual(a.covers(3, 2), false);
+  const cells = a.cells();
+  assert.strictEqual(cells.length, 1);
+  assert.deepStrictEqual(cells[0], pointShape.of(2, 2));
+});
+
+test("facingFor returns left for (-1, 0), (-1, -1) and (0, 1)", () => {
   assert.strictEqual(facingFor(-1, 0), 'left');
+  assert.strictEqual(facingFor(-1, -1), 'left');
   assert.strictEqual(facingFor(0, 1), 'left');
 });
 
-test("facingFor returns right for (1, 0) and (0, -1)", () => {
+test("facingFor returns right for (1, 0), (1, 1) and (0, -1)", () => {
   assert.strictEqual(facingFor(1, 0), 'right');
+  assert.strictEqual(facingFor(1, 1), 'right');
   assert.strictEqual(facingFor(0, -1), 'right');
 });
 
-test("facingFor throws for (0, 0) and (1, 1)", () => {
+test("facingFor throws for (0, 0) and (2, 0)", () => {
   assert.throws(() => facingFor(0, 0), TypeError);
-  assert.throws(() => facingFor(1, 1), TypeError);
+  assert.throws(() => facingFor(2, 0), TypeError);
 });
