@@ -54,5 +54,8 @@ As the EED states.
 ## Intrinsic - idle:
 As the EED states.
 
+## Intrinsic - host:
+As the EED states.
+
 ## Intrinsic - closes:
 As the EED states.

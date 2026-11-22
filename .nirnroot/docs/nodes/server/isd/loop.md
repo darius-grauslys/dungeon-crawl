@@ -2,7 +2,7 @@
 
 ## `start({port, root, idle})`
 
-`handle = serve.serve({port, root})`, awaited. `table =
+`handle = serve.serve({port, root, host})` (`host` only when given), awaited. `table =
 sessions.table({idle})` (its default random). `worlds`: a `Map` from
 session id to world; `sent`: per connection, the world and the pause last
 sent to it. Then `setInterval(iterate, 50)`. Answer `{port: handle.port,
