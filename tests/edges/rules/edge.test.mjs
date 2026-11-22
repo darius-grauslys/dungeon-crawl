@@ -1156,6 +1156,41 @@ test("misses", () => {
   assert.ok(hitCount >= 1);
 });
 
+test("rolls-advance", () => {
+  const grid = tileGrid.fromRows(["######", "#....#", "######"]);
+
+  // rng state advances by the two draws
+  for (let rng = 0; rng <= 39; rng++) {
+    const heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+    const skeleton = actor.of({ id: 10, kind: "skeleton", pos: point.of(2, 1), stats: stats.of({ hp: 30, maxHp: 30, attack: 4, defense: 2, range: 1 }), ready: 10000 });
+    const w = makeWorld({ grid, heroes: [heroAnn], monsters: [skeleton], rng });
+    const w1 = advance(intend(w, "Ann", intent.attack(1, 0)), 50);
+    assert.strictEqual(w1.rng, (rng + 2 * 0x6d2b79f5) >>> 0);
+  }
+
+  // 20 attacks in a row, skeleton reset to 30 before each
+  let missCount = 0;
+  let hitCount = 0;
+  const heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  let skeleton = actor.of({ id: 10, kind: "skeleton", pos: point.of(2, 1), stats: stats.of({ hp: 30, maxHp: 30, attack: 4, defense: 2, range: 1 }), ready: 10000 });
+  let w = makeWorld({ grid, heroes: [heroAnn], monsters: [skeleton], rng: 0 });
+  for (let i = 0; i < 20; i++) {
+    const w1 = advance(intend(w, "Ann", intent.attack(1, 0)), 50);
+    const line = w1.log[w1.log.length - 1];
+    if (line === "Ann misses the skeleton.") {
+      missCount++;
+    } else if (line.startsWith("Critical! Ann hits the skeleton for ")) {
+      hitCount++;
+    } else if (line.startsWith("Ann hits the skeleton for ")) {
+      hitCount++;
+    }
+    skeleton = skeleton.with({ stats: stats.of({ hp: 30, maxHp: 30, attack: 4, defense: 2, range: 1 }) });
+    w = makeWorld({ grid, heroes: [heroAnn], monsters: [skeleton], rng: w1.rng });
+  }
+  assert.ok(missCount >= 1);
+  assert.ok(hitCount >= 1);
+});
+
 test("magic", () => {
   const grid = tileGrid.fromRows(["######", "#....#", "######"]);
 
