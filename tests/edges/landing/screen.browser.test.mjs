@@ -212,11 +212,11 @@ test("save/valid", () => {
   assert.strictEqual(save.isName(""), false);
   assert.strictEqual(save.isName("Ann "), false);
   assert.strictEqual(save.isName(5), false);
-  // depth 29 accepted
-  const depth29 = save.of({ seed: 9, depth: 29, players: [] });
-  assert.ok(depth29);
-  // depth 30, 0 throw
-  assert.throws(() => save.of({ seed: 9, depth: 30, players: [] }), TypeError);
+  // depth 33 accepted
+  const depth33 = save.of({ seed: 9, depth: 33, players: [] });
+  assert.ok(depth33);
+  // depth 34, 0 throw
+  assert.throws(() => save.of({ seed: 9, depth: 34, players: [] }), TypeError);
   assert.throws(() => save.of({ seed: 9, depth: 0, players: [] }), TypeError);
   // seed -1 throws
   assert.throws(() => save.of({ seed: -1, depth: 3, players: [] }), TypeError);
