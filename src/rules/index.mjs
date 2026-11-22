@@ -285,7 +285,7 @@ export function fromSave(save) {
     visible,
     explored,
     gold: 0,
-    log: ["Welcome to the dungeon. Find the stairs (>)."],
+    log: isShopDepth(depth) ? ["A shop! Bump a ware twice to buy it."] : ["Welcome to the dungeon. Find the stairs (>)."],
     entry: saveShape.of({ seed, depth, players: entryPlayers }),
   });
 }
@@ -487,8 +487,8 @@ export function advance(world, ms) {
           log.push(`${h.name} looks at ${wareLabel(wareAt.kind)}: ${wareAt.price} gold. Bump it again to buy.`);
         } else if (h.offer === wareAt.id) {
           // second bump of same ware: buy attempt
-          if (gold > 0) {
-            const price = wareAt.price;
+          const price = wareAt.price;
+          if (gold >= price) {
             gold -= price;
             items = items.filter((it) => it.id !== wareAt.id);
             if (wareAt.kind === "potion") {
@@ -505,7 +505,7 @@ export function advance(world, ms) {
             log.push(`${h.name} buys ${wareLabel(wareAt.kind)} for ${price} gold.`);
             offerSet = null;
           } else {
-            log.push(`Not enough gold for ${wareLabel(wareAt.kind)}: ${wareAt.price} needed, the party has ${gold}.`);
+            log.push(`Not enough gold for ${wareLabel(wareAt.kind)}: ${price} needed, the party has ${gold}.`);
             offerSet = null;
           }
         } else {
@@ -583,8 +583,8 @@ export function advance(world, ms) {
           offerSet = wareAt.id;
           log.push(`${h.name} looks at ${wareLabel(wareAt.kind)}: ${wareAt.price} gold. Bump it again to buy.`);
         } else if (h.offer === wareAt.id) {
-          if (gold > 0) {
-            const price = wareAt.price;
+          const price = wareAt.price;
+          if (gold >= price) {
             gold -= price;
             items = items.filter((it) => it.id !== wareAt.id);
             if (wareAt.kind === "potion") {
@@ -601,7 +601,7 @@ export function advance(world, ms) {
             log.push(`${h.name} buys ${wareLabel(wareAt.kind)} for ${price} gold.`);
             offerSet = null;
           } else {
-            log.push(`Not enough gold for ${wareLabel(wareAt.kind)}: ${wareAt.price} needed, the party has ${gold}.`);
+            log.push(`Not enough gold for ${wareLabel(wareAt.kind)}: ${price} needed, the party has ${gold}.`);
             offerSet = null;
           }
         } else {
