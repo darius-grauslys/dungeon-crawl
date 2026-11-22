@@ -54,17 +54,29 @@ export function commandFor(key) {
   return CMD_MAP.get(key) ?? null;
 }
 
-/** `listen(target, {intent, command}) -> function`. Adds a `keydown`, a `keyup` and a `blur` listener to `target` (any `EventTarget`). For a `keydown` with none of `ctrlKey`, `altKey`, `metaKey` true, whose `key` has an intent (as `intentFor(key, shiftKey)`, made diagonal by a chord as above) or a command, it calls `event.preventDefault()` and then `intent(i)` or `command(c)`, once; other events are left alone. A `keyup` (and a `blur`) only lets keys go. Answers `stop`, a function that removes the listeners (calling it again does nothing). */
-export function listen(target, { intent: onIntent, command }) {
+/** `listen(target, {intent, command, aiming}) -> function`. Adds a `keydown`, a `keyup` and a `blur` listener to `target` (any `EventTarget`). For a `keydown` with none of `ctrlKey`, `altKey`, `metaKey` true, whose `key` has an intent (as `intentFor(key, shiftKey)`, made diagonal by a chord as above) or a command, it calls `event.preventDefault()` and then `intent(i)` or `command(c)`, once; other events are left alone. A `keyup` (and a `blur`) only lets keys go. **Aiming**: Shift held down means the player is aiming. A `keydown` with `key` `'Shift'` while Shift was not held calls `aiming(true)`; a `keyup` with `key` `'Shift'`, or a `blur`, while it was held calls `aiming(false)`; a repeat of the held Shift calls nothing. `aiming` left out: nothing is called. A Shift `keydown` is not prevented. Answers `stop`, a function that removes the listeners (calling it again does nothing). */
+export function listen(target, { intent: onIntent, command, aiming: onAiming }) {
   // Per-listener axis tracking: latest held orthogonal key of each axis.
   let heldVertical = null; // { key, dy }
   let heldHorizontal = null; // { key, dx }
+
+  // Track whether Shift is held down (for the aiming callback).
+  let shiftHeld = false;
 
   const keydownHandler = (event) => {
     if (event.ctrlKey || event.altKey || event.metaKey) return;
 
     const key = event.key;
     const shift = !!event.shiftKey;
+
+    // Shift key: aiming callback, don't prevent default.
+    if (key === "Shift") {
+      if (!shiftHeld) {
+        shiftHeld = true;
+        if (onAiming) onAiming(true);
+      }
+      return;
+    }
 
     const dir = DIR_MAP.get(key);
     let i;
@@ -111,6 +123,13 @@ export function listen(target, { intent: onIntent, command }) {
 
   const keyupHandler = (event) => {
     const key = event.key;
+    if (key === "Shift") {
+      if (shiftHeld) {
+        shiftHeld = false;
+        if (onAiming) onAiming(false);
+      }
+      return;
+    }
     const dir = DIR_MAP.get(key);
     if (!dir) return;
     const [odx, ody] = dir;
@@ -126,6 +145,10 @@ export function listen(target, { intent: onIntent, command }) {
   };
 
   const blurHandler = () => {
+    if (shiftHeld) {
+      shiftHeld = false;
+      if (onAiming) onAiming(false);
+    }
     heldVertical = null;
     heldHorizontal = null;
   };
