@@ -724,6 +724,7 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
       return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
     }
     updatedActor = updatedActor.with({ last: { kind: "attack", dx: aimDx, dy: aimDy, at: newTime, reach } });
+    if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
     if (monster) {
       const newHeld = Math.max(monster.held || 0, newTime + 300);
       let newMonster = monster.with({ held: newHeld });
