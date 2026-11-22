@@ -474,6 +474,38 @@ test("bumping and buying: offer, three log lines, wares block steps, other actio
   assert.equal(wNewFloor.heroes[0].offer, null);
 });
 
+test("rolls-advance: rng advances per attack, 20 attacks give miss and hit", () => {
+  const grid = tileGridShape.fromRows(["######", "#....#", "######"]);
+  const visible = maskShape.empty(6, 3);
+  const explored = maskShape.empty(6, 3);
+  const annActor = actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) });
+  const ann = heroShape.of({ name: "Ann", actor: annActor });
+  const skeletonActor = actorShape.of({ id: 1, kind: "skeleton", pos: pointShape.of(2, 1), stats: statsShape.of({ hp: 30, maxHp: 30, attack: 4, defense: 2 }), ready: 10000 });
+  const wBase = worldShape.of({ seed: 1, rng: 0, depth: 1, time: 0, state: "playing", grid, heroes: [ann], monsters: [skeletonActor], items: [], visible, explored, gold: 0, log: ["welcome"], entry: saveShape.of({ seed: 1, depth: 1, players: [] }) });
+
+  for (let r = 0; r < 40; r++) {
+    const w = worldShape.of({ ...wBase, rng: r });
+    const aw = rules.advance(rules.intend(w, "Ann", intentShape.attack(1, 0)), 50);
+    const expected = (r + 2 * 0x6d2b79f5) >>> 0;
+    assert.equal(aw.rng, expected, `rng after attack from ${r}`);
+  }
+
+  let w = worldShape.of({ ...wBase, rng: 0 });
+  let anyMiss = false;
+  let anyHit = false;
+  for (let i = 0; i < 20; i++) {
+    w = worldShape.of({ ...w, monsters: [skeletonActor] });
+    const ready = w.heroes[0].actor.ready;
+    const elapsed = Math.max(1, ready - w.time);
+    w = rules.advance(rules.intend(w, "Ann", intentShape.attack(1, 0)), elapsed);
+    const last = w.log[w.log.length - 1];
+    if (last.includes("misses")) anyMiss = true;
+    if (last.includes("hits")) anyHit = true;
+  }
+  assert.ok(anyMiss);
+  assert.ok(anyHit);
+});
+
 test("refuses: invalid inputs throw TypeError", () => {
   assert.throws(() => rules.newGame(-1), TypeError);
   assert.throws(() => rules.newGame(2.5), TypeError);
