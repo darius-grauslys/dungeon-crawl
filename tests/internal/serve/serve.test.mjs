@@ -324,6 +324,37 @@ function rawSendFragmented(socket, parts) {
   }
 }
 
+test("host", async () => {
+  const root = await makeFixture();
+  let srv = await serve({ port: 0, root, host: "127.0.0.1" });
+  try {
+    assert.equal(srv.url, `http://127.0.0.1:${srv.port}/`);
+    const r = await fetch(srv.port, "/");
+    assert.equal(r.status, 200);
+  } finally {
+    await srv.close();
+  }
+
+  srv = await serve({ port: 0, root, host: "0.0.0.0" });
+  try {
+    assert.equal(srv.url, `http://0.0.0.0:${srv.port}/`);
+    const r = await fetch(srv.port, "/");
+    assert.equal(r.status, 200);
+  } finally {
+    await srv.close();
+  }
+
+  srv = await serve({ port: 0, root });
+  try {
+    assert.equal(srv.url, `http://127.0.0.1:${srv.port}/`);
+  } finally {
+    await srv.close();
+  }
+
+  await assert.rejects(() => serve({ port: 0, root, host: "" }), TypeError);
+  await assert.rejects(() => serve({ port: 0, root, host: 5 }), TypeError);
+});
+
 test("framing-fragmented", async () => {
   const root = await makeFixture();
   const srv = await serve({ port: 0, root });

@@ -112,10 +112,15 @@ function encodePingPong(opcode, payload) {
   return Buffer.concat([header, p]);
 }
 
-/** `serve({port, root}) -> promise`. `port` an integer from 0 to 65535 (0: any free port); `root` the project's directory. Listens on every interface (so other machines of the network can play). Resolves, once listening, to a handle: `port`, the port it listens on; `url`, `http://127.0.0.1:<port>/`; `drain()`, every text frame received since the last `drain`, in arrival order, as `[connection, text]` pairs; `closed()`, the connections that closed since the last call, for any reason, each once; `send(connection, text)`, one text frame to that connection (a no-op for one that is closed or unknown); `end(connection)`, closing that connection (close code 1000; it then appears in `closed()`; a no-op for one not open); and `close()`, answering a promise that resolves once every connection (close code 1001) and the listener have closed. Rejects if the bundle fails to build or the port can't be had. */
-export async function serve({ port, root }) {
+/** `serve({port, root, host}) -> promise`. `port` an integer from 0 to 65535 (0: any free port); `root` the project's directory; `host` (left out: every interface) a non-empty string, the address to listen on (`'0.0.0.0'`, `'127.0.0.1'`, a machine's address). Left out, it listens on every interface (so other machines of the network can play). Resolves, once listening, to a handle: `port`, the port it listens on; `url`, `http://127.0.0.1:<port>/` (or `http://<host>:<port>/` when `host` is given); `drain()`, every text frame received since the last `drain`, in arrival order, as `[connection, text]` pairs; `closed()`, the connections that closed since the last call, for any reason, each once; `send(connection, text)`, one text frame to that connection (a no-op for one that is closed or unknown); `end(connection)`, closing that connection (close code 1000; it then appears in `closed()`; a no-op for one not open); and `close()`, answering a promise that resolves once every connection (close code 1001) and the listener have closed. Rejects if the bundle fails to build or the port can't be had. */
+export async function serve({ port, root, host }) {
   if (!Number.isInteger(port) || port < 0 || port > 65535) {
     throw new Error("port must be an integer from 0 to 65535");
+  }
+  if (host !== undefined) {
+    if (typeof host !== "string" || host.length === 0) {
+      throw new TypeError("host must be a non-empty string");
+    }
   }
 
   const build = await esbuild.build({
@@ -284,12 +289,12 @@ export async function serve({ port, root }) {
     server.on("error", (err) => {
       reject(err);
     });
-    server.listen(port || 0, () => {
+    const onStart = () => {
       const addr = server.address();
       const p = addr && typeof addr.port === "number" ? addr.port : port;
       resolve({
         port: p,
-        url: `http://127.0.0.1:${p}/`,
+        url: host !== undefined ? `http://${host}:${p}/` : `http://127.0.0.1:${p}/`,
         drain: () => {
           const items = inbox.slice();
           inbox.length = 0;
@@ -336,6 +341,11 @@ export async function serve({ port, root }) {
           server.close((err) => { if (err) rej(err); else res(); });
         }),
       });
-    });
+    };
+    if (host !== undefined) {
+      server.listen(port || 0, host, onStart);
+    } else {
+      server.listen(port || 0, onStart);
+    }
   });
 }
