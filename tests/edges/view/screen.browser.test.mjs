@@ -690,6 +690,113 @@ test("themes", async () => {
   assert.ok(diffPixels(pixel1B, pixel7B) >= 10, "cell (28,1) at depth 7 differs from depth 1 in at least 10 pixels");
 });
 
+test("poses", async () => {
+  const canvas = document.querySelector("canvas");
+  init(canvas);
+
+  await load("/assets/");
+
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const visible = fullMask(7, 3);
+  const explored = fullMask(7, 3);
+
+  const ctx = canvas.getContext("2d");
+  const collectAnnCell = (w, now) => {
+    draw(w, "Ann", false, now);
+    const data = ctx.getImageData(48, 48, 48, 48).data;
+    const pixels = [];
+    for (let i = 0; i < data.length; i += 4) {
+      pixels.push(`${data[i]},${data[i+1]},${data[i+2]},${data[i+3]}`);
+    }
+    return pixels;
+  };
+
+  const diffPixels = (a, b) => {
+    let diff = 0;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) diff++;
+    }
+    return diff;
+  };
+
+  const makeAnn = (colour, gesture, last) => {
+    const a = actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: makeStats(), gesture, last });
+    return hero.of({ name: "Ann", actor: a, pending: null, alive: true, colour });
+  };
+
+  const makeWorld = (hAnn) => world.of({
+    seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+    grid, heroes: [hAnn], monsters: [], items: [],
+    visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
+  });
+
+  // idle frames: draw at 0 and 250 differ by >= 5 pixels; draw at 750 same as at 0
+  {
+    const hAnn = makeAnn(0, null, null);
+    const w = makeWorld(hAnn);
+
+    const cell0 = collectAnnCell(w, 0);
+    const cell250 = collectAnnCell(w, 250);
+    assert.ok(diffPixels(cell0, cell250) >= 5, "idle frames 0 and 1 differ in at least 5 pixels");
+    const cell750 = collectAnnCell(w, 750);
+    assert.deepEqual(cell0, cell750, "frame at 750 is same as at 0 (frame 0 again)");
+  }
+
+  // colour 1 differs from colour 0 in at least 5 pixels
+  {
+    const hAnn0 = makeAnn(0, null, null);
+    const w0 = makeWorld(hAnn0);
+    const cell0 = collectAnnCell(w0, 0);
+
+    const hAnn1 = makeAnn(1, null, null);
+    const w1 = makeWorld(hAnn1);
+    const cell1 = collectAnnCell(w1, 0);
+
+    assert.ok(diffPixels(cell0, cell1) >= 5, "colour 1 differs from colour 0 in at least 5 pixels");
+  }
+
+  // power gesture: at now 350 differs from idle cell at 0 in at least 20 pixels; at 600 same as idle frame 2
+  {
+    const hAnnIdle = makeAnn(0, null, null);
+    const wIdle = makeWorld(hAnnIdle);
+    const idleCell0 = collectAnnCell(wIdle, 0);
+
+    const aPower = actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: makeStats(), gesture: { kind: "power", at: 0 }, last: null });
+    const hAnnPower = hero.of({ name: "Ann", actor: aPower, pending: null, alive: true, colour: 0 });
+    const wPower = makeWorld(hAnnPower);
+
+    const powerCell350 = collectAnnCell(wPower, 350);
+    assert.ok(diffPixels(idleCell0, powerCell350) >= 20, "power cell at 350 differs from idle cell at 0 in at least 20 pixels");
+
+    const powerCell600 = collectAnnCell(wPower, 600);
+    const idleCell600 = collectAnnCell(wIdle, 600);
+    assert.deepEqual(powerCell600, idleCell600, "at 600 past gesture, same as idle frame Math.floor(600/250)%3=2 drawn without gesture");
+  }
+
+  // use gesture: at now 300 same as power at 200 (both power_up frame 2); at 450 idle again
+  {
+    const aUse = actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: makeStats(), gesture: { kind: "use", at: 0 }, last: null });
+    const hAnnUse = hero.of({ name: "Ann", actor: aUse, pending: null, alive: true, colour: 0 });
+    const wUse = makeWorld(hAnnUse);
+
+    const aPower = actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: makeStats(), gesture: { kind: "power", at: 0 }, last: null });
+    const hAnnPower = hero.of({ name: "Ann", actor: aPower, pending: null, alive: true, colour: 0 });
+    const wPower = makeWorld(hAnnPower);
+
+    const powerCell200 = collectAnnCell(wPower, 200);
+
+    const useCell300 = collectAnnCell(wUse, 300);
+    assert.deepEqual(useCell300, powerCell200, "use at 300 same as power at 200 (both power_up frame 2)");
+
+    const useCell450 = collectAnnCell(wUse, 450);
+
+    const hAnnIdle = makeAnn(0, null, null);
+    const wIdle = makeWorld(hAnnIdle);
+    const idleCell450 = collectAnnCell(wIdle, 450);
+    assert.deepEqual(useCell450, idleCell450, "at 450 use gesture is idle again");
+  }
+});
+
 test("sprites", async () => {
   const canvas = document.querySelector("canvas");
   init(canvas);
