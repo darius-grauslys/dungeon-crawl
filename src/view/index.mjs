@@ -132,9 +132,8 @@ function animate(last, now) {
   if (last.kind === "move") {
     if (t >= 160) return { ox: 0, oy: 0, k: 1 };
     const h = Math.sin(Math.PI * t / 160);
-    let oy = -12 * h;
-    let k = 1;
-    if (last.dy === -1) k = 1 + 0.15 * h;
+    const oy = -12 * h;
+    const k = 1 + 0.15 * h;
     return { ox: 0, oy, k };
   }
 
@@ -331,8 +330,8 @@ function drawAimDot(world, me, now, cam) {
   ctx_.fill();
 }
 
-/** `draw(world, me, paused, now)`. Draws the world for the player `me`, as above, onto the canvas given to `init` (throws an `Error` if none was given), with the paused band when `paused` is true. `now` is the world time to animate at, a number of 0 or more (left out: the world's `time`): the page draws every frame, with `now` running on from the last world's `time` between two worlds. */
-export function draw(world, me, paused, nowIn) {
+/** `draw(world, me, paused, now, aiming)`. Draws the world for the player `me`, as above, onto the canvas given to `init` (throws an `Error` if none was given), with the paused band when `paused` is true. `now` is the world time to animate at, a number of 0 or more (left out: the world's `time`): the page draws every frame, with `now` running on from the last world's `time` between two worlds. `aiming` (left out: `false`): whether the player is aiming, so the aim dot is drawn. */
+export function draw(world, me, paused, nowIn, aiming = false) {
   if (!canvas_) throw new Error("no canvas given to init");
   const W = canvas_.width;
   const H = canvas_.height;
@@ -461,7 +460,7 @@ export function draw(world, me, paused, nowIn) {
   drawProjectiles(world, now, cam);
 
   // Pass 6: the aim dot of me's hero.
-  drawAimDot(world, me, now, cam);
+  if (aiming) drawAimDot(world, me, now, cam);
 
   // Pass 7: the prices of wares on visible cells.
   for (let r = 0; r < rows; r++) {

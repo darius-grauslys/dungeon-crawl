@@ -237,10 +237,25 @@ test("animates: attack and move", async () => {
   view.draw(w, "Ann", false, 80);
   img = ctx.getImageData(0, 0, 800, 600).data;
   assert.deepEqual(pixelAt(img, 72, 46), [60, 120, 255, 255]);
+  assert.deepEqual(pixelAt(img, 72, 42), [60, 120, 255, 255]);
 
   view.draw(w, "Ann", false, 200);
   img = ctx.getImageData(0, 0, 800, 600).data;
   assert.deepEqual(pixelAt(img, 72, 46), [90, 80, 90, 255]);
+
+  // move dx:0, dy:1, at:0
+  w = makeAnimatesWorld({ kind: "move", dx: 0, dy: 1, at: 0 });
+  view.draw(w, "Ann", false, 80);
+  img = ctx.getImageData(0, 0, 800, 600).data;
+  assert.deepEqual(pixelAt(img, 72, 46), [60, 120, 255, 255]);
+  assert.deepEqual(pixelAt(img, 72, 42), [60, 120, 255, 255]);
+
+  // move dx:-1, dy:1, at:0
+  w = makeAnimatesWorld({ kind: "move", dx: -1, dy: 1, at: 0 });
+  view.draw(w, "Ann", false, 80);
+  img = ctx.getImageData(0, 0, 800, 600).data;
+  assert.deepEqual(pixelAt(img, 72, 46), [60, 120, 255, 255]);
+  assert.deepEqual(pixelAt(img, 72, 42), [60, 120, 255, 255]);
 
   // attack dx:0, dy:-1, at:0
   w = makeAnimatesWorld({ kind: "attack", dx: 0, dy: -1, at: 0 });
@@ -334,4 +349,77 @@ test("prices: ware prices over wares", () => {
   const imgOffer = ctx.getImageData(0, 0, 800, 600).data;
   const offerCount = countPixels(imgOffer, 144, 64, 191, 95, (r, g, b) => g > 200 && r < 170);
   assert.ok(offerCount >= 5, `expected >= 5 offer pixels, got ${offerCount}`);
+});
+
+function makeAimWorld(range, name = "Ann") {
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const visible = mask.of(7, 3, Array(21).fill(true));
+  const explored = mask.of(7, 3, Array(21).fill(true));
+  const annActor = actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1, range }) });
+  const heroes = [heroShape.of({ name, actor: annActor, alive: true })];
+  const entry = saveShape.of({ seed: 1, depth: 2, players: [{ name: "Ann", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }] });
+  return world.of({ seed: 1, rng: 2, depth: 2, time: 0, state: "playing", grid, heroes, monsters: [], items: [], visible, explored, gold: 5, log: [], entry });
+}
+
+function noAimDotPixels(img) {
+  for (let y = 0; y < 480; y++) {
+    for (let x = 0; x < 800; x++) {
+      const i = (y * 800 + x) * 4;
+      if (img[i] === 255 && img[i + 1] === 140 && img[i + 2] === 0) return false;
+    }
+  }
+  return true;
+}
+
+test("aim: aim dot only while aiming", async () => {
+  const canvas = document.querySelector("canvas");
+  const ctx = canvas.getContext("2d");
+  view.init(canvas);
+
+  // range 1, aiming (1, 0)
+  let w = makeAimWorld(1);
+  view.draw(w, "Ann", false, 300, true);
+  let img = ctx.getImageData(0, 0, 800, 600).data;
+  assert.deepEqual(pixelAt(img, 120, 72), [255, 140, 0, 255]);
+
+  view.draw(w, "Ann", false, 0);
+  img = ctx.getImageData(0, 0, 800, 600).data;
+  assert.deepEqual(pixelAt(img, 120, 72), [230, 200, 60, 255]);
+
+  view.draw(w, "Ann", false, 600);
+  img = ctx.getImageData(0, 0, 800, 600).data;
+  assert.deepEqual(pixelAt(img, 120, 72), [230, 200, 60, 255]);
+
+  // not aiming (default)
+  view.draw(w, "Ann", false, 300);
+  img = ctx.getImageData(0, 0, 800, 600).data;
+  assert.deepEqual(pixelAt(img, 120, 72), [230, 200, 60, 255]);
+  assert.ok(noAimDotPixels(img), "no aim dot when aiming defaults to false");
+
+  // not aiming (false)
+  view.draw(w, "Ann", false, 300, false);
+  img = ctx.getImageData(0, 0, 800, 600).data;
+  assert.deepEqual(pixelAt(img, 120, 72), [230, 200, 60, 255]);
+
+  // range 3
+  w = makeAimWorld(3);
+  view.draw(w, "Ann", false, 300, true);
+  img = ctx.getImageData(0, 0, 800, 600).data;
+  assert.deepEqual(pixelAt(img, 216, 72), [255, 140, 0, 255]);
+  assert.deepEqual(pixelAt(img, 120, 72), [230, 200, 60, 255]);
+
+  // aiming (-1, 0), wall next to her
+  const annActor = actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1, range: 1 }) });
+  const annActorLeft = actor.with(annActor, { aim: { dx: -1, dy: 0 } });
+  const heroes = [heroShape.of({ name: "Ann", actor: annActorLeft, alive: true })];
+  const entry = saveShape.of({ seed: 1, depth: 2, players: [{ name: "Ann", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }] });
+  w = world.of({ seed: 1, rng: 2, depth: 2, time: 0, state: "playing", grid, heroes, monsters: [], items: [], visible, explored, gold: 5, log: [], entry });
+  view.draw(w, "Ann", false, 300, true);
+  img = ctx.getImageData(0, 0, 800, 600).data;
+  assert.ok(noAimDotPixels(img), "no aim dot when aiming at a wall");
+
+  // Eve (no such hero)
+  view.draw(w, "Eve", false, 300, true);
+  img = ctx.getImageData(0, 0, 800, 600).data;
+  assert.ok(noAimDotPixels(img), "no aim dot for a player without a hero");
 });
