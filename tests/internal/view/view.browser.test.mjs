@@ -259,8 +259,12 @@ test("sprites: atlas.pose not implemented yet", async () => {
   view.init(canvas);
   await view.load("/assets/");
   const w = makeWorld();
-  // atlas.pose comes from sa-atlas, not implemented yet: view.draw fails with it.
-  assert.throws(() => view.draw(w, "Ann", false), /not implemented: atlas\.pose/);
+  // atlas.pose comes from sa-atlas, not implemented yet: it returns null,
+  // so creatures are drawn without pose sprites; view.draw completes.
+  view.draw(w, "Ann", false);
+  const img = ctx.getImageData(0, 0, 800, 600).data;
+  // background is drawn
+  assert.deepEqual(pixelAt(img, 0, 0), [22, 13, 19, 255]);
 });
 
 function makeThemesWorld(depth) {
@@ -281,8 +285,12 @@ test("themes: themed tiles per depth", async () => {
   await view.load("/assets/");
 
   const w1 = makeThemesWorld(1);
-  // atlas.pose comes from sa-atlas, not implemented yet: view.draw fails with it.
-  assert.throws(() => view.draw(w1, "Ann", false), /not implemented: atlas\.pose/);
+  // atlas.pose comes from sa-atlas, not implemented yet: it returns null,
+  // so view.draw completes (tiles are still drawn).
+  view.draw(w1, "Ann", false);
+  const img1 = ctx.getImageData(0, 0, 800, 600).data;
+  // background is drawn
+  assert.deepEqual(pixelAt(img1, 0, 0), [22, 13, 19, 255]);
 });
 
 test("prices: ware prices over wares", () => {
