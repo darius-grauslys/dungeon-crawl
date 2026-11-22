@@ -182,19 +182,46 @@ test("keys", async () => {
 
   const evShift = new KeyboardEvent("keydown", { key: "ArrowLeft", cancelable: true, shiftKey: true });
   document.dispatchEvent(evShift);
-  assert.strictEqual(socket.sent()[4], messageShape.act(intentShape.attack(-1, 0)).text());
+  assert.strictEqual(socket.sent()[4], messageShape.act(intentShape.face(-1, 0)).text());
+
+  const evU = new KeyboardEvent("keydown", { key: "u", cancelable: true });
+  document.dispatchEvent(evU);
+  assert.strictEqual(socket.sent()[5], messageShape.act(intentShape.move(1, -1)).text());
+
+  const evSpace = new KeyboardEvent("keydown", { key: " ", cancelable: true });
+  document.dispatchEvent(evSpace);
+  assert.strictEqual(socket.sent()[6], messageShape.act(intentShape.attack()).text());
 
   const evE = new KeyboardEvent("keydown", { key: "e", cancelable: true });
   document.dispatchEvent(evE);
-  assert.strictEqual(socket.sent()[5], messageShape.act(intentShape.use()).text());
-
-  const evP = new KeyboardEvent("keydown", { key: "p", cancelable: true });
-  document.dispatchEvent(evP);
-  assert.strictEqual(socket.sent()[6], messageShape.pause(true).text());
+  assert.strictEqual(socket.sent()[7], messageShape.act(intentShape.use()).text());
 
   const evDescend = new KeyboardEvent("keydown", { key: ">", cancelable: true, shiftKey: true });
   document.dispatchEvent(evDescend);
-  assert.strictEqual(socket.sent()[7], messageShape.act(intentShape.descend()).text());
+  assert.strictEqual(socket.sent()[8], messageShape.act(intentShape.descend()).text());
+
+  const evP = new KeyboardEvent("keydown", { key: "p", cancelable: true });
+  document.dispatchEvent(evP);
+  assert.strictEqual(socket.sent()[9], messageShape.pause(true).text());
+
+  const evShiftKey = new KeyboardEvent("keydown", { key: "Shift", cancelable: true });
+  document.dispatchEvent(evShiftKey);
+  assert.strictEqual(evShiftKey.defaultPrevented, false);
+
+  const evMute = new KeyboardEvent("keydown", { key: "m", cancelable: true });
+  document.dispatchEvent(evMute);
+  assert.strictEqual(evMute.defaultPrevented, true);
+  assert.strictEqual(socket.sent().length, 10);
+
+  const evQuieter = new KeyboardEvent("keydown", { key: "-", cancelable: true });
+  document.dispatchEvent(evQuieter);
+  assert.strictEqual(evQuieter.defaultPrevented, true);
+  assert.strictEqual(socket.sent().length, 10);
+
+  const evLouder = new KeyboardEvent("keydown", { key: "=", cancelable: true });
+  document.dispatchEvent(evLouder);
+  assert.strictEqual(evLouder.defaultPrevented, true);
+  assert.strictEqual(socket.sent().length, 10);
 
   h.stop();
 });
