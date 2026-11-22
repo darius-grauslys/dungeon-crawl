@@ -84,7 +84,7 @@ async function waitUntil(cond, ms = 500) {
 
 test("starts", () => {
   const open = makeSocketFactory();
-  const h = start(document, { open });
+  const h = start(document, { open, audioContext: null });
   assert.equal(document.querySelectorAll("canvas").length, 1);
   assert.ok(document.getElementById("landing"));
   assert.equal(h.screen(), "landing");
@@ -101,7 +101,7 @@ test("starts", () => {
 
 test("lobby", async () => {
   const open = makeSocketFactory();
-  const h = start(document, { open });
+  const h = start(document, { open, audioContext: null });
 
   const socket = open.socket();
   socket.onopen();
@@ -125,7 +125,7 @@ test("lobby", async () => {
 
 test("creates", async () => {
   const open = makeSocketFactory();
-  const h = start(document, { open });
+  const h = start(document, { open, audioContext: null });
 
   document.getElementById("landing-name").value = "Ann";
   document.getElementById("landing-create").click();
@@ -160,7 +160,7 @@ test("creates", async () => {
 
 test("refused", async () => {
   const open = makeSocketFactory();
-  const h = start(document, { open });
+  const h = start(document, { open, audioContext: null });
 
   const socket = open.socket();
   socket.onopen();
@@ -175,7 +175,7 @@ test("refused", async () => {
 
 test("keys", async () => {
   const open = makeSocketFactory();
-  const h = start(document, { open });
+  const h = start(document, { open, audioContext: null });
 
   document.getElementById("landing-name").value = "Ann";
   document.getElementById("landing-create").click();
@@ -226,13 +226,34 @@ test("keys", async () => {
   document.dispatchEvent(ev);
   assert.equal(open.recordedTexts()[open.recordedTexts().length - 1], message.pause(true).text());
 
+  ev = new KeyboardEvent("keydown", { key: "m", cancelable: true });
+  const preventedM = !document.dispatchEvent(ev);
+  assert.equal(preventedM, true);
+  const beforeM = open.recordedTexts().length;
+  await waitUntil(() => open.recordedTexts().length === beforeM);
+  assert.equal(open.recordedTexts().length, beforeM);
+
+  ev = new KeyboardEvent("keydown", { key: "-", cancelable: true });
+  const preventedMinus = !document.dispatchEvent(ev);
+  assert.equal(preventedMinus, true);
+  const beforeMinus = open.recordedTexts().length;
+  await waitUntil(() => open.recordedTexts().length === beforeMinus);
+  assert.equal(open.recordedTexts().length, beforeMinus);
+
+  ev = new KeyboardEvent("keydown", { key: "=", cancelable: true });
+  const preventedEquals = !document.dispatchEvent(ev);
+  assert.equal(preventedEquals, true);
+  const beforeEquals = open.recordedTexts().length;
+  await waitUntil(() => open.recordedTexts().length === beforeEquals);
+  assert.equal(open.recordedTexts().length, beforeEquals);
+
   h.stop();
 });
 
 test("menu", async () => {
   const open = makeSocketFactory();
   const download = makeDownload();
-  const h = start(document, { open, download });
+  const h = start(document, { open, download, audioContext: null });
 
   document.getElementById("landing-name").value = "Ann";
   document.getElementById("landing-create").click();
@@ -301,7 +322,7 @@ test("menu", async () => {
 test("creates-canvas", () => {
   const doc = document.implementation.createHTMLDocument("t");
   const open = makeSocketFactory();
-  const h = start(doc, { open });
+  const h = start(doc, { open, audioContext: null });
   const canvases = doc.querySelectorAll("canvas");
   assert.equal(canvases.length, 1);
   assert.equal(canvases[0].width, 960);
