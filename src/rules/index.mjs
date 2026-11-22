@@ -719,6 +719,7 @@ function advance(world, ms) {
   const turn = Math.floor(newTime / 400);
   for (const m of monstersList) {
     if (m.ready > newTime) { newMonsters.push(m); continue; }
+    if (m.held > newTime) { newMonsters.push(m.with({ ready: m.held })); continue; }
     let mode = m.mode;
     if (mode === "dormant") {
       let wake = false;
