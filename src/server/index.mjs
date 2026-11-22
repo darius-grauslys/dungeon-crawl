@@ -6,7 +6,7 @@
 import { serve } from "../../edges/edge_to_serve.mjs";
 import { table as sessionsTable } from "../../edges/edge_to_sessions.mjs";
 import { newGame, fromSave, toSave, join, intend, advance } from "../../edges/edge_to_rules.mjs";
-import { parse, created, joined, refused, state, saved } from "../../shapes/message/index.mjs";
+import * as messageShape from "../../shapes/message/index.mjs";
 import { getRandomValues } from "node:crypto";
 
 const MAX_SEED = 4294967295;
@@ -43,41 +43,50 @@ export async function start({ port = 0, root, idle = 1800000 }) {
     for (const [connection, text] of dr) {
       let msg;
       try {
-        msg = parse(text);
+        msg = messageShape.parse(text);
       } catch {
         msg = null;
       }
       if (!msg || !msg.upward) {
-        handle.send(connection, refused("malformed").text());
+        handle.send(connection, messageShape.refused("malformed").text());
         continue;
       }
 
       try {
         switch (msg.kind) {
+          case "list": {
+            const sessions = t.ids().map((id) => ({
+              session: id,
+              players: t.members(id).map((m) => m.name),
+              depth: worlds.get(id).depth,
+            }));
+            handle.send(connection, JSON.stringify({ kind: "lobby", sessions }));
+            break;
+          }
           case "create": {
-            const made = t.create(now);
-            if (made === null) {
-              handle.send(connection, refused("full").text());
+            const id = t.create(now);
+            if (id === null) {
+              handle.send(connection, messageShape.refused("full").text());
             } else {
               const seed = randomSeed();
               const w = msg.save ? fromSave(msg.save) : newGame(seed);
-              worlds.set(made.session, w);
-              handle.send(connection, created(made.session, made.password).text());
+              worlds.set(id, w);
+              handle.send(connection, JSON.stringify({ kind: "created", session: id }));
             }
             break;
           }
           case "join": {
-            const reason = t.join(connection, msg.session, msg.password, msg.name, now);
+            const reason = t.join(connection, msg.session, msg.name, now);
             if (reason !== null) {
-              handle.send(connection, refused(reason).text());
+              handle.send(connection, messageShape.refused(reason).text());
             } else {
               const next = join(worlds.get(msg.session), msg.name);
               if (next === null) {
                 t.leave(connection);
-                handle.send(connection, refused("party-full").text());
+                handle.send(connection, messageShape.refused("party-full").text());
               } else {
                 worlds.set(msg.session, next);
-                handle.send(connection, joined(msg.session, msg.name).text());
+                handle.send(connection, messageShape.joined(msg.session, msg.name).text());
                 sent.delete(connection);
               }
             }
@@ -86,7 +95,7 @@ export async function start({ port = 0, root, idle = 1800000 }) {
           case "act": {
             const member = t.member(connection);
             if (!member) {
-              handle.send(connection, refused("not-joined").text());
+              handle.send(connection, messageShape.refused("not-joined").text());
             } else {
               t.touch(member.session, now);
               const w = worlds.get(member.session);
@@ -97,7 +106,7 @@ export async function start({ port = 0, root, idle = 1800000 }) {
           case "pause": {
             const member = t.member(connection);
             if (!member) {
-              handle.send(connection, refused("not-joined").text());
+              handle.send(connection, messageShape.refused("not-joined").text());
             } else {
               t.touch(member.session, now);
               t.setPaused(member.session, msg.paused);
@@ -107,15 +116,15 @@ export async function start({ port = 0, root, idle = 1800000 }) {
           case "save": {
             const member = t.member(connection);
             if (!member) {
-              handle.send(connection, refused("not-joined").text());
+              handle.send(connection, messageShape.refused("not-joined").text());
             } else {
               t.touch(member.session, now);
-              handle.send(connection, saved(toSave(worlds.get(member.session))).text());
+              handle.send(connection, messageShape.saved(toSave(worlds.get(member.session))).text());
             }
             break;
           }
           default:
-            handle.send(connection, refused("malformed").text());
+            handle.send(connection, messageShape.refused("malformed").text());
         }
       } catch (err) {
         console.error(err);
@@ -149,7 +158,7 @@ export async function start({ port = 0, root, idle = 1800000 }) {
         const w = worlds.get(id);
         const last = sent.get(connection);
         if (!last || w !== last.world || paused !== last.paused) {
-          handle.send(connection, state(w, paused).text());
+          handle.send(connection, messageShape.state(w, paused).text());
           sent.set(connection, { world: w, paused });
         }
       }
