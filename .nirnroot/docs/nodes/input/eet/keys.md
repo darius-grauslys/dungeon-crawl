@@ -21,6 +21,9 @@ As the EED states.
 ## Intrinsic - listens:
 As the EED states.
 
+## Intrinsic - aiming:
+As the EED states.
+
 ## Intrinsic - chords:
 As the EED states: a `blur` is `new Event('blur')`.
 

@@ -9,13 +9,13 @@ test("names returns the table's names in order, fresh array each call", () => {
     "bat", "demon", "potion", "gold", "sword", "armor", "archer",
     "blue-slime", "blue-snake", "golem", "beetle", "mummy", "cultist",
     "spider", "ghost", "reaper", "worm", "fire-slime", "imp", "lever",
-    "lever-pulled",
+    "lever-pulled", "ring", "necklace",
     "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5", "wall-6",
     "wall-7", "wall-8", "wall-9", "wall-10", "wall-11", "wall-12",
     "wall-13", "wall-14", "wall-15"
   ]);
   assert.notStrictEqual(names(), n);
-  assert.strictEqual(n.length, 44);
+  assert.strictEqual(n.length, 46);
 });
 
 test("before load, sprite('hero') is null and sprite('dragon') throws TypeError", () => {
@@ -23,15 +23,17 @@ test("before load, sprite('hero') is null and sprite('dragon') throws TypeError"
   assert.throws(() => sprite("dragon"), TypeError);
 });
 
-test("wall-0 to wall-15 are the last sixteen names; lever-pulled just before wall-0; wall-16 throws TypeError", () => {
+test("wall-0 to wall-15 are the last sixteen names; ring and necklace just before wall-0; wall-16 throws TypeError", () => {
   const n = names();
-  const last16 = n.slice(28);
+  const last16 = n.slice(30);
   assert.deepStrictEqual(last16, [
     "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5", "wall-6",
     "wall-7", "wall-8", "wall-9", "wall-10", "wall-11", "wall-12",
     "wall-13", "wall-14", "wall-15"
   ]);
   assert.strictEqual(n[27], "lever-pulled");
+  assert.strictEqual(n[28], "ring");
+  assert.strictEqual(n[29], "necklace");
   assert.throws(() => sprite("wall-16"), TypeError);
 });
 
