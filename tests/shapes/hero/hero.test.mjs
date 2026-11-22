@@ -104,3 +104,41 @@ test("valid: with is not an own property", () => {
   const h = of({ name: "Ann", actor: a });
   assert.strictEqual(Object.hasOwn(h, "with"), false);
 });
+
+test("valid: pending: descend() is accepted by of", () => {
+  const a = heroActor(5);
+  const h = of({ name: "Ann", actor: a, pending: intentShape.descend() });
+  assert.strictEqual(h.pending.kind, "descend");
+  assert.strictEqual(h.pending.dx, 0);
+  assert.strictEqual(h.pending.dy, 0);
+});
+
+test("valid: pending: face(0, 1) is accepted by of", () => {
+  const a = heroActor(5);
+  const h = of({ name: "Ann", actor: a, pending: intentShape.face(0, 1) });
+  assert.strictEqual(h.pending.kind, "face");
+  assert.strictEqual(h.pending.dx, 0);
+  assert.strictEqual(h.pending.dy, 1);
+});
+
+test("valid: pending: attack() is accepted by of", () => {
+  const a = heroActor(5);
+  const h = of({ name: "Ann", actor: a, pending: intentShape.attack() });
+  assert.strictEqual(h.pending.kind, "attack");
+  assert.strictEqual(h.pending.dx, 0);
+  assert.strictEqual(h.pending.dy, 0);
+});
+
+test("valid: with takes descend(), face(0, 1) and attack() as pending", () => {
+  const a = heroActor(5);
+  const h = of({ name: "Ann", actor: a });
+  const h2 = h.with({ pending: intentShape.descend() });
+  assert.strictEqual(h2.pending.kind, "descend");
+  const h3 = h.with({ pending: intentShape.face(0, 1) });
+  assert.strictEqual(h3.pending.kind, "face");
+  assert.strictEqual(h3.pending.dx, 0);
+  assert.strictEqual(h3.pending.dy, 1);
+  const h4 = h.with({ pending: intentShape.attack() });
+  assert.strictEqual(h4.pending.kind, "attack");
+  assert.strictEqual(h.pending, null);
+});
