@@ -404,9 +404,8 @@ test("aim: aim dot only while aiming", async () => {
   const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
   const visible = mask.of(7, 3, Array(21).fill(true));
   const explored = mask.of(7, 3, Array(21).fill(true));
-  const annActor = actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1, range: 1 }) });
-  const annActorLeft = actor.with(annActor, { aim: { dx: -1, dy: 0 } });
-  const heroes = [heroShape.of({ name: "Ann", actor: annActorLeft, alive: true })];
+  const annActor = actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1, range: 1 }), aim: { dx: -1, dy: 0 } });
+  const heroes = [heroShape.of({ name: "Ann", actor: annActor, alive: true })];
   const entry = saveShape.of({ seed: 1, depth: 2, players: [{ name: "Ann", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }] });
   w = world.of({ seed: 1, rng: 2, depth: 2, time: 0, state: "playing", grid, heroes, monsters: [], items: [], visible, explored, gold: 5, log: [], entry });
   view.draw(w, "Ann", false, 300, true);
