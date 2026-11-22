@@ -4,7 +4,7 @@
 import * as target from "../src/atlas/index.mjs";
 
 // __nirnroot_begin__ load
-// `load(base) -> promise`. `base` a URL prefix ending in `/` (the page's is `/assets/`); each sheet is fetched from `base` plus its path in the table. Resolves, with nothing, once all fifteen are loaded and keyed; rejects, with an `Error` whose message contains the sheet's path, as soon as one fails to load. A later `load` replaces what an earlier one loaded once it resolves.
+// `load(base) -> promise`. `base` a URL prefix ending in `/` (the page's is `/assets/`); each sheet is fetched from `base` plus its path in the table. Resolves, with nothing, once all twenty are loaded and keyed; rejects, with an `Error` whose message contains the sheet's path, as soon as one fails to load. A later `load` replaces what an earlier one loaded once it resolves.
 // __nirnroot_end__
 export function load(...args) {
   return target.load(...args);
@@ -25,7 +25,7 @@ export function tile(...args) {
 }
 
 // __nirnroot_begin__ names
-// `names() -> array`. The twenty-nine names, in the table's order, a fresh array each call.
+// `names() -> array`. The forty-four names, in the table's order, a fresh array each call.
 // __nirnroot_end__
 export function names(...args) {
   return target.names(...args);

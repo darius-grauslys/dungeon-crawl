@@ -1,5 +1,5 @@
 {
-  "digest": "79302d8788bc27747afde02c18f86b2b47a9357eab7802cd8f8672606f7c9c4e",
+  "digest": "38fe9d2a7b84e9b7075ae239b56b3b9bf3a1bdc024785bc6d0cc8dcb0e5a0068",
   "fixtures": {},
   "nodes": {
     "atlas": {
@@ -74,9 +74,11 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "bestiary",
           "hero",
           "intent",
           "item",
+          "level",
           "mask",
           "message",
           "point",
@@ -100,6 +102,7 @@
         "fixtures": [],
         "shapes": [
           "floor-plan",
+          "level",
           "point",
           "tile-grid"
         ]
@@ -165,9 +168,11 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "bestiary",
           "hero",
           "intent",
           "item",
+          "level",
           "mask",
           "point",
           "save",
@@ -186,9 +191,11 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "bestiary",
           "hero",
           "intent",
           "item",
+          "level",
           "mask",
           "point",
           "save",
@@ -238,6 +245,7 @@
       "edge": {
         "fixtures": [],
         "shapes": [
+          "level",
           "save",
           "stats"
         ]
@@ -251,6 +259,7 @@
       "impl": {
         "fixtures": [],
         "shapes": [
+          "level",
           "save",
           "stats"
         ]
@@ -293,6 +302,7 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "bestiary",
           "intent",
           "point",
           "stats",
@@ -309,6 +319,7 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "bestiary",
           "intent",
           "point",
           "stats",
@@ -329,9 +340,11 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "bestiary",
           "hero",
           "intent",
           "item",
+          "level",
           "mask",
           "message",
           "point",
@@ -351,9 +364,11 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "bestiary",
           "hero",
           "intent",
           "item",
+          "level",
           "mask",
           "message",
           "point",
@@ -383,9 +398,11 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "bestiary",
           "hero",
           "intent",
           "item",
+          "level",
           "mask",
           "message",
           "point",
@@ -405,9 +422,11 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "bestiary",
           "hero",
           "intent",
           "item",
+          "level",
           "mask",
           "message",
           "point",
@@ -436,9 +455,11 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "bestiary",
           "hero",
           "intent",
           "item",
+          "level",
           "mask",
           "point",
           "save",
@@ -457,6 +478,7 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "bestiary",
           "floor-plan",
           "hero",
           "intent",
@@ -513,9 +535,11 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "bestiary",
           "hero",
           "intent",
           "item",
+          "level",
           "mask",
           "message",
           "point",
@@ -535,9 +559,11 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "bestiary",
           "hero",
           "intent",
           "item",
+          "level",
           "mask",
           "message",
           "point",
@@ -588,9 +614,11 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "bestiary",
           "hero",
           "intent",
           "item",
+          "level",
           "mask",
           "point",
           "save",
@@ -609,6 +637,7 @@
         "fixtures": [],
         "shapes": [
           "actor",
+          "bestiary",
           "hero",
           "intent",
           "item",
@@ -632,6 +661,7 @@
     "actor": {
       "closure": [
         "actor",
+        "bestiary",
         "point",
         "stats"
       ],
@@ -640,6 +670,17 @@
       ],
       "tests": [
         "tests/shapes/actor/"
+      ]
+    },
+    "bestiary": {
+      "closure": [
+        "bestiary"
+      ],
+      "code": [
+        "shapes/bestiary/"
+      ],
+      "tests": [
+        "tests/shapes/bestiary/"
       ]
     },
     "floor-plan": {
@@ -658,8 +699,10 @@
     "hero": {
       "closure": [
         "actor",
+        "bestiary",
         "hero",
         "intent",
+        "level",
         "point",
         "save",
         "stats"
@@ -719,9 +762,11 @@
     "message": {
       "closure": [
         "actor",
+        "bestiary",
         "hero",
         "intent",
         "item",
+        "level",
         "mask",
         "message",
         "point",
@@ -750,6 +795,7 @@
     },
     "save": {
       "closure": [
+        "level",
         "save",
         "stats"
       ],
@@ -807,9 +853,11 @@
     "world": {
       "closure": [
         "actor",
+        "bestiary",
         "hero",
         "intent",
         "item",
+        "level",
         "mask",
         "point",
         "save",

@@ -1,4 +1,5 @@
 {
+  "fixture-documents": [],
   "fixtures": [],
   "parents": {
     "atlas": "view",
@@ -41,6 +42,7 @@
   ],
   "shapes": [
     "actor",
+    "bestiary",
     "floor-plan",
     "hero",
     "intent",
