@@ -51,7 +51,7 @@ test("joins: Ann joins, dup returns same, full returns null, bad name throws", (
   assert.equal(h.name, "Ann");
   assert.ok(h.alive);
   assert.equal(h.pending, null);
-  assert.deepEqual(h.actor.stats, { hp: 24, maxHp: 24, attack: 4, defense: 1, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
+  assert.deepEqual(h.actor.stats, { hp: 24, maxHp: 24, attack: 4, defense: 1, range: 1 });
   assert.equal(h.actor.ready, 0);
   assert.ok(wAnn.grid.open(h.actor.pos.x, h.actor.pos.y));
   assert.ok(wAnn.visible.at(h.actor.pos.x, h.actor.pos.y));
@@ -383,7 +383,7 @@ test("saves: toSave and fromSave round-trip, hp 0 becomes 1", () => {
   assert.equal(w.heroes.length, 1);
   assert.equal(w.heroes[0].name, "Cy");
   assert.ok(w.heroes[0].alive);
-  assert.deepEqual(w.heroes[0].actor.stats, { hp: 10, maxHp: 30, attack: 6, defense: 2, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
+  assert.deepEqual(w.heroes[0].actor.stats, { hp: 10, maxHp: 30, attack: 6, defense: 2, range: 1 });
   assert.deepEqual(w.entry, s);
   const w2 = rules.fromSave(s);
   assert.deepStrictEqual(w, w2);
@@ -427,12 +427,12 @@ test("shop floors: no monsters, six wares with prices, every cell visible and ex
   assert.equal(wShop.monsters.length, 0);
   assert.equal(wShop.items.length, 6);
   for (const it of wShop.items) {
-    assert.ok(["potion", "sword", "armor", "ring", "necklace"].includes(it.kind));
+    assert.ok(["potion", "sword", "armor"].includes(it.kind));
     assert.equal(it.price > 0, true);
     assert.ok(wShop.grid.open(it.pos.x, it.pos.y));
   }
   const kinds = wShop.items.map((it) => it.kind);
-  assert.deepEqual(kinds, ["potion", "sword", "armor", "ring", "necklace", "potion"]);
+  assert.deepEqual(kinds, ["potion", "sword", "armor", "potion", "sword", "armor"]);
   assert.equal(wShop.visible.count(), 48 * 32);
   assert.equal(wShop.explored.count(), 48 * 32);
 });
@@ -451,7 +451,7 @@ test("bumping and buying: offer, three log lines, wares block steps, other actio
   const wShopBuy = worldShape.of({ seed: 5, rng: 5, depth: 6, time: 0, state: "playing", grid: wShop.grid, heroes: [heroOffer], monsters: wShop.monsters, items: wShop.items, visible: wShop.visible, explored: wShop.explored, gold: 50, log: wShop.log, entry: wShop.entry });
   const wBuy = rules.advance(rules.intend(wShopBuy, "Ann", intentShape.move(1, 0)), 50);
   assert.equal(wBuy.heroes[0].offer, null);
-  assert.equal(wBuy.items.filter((it) => it.kind === "sword").length, 0);
+  assert.equal(wBuy.items.filter((it) => it.kind === "sword").length, 1);
   assert.equal(wBuy.log[wBuy.log.length - 1], `Ann buys a sword for ${swordWare.price} gold.`);
 
   const heroOfferLow = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(18, 13), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, offer: swordWare.id, alive: true });
