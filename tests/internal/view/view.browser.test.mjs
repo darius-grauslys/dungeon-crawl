@@ -264,3 +264,100 @@ test("sprites: outline for non-me hero", async () => {
   // pixel 1 in from top-left of Bob's cell (3,1) is rgb(60,200,120)
   assert.deepEqual(pixelAt(img, 145, 49), [60, 200, 120, 255]);
 });
+
+function makeThemesWorld(depth) {
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const cells = Array(21).fill(true);
+  const visible = mask.of(7, 3, cells);
+  const explored = mask.of(7, 3, cells);
+  const annActor = actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) });
+  const heroes = [heroShape.of({ name: "Ann", actor: annActor, alive: true })];
+  const entry = saveShape.of({ seed: 1, depth, players: [{ name: "Ann", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }] });
+  return world.of({ seed: 1, rng: 2, depth, time: 0, state: "playing", grid, heroes, monsters: [], items: [], visible, explored, gold: 5, log: [], entry });
+}
+
+test("themes: themed tiles per depth", async () => {
+  const canvas = document.querySelector("canvas");
+  const ctx = canvas.getContext("2d");
+  view.init(canvas);
+  await view.load("/assets/");
+
+  const w1 = makeThemesWorld(1);
+  const w7 = makeThemesWorld(7);
+  const w6 = makeThemesWorld(6);
+
+  view.draw(w1, "Ann", false);
+  const img1 = ctx.getImageData(0, 0, 800, 600).data;
+  view.draw(w7, "Ann", false);
+  const img7 = ctx.getImageData(0, 0, 800, 600).data;
+  view.draw(w6, "Ann", false);
+  const img6 = ctx.getImageData(0, 0, 800, 600).data;
+
+  function countDiff(imgA, imgB, x0, y0, x1, y1) {
+    let count = 0;
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const i = (y * 800 + x) * 4;
+        if (imgA[i] !== imgB[i] || imgA[i + 1] !== imgB[i + 1] || imgA[i + 2] !== imgB[i + 2]) count++;
+      }
+    }
+    return count;
+  }
+
+  // wall cell (2,0): pixels from (96,0) to (143,47)
+  const wallDiff17 = countDiff(img1, img7, 96, 0, 143, 47);
+  assert.ok(wallDiff17 >= 10, `wall cell (2,0) should differ in >= 10 pixels between depth 1 and 7, got ${wallDiff17}`);
+
+  // floor cell (5,1): pixels from (240,48) to (287,95)
+  const floorDiff17 = countDiff(img1, img7, 240, 48, 287, 95);
+  assert.ok(floorDiff17 >= 10, `floor cell (5,1) should differ in >= 10 pixels between depth 1 and 7, got ${floorDiff17}`);
+
+  // depth 6 wall cell (2,0) differs from both
+  const wallDiff16 = countDiff(img1, img6, 96, 0, 143, 47);
+  const wallDiff76 = countDiff(img7, img6, 96, 0, 143, 47);
+  assert.ok(wallDiff16 >= 10, `depth 6 wall cell (2,0) should differ from depth 1 in >= 10 pixels, got ${wallDiff16}`);
+  assert.ok(wallDiff76 >= 10, `depth 6 wall cell (2,0) should differ from depth 7 in >= 10 pixels, got ${wallDiff76}`);
+});
+
+test("prices: ware prices over wares", () => {
+  const canvas = document.querySelector("canvas");
+  const ctx = canvas.getContext("2d");
+  view.init(canvas);
+  // before any load (flat colours)
+
+  const grid = tileGrid.fromRows(["#######", "#.....#", "#.....#", "#######"]);
+  const cells = Array(28).fill(true);
+  const visible = mask.of(7, 4, cells);
+  const explored = mask.of(7, 4, cells);
+  const annActor = actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) });
+  const sword = item.of({ id: 12, kind: "sword", pos: point.of(3, 2), price: 30 });
+  const entry = saveShape.of({ seed: 1, depth: 2, players: [{ name: "Ann", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }] });
+  const w = world.of({ seed: 1, rng: 2, depth: 2, time: 0, state: "playing", grid, heroes: [heroShape.of({ name: "Ann", actor: annActor, alive: true })], monsters: [], items: [sword], visible, explored, gold: 5, log: [], entry });
+
+  view.draw(w, "Ann", false);
+  const img = ctx.getImageData(0, 0, 800, 600).data;
+
+  function countPixels(img, x0, y0, x1, y1, pred) {
+    let count = 0;
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const i = (y * 800 + x) * 4;
+        const r = img[i], g = img[i + 1], b = img[i + 2];
+        if (pred(r, g, b)) count++;
+      }
+    }
+    return count;
+  }
+
+  // band (144, 64) to (191, 95): at least 5 pixels with red > 200, green 160-240, blue < 140
+  const priceCount = countPixels(img, 144, 64, 191, 95, (r, g, b) => r > 200 && g >= 160 && g <= 240 && b < 140);
+  assert.ok(priceCount >= 5, `expected >= 5 price pixels, got ${priceCount}`);
+
+  // with Ann's offer 12, at least 5 pixels with green > 200 and red < 170
+  const sword2 = item.of({ id: 12, kind: "sword", pos: point.of(3, 2), price: 30 });
+  const wOffer = world.of({ seed: 1, rng: 2, depth: 2, time: 0, state: "playing", grid, heroes: [heroShape.of({ name: "Ann", actor: annActor, alive: true, offer: 12 })], monsters: [], items: [sword2], visible, explored, gold: 5, log: [], entry });
+  view.draw(wOffer, "Ann", false);
+  const imgOffer = ctx.getImageData(0, 0, 800, 600).data;
+  const offerCount = countPixels(imgOffer, 144, 64, 191, 95, (r, g, b) => g > 200 && r < 170);
+  assert.ok(offerCount >= 5, `expected >= 5 offer pixels, got ${offerCount}`);
+});
