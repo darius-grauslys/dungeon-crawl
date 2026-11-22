@@ -62,29 +62,45 @@ function tileColor(kind) {
   return [22, 13, 19];
 }
 
+function tileTheme(world, cx, cy) {
+  const blend = level.blend(world.depth);
+  if (blend) {
+    return (cx + (cx * 7 + cy * 13) % 5 >= 26) ? blend[1] : blend[0];
+  }
+  return level.theme(world.depth);
+}
+
 function drawTileFlat(ctx, kind, px, py) {
   const [r, g, b] = tileColor(kind);
   ctx.fillStyle = `rgb(${r},${g},${b})`;
   ctx.fillRect(px, py, 48, 48);
 }
 
-function drawItemFlat(ctx, px, py) {
-  ctx.fillStyle = "rgb(240,180,40)";
-  ctx.fillRect(px + 16, py + 16, 16, 16);
+function drawItemFlat(px, py) {
+  // px, py is the centre of the cell
+  ctx_.fillStyle = "rgb(240,180,40)";
+  ctx_.fillRect(px - 8, py - 8, 16, 16);
 }
 
-function drawCreatureFlat(ctx, isHero, isMe, px, py, ox, oy, k) {
+function drawCreatureFlat(isHero, isMe, px, py, ox, oy, k, size, small) {
   let r, g, b;
   if (isHero) {
     [r, g, b] = isMe ? [60, 120, 255] : [60, 200, 120];
   } else {
     [r, g, b] = [220, 50, 50];
   }
-  ctx.fillStyle = `rgb(${r},${g},${b})`;
-  const cx = px + 24 + ox;
-  const cy = py + 24 + oy;
-  const hw = 16 * k, hh = 16 * k;
-  ctx.fillRect(cx - hw, cy - hh, 2 * hw, 2 * hh);
+  ctx_.fillStyle = `rgb(${r},${g},${b})`;
+  const cx = px + 24 * size + ox;
+  const cy = py + 24 * size + oy;
+  let hw, hh;
+  if (small) {
+    hw = (12 * size - 4) * k;
+    hh = (12 * size - 4) * k;
+  } else {
+    hw = (24 * size - 8) * k;
+    hh = (24 * size - 8) * k;
+  }
+  ctx_.fillRect(cx - hw, cy - hh, 2 * hw, 2 * hh);
 }
 
 function stands(grid, x, y) {
@@ -149,20 +165,21 @@ function animate(last, now) {
 
 function drawTile(world, px, py, cx, cy) {
   const kind = world.grid.at(cx, cy);
+  const theme = tileTheme(world, cx, cy);
   if (kind === "wall") {
     if (!stands(world.grid, cx, cy)) return; // background
     const m = wallJoin(world.grid, cx, cy);
     const name = `wall-${m}`;
     if (loaded_) {
-      const s = atlas.tile(level.theme(world.depth), name);
+      const s = atlas.tile(theme, name);
       if (s) ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, px, py, 48, 48);
     } else {
-      drawTileFlat(ctx_, "wall", px, py);
+      drawTileFlat(ctx_, kind, px, py);
     }
     return;
   }
   if (loaded_) {
-    const s = atlas.tile(level.theme(world.depth), kind);
+    const s = atlas.tile(theme, kind);
     if (s) ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, px, py, 48, 48);
   } else {
     drawTileFlat(ctx_, kind, px, py);
@@ -176,37 +193,142 @@ function findItem(world, cx, cy) {
   return null;
 }
 
+function drawItemSprite(it, px, py) {
+  const name = it.kind === "lever" ? (it.pulled ? "lever-pulled" : "lever") : it.kind;
+  const s = atlas.sprite(name);
+  if (s) ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, px, py, 48, 48);
+}
+
 function drawItem(world, px, py, cx, cy) {
   const it = findItem(world, cx, cy);
   if (!it) return;
   if (loaded_) {
-    const s = atlas.sprite(it.kind);
-    if (s) ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, px, py, 48, 48);
+    drawItemSprite(it, px, py);
   } else {
-    drawItemFlat(ctx_, px, py);
+    drawItemFlat(px + 24, py + 24);
   }
 }
 
-function drawCreatureSprite(name, facing, px, py, ox, oy, k) {
+function drawFlungItem(world, it, now, cam) {
+  if (!it.flung) return null;
+  const t = now - it.flung.at;
+  if (t < 0 || t >= 400) return null;
+  if (!world.visible.at(it.pos.x, it.pos.y)) return null;
+  const p = t / 400;
+  const fx = it.flung.x, fy = it.flung.y;
+  const ex = it.pos.x, ey = it.pos.y;
+  const cx = fx + (ex - fx) * p;
+  const cy = fy + (ey - fy) * p;
+  const px = (cx - cam.x) * 48 + 24;
+  const py = (cy - cam.y) * 48 + 24 - 32 * Math.sin(Math.PI * p);
+  return { px, py };
+}
+
+function drawFlungItemSprite(fpos, it) {
+  const name = it.kind === "lever" ? (it.pulled ? "lever-pulled" : "lever") : it.kind;
+  const s = atlas.sprite(name);
+  if (s) ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, fpos.px - 24, fpos.py - 24, 48, 48);
+}
+
+function drawCreatureSprite(name, facing, px, py, ox, oy, k, size, small) {
   const s = atlas.sprite(name);
   if (!s) return;
+  const scale = small ? 0.5 : 1;
+  const sq = 48 * size * scale;
+  const cx = px + 24 * size + ox;
+  const cy = py + 24 * size + oy;
   ctx_.save();
-  ctx_.translate(px + 24 + ox, py + 24 + oy);
+  ctx_.translate(cx, cy);
   ctx_.scale(facing === "left" ? -k : k, k);
-  ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, -24, -24, 48, 48);
+  ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, -sq / 2, -sq / 2, sq, sq);
   ctx_.restore();
 }
 
-function drawOutline(facing, px, py, ox, oy, k) {
+function drawOutline(facing, px, py, ox, oy, k, size, small) {
+  const scale = small ? 0.5 : 1;
+  const sq = 48 * size * scale;
+  const half = sq / 2;
   ctx_.save();
-  ctx_.translate(px + 24 + ox, py + 24 + oy);
+  ctx_.translate(px + 24 * size + ox, py + 24 * size + oy);
   ctx_.scale(facing === "left" ? -k : k, k);
   ctx_.fillStyle = "rgb(60,200,120)";
-  ctx_.fillRect(-24, -24, 48, 3);
-  ctx_.fillRect(-24, 21, 48, 3);
-  ctx_.fillRect(-24, -21, 3, 42);
-  ctx_.fillRect(21, -21, 3, 42);
+  ctx_.fillRect(-half, -half, sq, 3);
+  ctx_.fillRect(-half, half - 3, sq, 3);
+  ctx_.fillRect(-half, -half + 3, 3, sq - 6);
+  ctx_.fillRect(half - 3, -half + 3, 3, sq - 6);
   ctx_.restore();
+}
+
+function drawProjectiles(world, now, cam) {
+  for (const creature of world.monsters) {
+    const last = creature.last;
+    if (!last || last.kind !== "attack" || last.reach <= 1) continue;
+    const t = now - last.at;
+    if (t < 150 || t >= 210) continue;
+    const p = (t - 150) / 60;
+    const mx = creature.pos.x, my = creature.pos.y;
+    const size = creature.size || 1;
+    const px0 = (mx - cam.x) * 48 + 24 * size;
+    const py0 = (my - cam.y) * 48 + 24 * size;
+    const px1 = (mx + last.reach * last.dx - cam.x) * 48 + 24;
+    const py1 = (my + last.reach * last.dy - cam.y) * 48 + 24;
+    const px = px0 + (px1 - px0) * p;
+    const py = py0 + (py1 - py0) * p;
+    ctx_.fillStyle = "rgb(255,160,40)";
+    ctx_.fillRect(px - 4, py - 4, 8, 8);
+  }
+  for (const h of world.heroes) {
+    const last = h.actor.last;
+    if (!last || last.kind !== "attack" || last.reach <= 1) continue;
+    const t = now - last.at;
+    if (t < 150 || t >= 210) continue;
+    const p = (t - 150) / 60;
+    const mx = h.actor.pos.x, my = h.actor.pos.y;
+    const size = h.actor.size || 1;
+    const px0 = (mx - cam.x) * 48 + 24 * size;
+    const py0 = (my - cam.y) * 48 + 24 * size;
+    const px1 = (mx + last.reach * last.dx - cam.x) * 48 + 24;
+    const py1 = (my + last.reach * last.dy - cam.y) * 48 + 24;
+    const px = px0 + (px1 - px0) * p;
+    const py = py0 + (py1 - py0) * p;
+    ctx_.fillStyle = "rgb(255,160,40)";
+    ctx_.fillRect(px - 4, py - 4, 8, 8);
+  }
+}
+
+function drawAimDot(world, me, now, cam) {
+  const meHero = world.heroes.find((h) => h.name === me && h.alive);
+  if (!meHero) return;
+  const actor = meHero.actor;
+  const aim = actor.aim;
+  const range = actor.stats.range;
+  const { dx, dy } = aim;
+  let cx = actor.pos.x;
+  let cy = actor.pos.y;
+  let lastOpen = null;
+  for (let k = 1; k <= range; k++) {
+    const nx = cx + k * dx;
+    const ny = cy + k * dy;
+    if (!world.grid.open(nx, ny)) {
+      if (dx !== 0 && dy !== 0) {
+        const c1 = world.grid.open(cx + dx, cy);
+        const c2 = world.grid.open(cx, cy + dy);
+        if (!c1 || !c2) break;
+      } else {
+        break;
+      }
+    }
+    lastOpen = { x: nx, y: ny };
+    cx = nx; cy = ny;
+  }
+  if (!lastOpen) return;
+  if (Math.floor(now / 300) % 2 !== 1) return;
+  const px = (lastOpen.x - cam.x) * 48 + 24;
+  const py = (lastOpen.y - cam.y) * 48 + 24;
+  ctx_.fillStyle = "rgb(255,140,0)";
+  ctx_.beginPath();
+  ctx_.arc(px, py, 6, 0, Math.PI * 2);
+  ctx_.fill();
 }
 
 /** `draw(world, me, paused, now)`. Draws the world for the player `me`, as above, onto the canvas given to `init` (throws an `Error` if none was given), with the paused band when `paused` is true. `now` is the world time to animate at, a number of 0 or more (left out: the world's `time`): the page draws every frame, with `now` running on from the last world's `time` between two worlds. */
@@ -254,7 +376,32 @@ export function draw(world, me, paused, nowIn) {
       const cy = cam.y + r;
       if (cx < 0 || cy < 0 || cx >= world.grid.width || cy >= world.grid.height) continue;
       if (!world.visible.at(cx, cy)) continue;
-      drawItem(world, c * 48, r * 48, cx, cy);
+      for (const it of world.items) {
+        if (it.pos.x === cx && it.pos.y === cy) {
+          if (it.flung) {
+            const t = now - it.flung.at;
+            if (t < 0 || t >= 400) {
+              drawItem(world, c * 48, r * 48, cx, cy);
+            }
+          } else {
+            drawItem(world, c * 48, r * 48, cx, cy);
+          }
+        }
+      }
+    }
+  }
+
+  // Flung items flying.
+  for (const it of world.items) {
+    if (it.flung) {
+      const fpos = drawFlungItem(world, it, now, cam);
+      if (fpos) {
+        if (loaded_) {
+          drawFlungItemSprite(fpos, it);
+        } else {
+          drawItemFlat(fpos.px, fpos.py);
+        }
+      }
     }
   }
 
@@ -269,9 +416,9 @@ export function draw(world, me, paused, nowIn) {
         if (m.pos.x === cx && m.pos.y === cy) {
           const anim = animate(m.last, now);
           if (loaded_) {
-            drawCreatureSprite(m.kind, m.facing, c * 48, r * 48, anim.ox, anim.oy, anim.k);
+            drawCreatureSprite(m.kind, m.facing, c * 48, r * 48, anim.ox, anim.oy, anim.k, m.size, m.small);
           } else {
-            drawCreatureFlat(ctx_, false, false, c * 48, r * 48, anim.ox, anim.oy, anim.k);
+            drawCreatureFlat(false, false, c * 48, r * 48, anim.ox, anim.oy, anim.k, m.size, m.small);
           }
         }
       }
@@ -290,17 +437,23 @@ export function draw(world, me, paused, nowIn) {
           const anim = animate(h.actor.last, now);
           const isMe = h.name === me;
           if (loaded_) {
-            drawCreatureSprite("hero", h.actor.facing, c * 48, r * 48, anim.ox, anim.oy, anim.k);
-            if (!isMe) drawOutline(h.actor.facing, c * 48, r * 48, anim.ox, anim.oy, anim.k);
+            drawCreatureSprite("hero", h.actor.facing, c * 48, r * 48, anim.ox, anim.oy, anim.k, h.actor.size, h.actor.small);
+            if (!isMe) drawOutline(h.actor.facing, c * 48, r * 48, anim.ox, anim.oy, anim.k, h.actor.size, h.actor.small);
           } else {
-            drawCreatureFlat(ctx_, true, isMe, c * 48, r * 48, anim.ox, anim.oy, anim.k);
+            drawCreatureFlat(true, isMe, c * 48, r * 48, anim.ox, anim.oy, anim.k, h.actor.size, h.actor.small);
           }
         }
       }
     }
   }
 
-  // Pass 5: the prices of wares on visible cells.
+  // Pass 5: the projectiles of ranged attacks in flight.
+  drawProjectiles(world, now, cam);
+
+  // Pass 6: the aim dot of me's hero.
+  drawAimDot(world, me, now, cam);
+
+  // Pass 7: the prices of wares on visible cells.
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const cx = cam.x + c;

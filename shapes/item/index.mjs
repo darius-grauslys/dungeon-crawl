@@ -2,8 +2,8 @@
 
 import { of as pointOf } from '../point/index.mjs';
 
-/** The four kind names, in the table's order. */
-export const KINDS = Object.freeze(['potion', 'gold', 'sword', 'armor']);
+/** The five kind names, in the table's order. */
+export const KINDS = Object.freeze(['potion', 'gold', 'sword', 'armor', 'lever']);
 
 /**
  * Create an immutable item.
@@ -12,10 +12,12 @@ export const KINDS = Object.freeze(['potion', 'gold', 'sword', 'armor']);
  * @param {string} spec.kind - one of KINDS
  * @param {Point} spec.pos - a point
  * @param {number} [spec.amount] - an integer, at least 1 for gold, 0 otherwise
- * @param {number} [spec.price] - an integer of 0 or more, 0 for a gold
+ * @param {number} [spec.price] - an integer of 0 or more, 0 for a gold and a lever
+ * @param {boolean} [spec.pulled] - a boolean, false for any kind but lever
+ * @param {{x:number,y:number,at:number}|null} [spec.flung] - null or {x,y,at}
  * @returns {Item} a frozen item
  */
-export function of({ id, kind, pos, amount, price }) {
+export function of({ id, kind, pos, amount, price, pulled, flung }) {
   if (typeof id !== 'number' || !Number.isInteger(id) || id < 0) {
     throw new TypeError('item id must be an integer of 0 or more');
   }
@@ -46,8 +48,36 @@ export function of({ id, kind, pos, amount, price }) {
   } else {
     prc = price;
   }
-  if (kind === 'gold' && prc !== 0) {
-    throw new TypeError('gold price must be 0');
+  if ((kind === 'gold' || kind === 'lever') && prc !== 0) {
+    throw new TypeError(`${kind} price must be 0`);
   }
-  return Object.freeze({ id, kind, pos: p, amount: amt, price: prc });
+  let isPulled;
+  if (pulled === undefined) {
+    isPulled = false;
+  } else if (typeof pulled !== 'boolean') {
+    throw new TypeError('item pulled must be a boolean');
+  } else {
+    isPulled = pulled;
+  }
+  if (isPulled && kind !== 'lever') {
+    throw new TypeError('only a lever may be pulled');
+  }
+  let flungCopy = null;
+  if (flung === undefined || flung === null) {
+    flungCopy = null;
+  } else if (typeof flung !== 'object') {
+    throw new TypeError('item flung must be null or {x, y, at}');
+  } else {
+    const keys = Object.keys(flung);
+    if (keys.length !== 3 || !keys.includes('x') || !keys.includes('y') || !keys.includes('at')) {
+      throw new TypeError('item flung must be {x, y, at}');
+    }
+    if (typeof flung.x !== 'number' || !Number.isInteger(flung.x) || flung.x < 0 ||
+        typeof flung.y !== 'number' || !Number.isInteger(flung.y) || flung.y < 0 ||
+        typeof flung.at !== 'number' || !Number.isInteger(flung.at) || flung.at < 0) {
+      throw new TypeError('item flung coordinates must be integers of 0 or more');
+    }
+    flungCopy = Object.freeze({ x: flung.x, y: flung.y, at: flung.at });
+  }
+  return Object.freeze({ id, kind, pos: p, amount: amt, price: prc, pulled: isPulled, flung: flungCopy });
 }

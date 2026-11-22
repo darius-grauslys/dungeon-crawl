@@ -169,8 +169,8 @@ export function lobby(sessions) {
         throw new TypeError("lobby: player must be a valid name");
       }
     }
-    if (typeof s.depth !== "number" || !Number.isInteger(s.depth) || s.depth < 1 || s.depth > 29) {
-      throw new TypeError("lobby: depth must be an integer from 1 to 29");
+    if (typeof s.depth !== "number" || !Number.isInteger(s.depth) || s.depth < 1 || s.depth > 33) {
+      throw new TypeError("lobby: depth must be an integer from 1 to 33");
     }
     return Object.freeze({
       session: s.session,
@@ -294,6 +294,7 @@ export function parse(text) {
       else if (obj.intent.kind === "use") intent = intentShape.use();
       else if (obj.intent.kind === "wait") intent = intentShape.wait();
       else if (obj.intent.kind === "descend") intent = intentShape.descend();
+      else if (obj.intent.kind === "face") intent = intentShape.face(obj.intent.dx, obj.intent.dy);
       else throw new TypeError("parse: act invalid intent kind");
       return act(intent);
     }
