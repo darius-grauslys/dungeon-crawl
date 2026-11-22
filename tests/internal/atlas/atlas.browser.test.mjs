@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { load, sprite, names } from "../../../src/atlas/index.mjs";
+import { load, sprite, names, tile } from "../../../src/atlas/index.mjs";
 
 test("names returns the table's names in order, fresh array each call", () => {
   const n = names();
@@ -72,4 +72,53 @@ test("keyed: colour key after load", async () => {
     if (!(data[i] === 0 && data[i + 1] === 255 && data[i + 2] === 0)) notGreen++;
   }
   assert.ok(notGreen >= 20);
+});
+
+test("before load, tile('frozen', 'floor') is null; bad theme/name throw TypeError", () => {
+  assert.strictEqual(tile("frozen", "floor"), null);
+  assert.throws(() => tile("lava", "floor"), TypeError);
+  assert.throws(() => tile("frozen", "wall-16"), TypeError);
+  assert.throws(() => tile("frozen", "hero"), TypeError);
+});
+
+test("after load, dungeon tiles match table sprites", async () => {
+  await load("/assets/");
+  for (const n of ["floor", "stairs", "wall-0", "wall-15"]) {
+    const t = tile("dungeon", n);
+    const s = sprite(n);
+    assert.strictEqual(t.image, s.image);
+    assert.strictEqual(t.sx, s.sx);
+    assert.strictEqual(t.sy, s.sy);
+  }
+});
+
+test("after load, frozen wall-6 and interior floor/stairs rects", async () => {
+  await load("/assets/");
+  const fw6 = tile("frozen", "wall-6");
+  assert.strictEqual(fw6.sx, 32);
+  assert.strictEqual(fw6.sy, 0);
+  assert.notStrictEqual(fw6.image, sprite("wall-6").image);
+  const ifloor = tile("interior", "floor");
+  assert.strictEqual(ifloor.sx, 224);
+  assert.strictEqual(ifloor.sy, 112);
+  const istairs = tile("interior", "stairs");
+  assert.strictEqual(istairs.sx, 32);
+  assert.strictEqual(istairs.sy, 96);
+  assert.strictEqual(istairs.image, sprite("stairs").image);
+});
+
+test("after load, magma stairs rect and all themes 16x16", async () => {
+  await load("/assets/");
+  const mstairs = tile("magma", "stairs");
+  assert.strictEqual(mstairs.sx, 0);
+  assert.strictEqual(mstairs.sy, 112);
+  const themes = ["dungeon", "frozen", "arid", "temple", "magma", "interior"];
+  for (const th of themes) {
+    const f = tile(th, "floor");
+    const w = tile(th, "wall-10");
+    assert.strictEqual(f.sw, 16);
+    assert.strictEqual(f.sh, 16);
+    assert.strictEqual(w.sw, 16);
+    assert.strictEqual(w.sh, 16);
+  }
 });
