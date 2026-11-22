@@ -351,118 +351,6 @@ test("animates", async () => {
   }
 });
 
-test("prices", async () => {
-  const canvas = document.querySelector("canvas");
-  init(canvas);
-
-  const grid = tileGrid.fromRows(["#######", "#.....#", "#.....#", "#######"]);
-  const visible = fullMask(7, 4);
-  const explored = fullMask(7, 4);
-  const hAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: makeStats() }) });
-  const sword = item.of({ id: 12, kind: "sword", pos: point.of(3, 2), price: 30 });
-  const w = world.of({
-    seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
-    grid, heroes: [hAnn], monsters: [], items: [sword],
-    visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
-  });
-
-  draw(w, "Ann", false);
-
-  const ctx = canvas.getContext("2d");
-  const getPixels = (x0, y0, w, h) => {
-    const data = ctx.getImageData(x0, y0, w, h).data;
-    const pixels = [];
-    for (let i = 0; i < data.length; i += 4) {
-      pixels.push({ r: data[i], g: data[i + 1], b: data[i + 2] });
-    }
-    return pixels;
-  };
-
-  const band = getPixels(144, 64, 48, 32);
-  let redHigh = 0, greenHighRedLow = 0;
-  for (const p of band) {
-    if (p.r > 200 && p.g >= 160 && p.g <= 240 && p.b < 140) redHigh++;
-    if (p.g > 245 && p.r < 170) greenHighRedLow++;
-  }
-  assert.ok(redHigh >= 5, "at least 5 pixels with red above 200, green 160-240, blue below 140");
-  assert.equal(greenHighRedLow, 0, "none with green above 245 and red below 170");
-
-  const hAnnOffer = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: makeStats() }), offer: 12 });
-  const wOffer = world.of({
-    seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
-    grid, heroes: [hAnnOffer], monsters: [], items: [sword],
-    visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
-  });
-  draw(wOffer, "Ann", false);
-  const bandOffer = getPixels(144, 64, 48, 32);
-  let greenHigh = 0;
-  for (const p of bandOffer) {
-    if (p.g > 200 && p.r < 170) greenHigh++;
-  }
-  assert.ok(greenHigh >= 5, "with offer, at least 5 pixels with green above 200 and red below 170");
-
-  const bandAnn = getPixels(48, 64, 48, 32);
-  let redHighAnn = 0, greenHighRedLowAnn = 0;
-  for (const p of bandAnn) {
-    if (p.r > 200 && p.g >= 160 && p.g <= 240 && p.b < 140) redHighAnn++;
-    if (p.g > 245 && p.r < 170) greenHighRedLowAnn++;
-  }
-  assert.equal(redHighAnn, 0, "above Ann, none with red above 200, green 160-240, blue below 140");
-  assert.equal(greenHighRedLowAnn, 0, "above Ann, none with green above 245 and red below 170");
-});
-
-test("themes", async () => {
-  const canvas = document.querySelector("canvas");
-  init(canvas);
-
-  await load("/assets/");
-
-  const makeWorldForDepth = (depth) => {
-    const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
-    const visible = fullMask(7, 3);
-    const explored = fullMask(7, 3);
-    const hAnn = makeHero("Ann", 0, 1, 1, true);
-    const hBob = makeHero("Bob", 1, 3, 1, true);
-    const monster = makeMonster(2, "slime", 4, 1);
-    return world.of({
-      seed: 1, rng: 1, depth, time: 0, state: "playing",
-      grid, heroes: [hAnn, hBob], monsters: [monster], items: [],
-      visible, explored, gold: 0, log: ["hello"], entry: save.of({ seed: 1, depth, players: [] })
-    });
-  };
-
-  const collectPixels = (w, x, y, size) => {
-    draw(w, "Ann", false);
-    const ctx = canvas.getContext("2d");
-    const data = ctx.getImageData(x, y, size, size).data;
-    const pixels = [];
-    for (let i = 0; i < data.length; i += 4) {
-      pixels.push(`${data[i]},${data[i+1]},${data[i+2]},${data[i+3]}`);
-    }
-    return pixels;
-  };
-
-  const diffPixels = (a, b) => {
-    let diff = 0;
-    for (let i = 0; i < a.length; i++) {
-      if (a[i] !== b[i]) diff++;
-    }
-    return diff;
-  };
-
-  const wall1 = collectPixels(makeWorldForDepth(1), 96, 0, 48);
-  const wall7 = collectPixels(makeWorldForDepth(7), 96, 0, 48);
-  const floor1 = collectPixels(makeWorldForDepth(1), 240, 48, 48);
-  const floor7 = collectPixels(makeWorldForDepth(7), 240, 48, 48);
-
-  assert.ok(diffPixels(wall1, wall7) >= 10, "wall cell (2,0) differs between depth 1 and 7 by at least 10 pixels");
-  assert.ok(diffPixels(floor1, floor7) >= 10, "floor cell (5,1) differs between depth 1 and 7 by at least 10 pixels");
-
-  const wall6 = collectPixels(makeWorldForDepth(6), 96, 0, 48);
-  assert.ok(diffPixels(wall1, wall6) >= 1, "wall cell (2,0) at depth 6 differs from depth 1");
-  assert.ok(diffPixels(wall7, wall6) >= 1, "wall cell (2,0) at depth 6 differs from depth 7");
-});
-
 test("sprites", async () => {
   const canvas = document.querySelector("canvas");
   init(canvas);
@@ -571,14 +459,8 @@ test("world/valid", () => {
   assert.ok(Object.isFrozen(w.items));
   assert.ok(Object.isFrozen(w.log));
 
-  const wDepth6 = world.of({ seed: 1, rng: 1, depth: 6, time: 0, state: "playing", grid: grid5x3, heroes: [heroAnn], monsters: [monster], items: [itemGold], visible, explored, gold: 0, log: ["hello"], entry });
-  assert.equal(wDepth6.depth, 6);
-
-  const wDepth29 = world.of({ seed: 1, rng: 1, depth: 29, time: 0, state: "playing", grid: grid5x3, heroes: [heroAnn], monsters: [monster], items: [itemGold], visible, explored, gold: 0, log: ["hello"], entry });
-  assert.equal(wDepth29.depth, 29);
-
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "dead", grid: grid5x3, heroes: [heroAnn], monsters: [monster], items: [itemGold], visible, explored, gold: 0, log: ["hello"], entry }), TypeError);
-  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 30, time: 0, state: "playing", grid: grid5x3, heroes: [heroAnn], monsters: [monster], items: [itemGold], visible, explored, gold: 0, log: ["hello"], entry }), TypeError);
+  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 6, time: 0, state: "playing", grid: grid5x3, heroes: [heroAnn], monsters: [monster], items: [itemGold], visible, explored, gold: 0, log: ["hello"], entry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: -1, state: "playing", grid: grid5x3, heroes: [heroAnn], monsters: [monster], items: [itemGold], visible, explored, gold: 0, log: ["hello"], entry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "playing", grid: grid5x3, heroes: [heroAnn], monsters: [monster], items: [itemGold], visible: mask.empty(4, 3), explored, gold: 0, log: ["hello"], entry }), TypeError);
   const heroMonster = actor.of({ id: 1, kind: "hero", pos: point.of(2, 1), stats: heroStats });
