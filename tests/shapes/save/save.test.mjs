@@ -50,13 +50,13 @@ test("save: fromData round-trips", () => {
 });
 
 test("save: depth out of range throws", () => {
-  assert.throws(() => of({ seed: 9, depth: 30, players: [] }), TypeError);
+  assert.throws(() => of({ seed: 9, depth: 34, players: [] }), TypeError);
   assert.throws(() => of({ seed: 9, depth: 0, players: [] }), TypeError);
 });
 
-test("save: depth 29 accepted", () => {
-  const s = of({ seed: 0, depth: 29, players: [] });
-  assert.strictEqual(s.depth, 29);
+test("save: depth 33 accepted", () => {
+  const s = of({ seed: 0, depth: 33, players: [] });
+  assert.strictEqual(s.depth, 33);
   assert.ok(Object.isFrozen(s));
 });
 
@@ -165,4 +165,33 @@ test("save: isName cases", () => {
   assert.strictEqual(isName(""), false);
   assert.strictEqual(isName("Ann "), false);
   assert.strictEqual(isName(5), false);
+});
+
+test("save: data() writes range", () => {
+  const s = of({
+    seed: 9,
+    depth: 3,
+    players: [{ name: "Cy", stats: statsOf({ hp: 10, maxHp: 30, attack: 6, defense: 2, range: 4 }) }],
+  });
+  assert.strictEqual(s.data().players[0].stats.range, 4);
+});
+
+test("save: stats without range defaults to 1", () => {
+  const s = of({
+    seed: 9,
+    depth: 3,
+    players: [{ name: "Cy", stats: { hp: 10, maxHp: 30, attack: 6, defense: 2 } }],
+  });
+  assert.strictEqual(s.players[0].stats.range, 1);
+  assert.strictEqual(s.data().players[0].stats.range, 1);
+});
+
+test("save: range round-trips through parse", () => {
+  const s = of({
+    seed: 9,
+    depth: 3,
+    players: [{ name: "Cy", stats: { hp: 10, maxHp: 30, attack: 6, defense: 2, range: 4 } }],
+  });
+  const parsed = parse(s.text());
+  assert.strictEqual(parsed.players[0].stats.range, 4);
 });

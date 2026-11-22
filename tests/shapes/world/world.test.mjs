@@ -91,15 +91,15 @@ test('world: intrinsic valid - state: dead throws TypeError', () => {
   assert.throws(() => worldOf({ ...fields, state: 'dead' }), TypeError);
 });
 
-test('world: intrinsic valid - depth: 29 accepted', () => {
+test('world: intrinsic valid - depth: 33 accepted', () => {
   const { fields } = makeWorld();
-  const w = worldOf({ ...fields, depth: 29 });
-  assert.strictEqual(w.depth, 29);
+  const w = worldOf({ ...fields, depth: 33 });
+  assert.strictEqual(w.depth, 33);
 });
 
-test('world: intrinsic valid - depth: 30 throws TypeError', () => {
+test('world: intrinsic valid - depth: 34 throws TypeError', () => {
   const { fields } = makeWorld();
-  assert.throws(() => worldOf({ ...fields, depth: 30 }), TypeError);
+  assert.throws(() => worldOf({ ...fields, depth: 34 }), TypeError);
 });
 
 test('world: intrinsic valid - time: -1 throws TypeError', () => {
@@ -234,11 +234,31 @@ test('world: intrinsic data - fromData(data()) round trip passes deepStrictEqual
     stats: statsShape.of({ hp: 5, maxHp: 10, attack: 2, defense: 1 }),
     last: { kind: 'move', dx: 0, dy: 1, at: 20 }
   });
+  const golem = actorShape.of({
+    id: 2,
+    kind: 'golem',
+    pos: pointShape.of(4, 2),
+    stats: statsShape.of({ hp: 40, maxHp: 40, attack: 16, defense: 12, range: 1 }),
+    size: 2,
+    small: true,
+    mode: 'dormant',
+    slow: 1,
+    aim: { dx: -1, dy: 1 }
+  });
+  const archer = actorShape.of({
+    id: 3,
+    kind: 'archer',
+    pos: pointShape.of(1, 2),
+    stats: statsShape.of({ hp: 7, maxHp: 7, attack: 3, defense: 1, range: 4 }),
+    last: { kind: 'attack', dx: 1, dy: 1, at: 30, reach: 3 }
+  });
   const swordItem = itemShape.of({ id: 12, kind: 'sword', pos: pointShape.of(3, 1), price: 30 });
+  const leverItem = itemShape.of({ id: 13, kind: 'lever', pos: pointShape.of(2, 1), pulled: true });
+  const flungGold = itemShape.of({ id: 14, kind: 'gold', pos: pointShape.of(4, 0), amount: 5, flung: { x: 1, y: 1, at: 40 } });
   const visibleWithOne = maskShape.of(5, 3, [false, false, false, false, false, false, true, false, false, false, false, false, false, false, false]);
   const fields = {
     seed: 123, rng: 456, depth: 2, time: 0, state: 'playing',
-    grid, heroes: [heroWithPending], monsters: [monster], items: [item, swordItem],
+    grid, heroes: [heroWithPending], monsters: [monster, golem, archer], items: [item, swordItem, leverItem, flungGold],
     visible: visibleWithOne, explored, gold: 7, log: ['start'], entry
   };
   const w = worldOf(fields);
@@ -266,11 +286,31 @@ test('world: intrinsic data - data().grid and data().visible[1]', () => {
     stats: statsShape.of({ hp: 5, maxHp: 10, attack: 2, defense: 1 }),
     last: { kind: 'move', dx: 0, dy: 1, at: 20 }
   });
+  const golem = actorShape.of({
+    id: 2,
+    kind: 'golem',
+    pos: pointShape.of(4, 2),
+    stats: statsShape.of({ hp: 40, maxHp: 40, attack: 16, defense: 12, range: 1 }),
+    size: 2,
+    small: true,
+    mode: 'dormant',
+    slow: 1,
+    aim: { dx: -1, dy: 1 }
+  });
+  const archer = actorShape.of({
+    id: 3,
+    kind: 'archer',
+    pos: pointShape.of(1, 2),
+    stats: statsShape.of({ hp: 7, maxHp: 7, attack: 3, defense: 1, range: 4 }),
+    last: { kind: 'attack', dx: 1, dy: 1, at: 30, reach: 3 }
+  });
   const swordItem = itemShape.of({ id: 12, kind: 'sword', pos: pointShape.of(3, 1), price: 30 });
+  const leverItem = itemShape.of({ id: 13, kind: 'lever', pos: pointShape.of(2, 1), pulled: true });
+  const flungGold = itemShape.of({ id: 14, kind: 'gold', pos: pointShape.of(4, 0), amount: 5, flung: { x: 1, y: 1, at: 40 } });
   const visibleWithOne = maskShape.of(5, 3, [false, false, false, false, false, false, true, false, false, false, false, false, false, false, false]);
   const fields = {
     seed: 123, rng: 456, depth: 2, time: 0, state: 'playing',
-    grid, heroes: [heroWithPending], monsters: [monster], items: [item, swordItem],
+    grid, heroes: [heroWithPending], monsters: [monster, golem, archer], items: [item, swordItem, leverItem, flungGold],
     visible: visibleWithOne, explored, gold: 7, log: ['start'], entry
   };
   const w = worldOf(fields);
@@ -278,14 +318,18 @@ test('world: intrinsic data - data().grid and data().visible[1]', () => {
   assert.strictEqual(w.data().visible[1], '01000');
   assert.strictEqual(w.data().items[1].price, 30);
   assert.strictEqual(w.data().heroes[0].offer, 12);
+  assert.strictEqual(w.data().items[2].pulled, true);
+  assert.deepStrictEqual(w.data().items[3].flung, { x: 1, y: 1, at: 40 });
+  assert.strictEqual(w.data().monsters[2].last.reach, 3);
+  assert.strictEqual(w.data().monsters[2].stats.range, 4);
 });
 
 test('world: intrinsic data - fromData({}) throws TypeError', () => {
   assert.throws(() => worldFromData({}), TypeError);
 });
 
-test('world: intrinsic data - data() with depth 30 throws TypeError', () => {
+test('world: intrinsic data - data() with depth 34 throws TypeError', () => {
   const { world } = makeWorld();
   const d = world.data();
-  assert.throws(() => worldFromData({ ...d, depth: 30 }), TypeError);
+  assert.throws(() => worldFromData({ ...d, depth: 34 }), TypeError);
 });
