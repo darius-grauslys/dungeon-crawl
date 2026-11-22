@@ -4,6 +4,7 @@
 import * as tileGrid from "../../shapes/tile-grid/index.mjs";
 import * as point from "../../shapes/point/index.mjs";
 import * as floorPlan from "../../shapes/floor-plan/index.mjs";
+import * as level from "../../shapes/level/index.mjs";
 
 const WIDTH = 48;
 const HEIGHT = 32;
@@ -155,13 +156,17 @@ function tryCarve(gen) {
   return floorPlan.of({ grid: gridShape, start: startPt, stairs: stairsPt, spots: spotsArr });
 }
 
-/** `generate(seed, depth) -> floor-plan`. `seed` an integer from 0 to 4294967295, `depth` an integer from 1 to 5; anything else throws a `TypeError`. Answers a floor 48 cells wide and 32 high: every cell of its outer border is `wall`; rooms and corridors are `floor`; exactly one cell is `stairs`. `start` is where the hero arrives. `spots` holds from 12 to 40 points, each at a Manhattan distance of at least 5 from `start`. Every `floor` and `stairs` cell can be reached from `start` by orthogonal steps over `floor` and `stairs` cells. */
+/** `generate(seed, depth) -> floor-plan`. `seed` an integer from 0 to 4294967295, `depth` an integer from 1 to 29; anything else throws a `TypeError`. On a shop depth (`level.kind(depth)` is `interior`), the shop above, whatever the seed. On any other depth, a floor 48 cells wide and 32 high: every cell of its outer border is `wall`; rooms and corridors are `floor`; exactly one cell is `stairs`. `start` is where the hero arrives. `spots` holds from 12 to 40 points, each at a Manhattan distance of at least 5 from `start`. Every `floor` and `stairs` cell can be reached from `start` by orthogonal steps over `floor` and `stairs` cells. */
 export function generate(seed, depth) {
   if (!Number.isInteger(seed) || seed < 0 || seed > 4294967295) {
     throw new TypeError("seed must be an integer from 0 to 4294967295");
   }
-  if (!Number.isInteger(depth) || depth < 1 || depth > 5) {
-    throw new TypeError("depth must be an integer from 1 to 5");
+  if (!Number.isInteger(depth) || depth < 1 || depth > level.MAX_DEPTH) {
+    throw new TypeError("depth must be an integer from 1 to 29");
+  }
+
+  if (level.kind(depth) === 'interior') {
+    return buildShopPlan();
   }
 
   let gen = makeGenerator(seed, depth);
@@ -169,4 +174,25 @@ export function generate(seed, depth) {
     const plan = tryCarve(gen);
     if (plan) return plan;
   }
+}
+
+function buildShopPlan() {
+  const tiles = new Array(WIDTH * HEIGHT).fill("wall");
+  for (let y = 10; y <= 21; y++) {
+    for (let x = 14; x <= 33; x++) {
+      tiles[y * WIDTH + x] = (x === 31 && y === 19) ? "stairs" : "floor";
+    }
+  }
+  const gridShape = tileGrid.of(WIDTH, HEIGHT, tiles);
+  const startPt = point.of(16, 19);
+  const stairsPt = point.of(31, 19);
+  const spotsArr = [
+    point.of(16, 13),
+    point.of(19, 13),
+    point.of(22, 13),
+    point.of(25, 13),
+    point.of(28, 13),
+    point.of(31, 13)
+  ];
+  return floorPlan.of({ grid: gridShape, start: startPt, stairs: stairsPt, spots: spotsArr });
 }

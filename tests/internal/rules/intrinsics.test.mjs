@@ -393,6 +393,82 @@ test("saves: toSave and fromSave round-trip, hp 0 becomes 1", () => {
   assert.equal(wZero.heroes[0].actor.stats.hp, 1);
 });
 
+test("level-based floors: stage monster counts, kinds, tier scaling, swords/armor, depth 29 win, shop arrival", () => {
+  const w1 = rules.newGame(5);
+  assert.equal(w1.monsters.length, 4);
+  for (const m of w1.monsters) assert.ok(["bat", "slime"].includes(m.kind));
+
+  const w3 = rules.fromSave(saveShape.of({ seed: 5, depth: 3, players: [] }));
+  assert.equal(w3.monsters.length, 8);
+  const kinds3 = new Set(w3.monsters.map((m) => m.kind));
+  for (const k of kinds3) assert.ok(["slime", "snake", "skeleton"].includes(k));
+
+  const w5 = rules.fromSave(saveShape.of({ seed: 5, depth: 5, players: [] }));
+  assert.equal(w5.monsters.length, 12);
+
+  const wShop = rules.fromSave(saveShape.of({ seed: 5, depth: 6, players: [] }));
+  assert.equal(wShop.monsters.length, 0);
+  assert.equal(wShop.log[wShop.log.length - 1], "A shop! Bump a ware twice to buy it.");
+
+  const gridWin = tileGridShape.fromRows(["##########", "#.......#>", "##########"]);
+  const visibleWin = maskShape.empty(10, 3);
+  const exploredWin = maskShape.empty(10, 3);
+  const mkWin = (heroes, rng) => worldShape.of({ seed: 1, rng, depth: 29, time: 0, state: "playing", grid: gridWin, heroes, monsters: [], items: [], visible: visibleWin, explored: exploredWin, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 29, players: [{ name: "Ann", stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) }] }) });
+  const annActor = actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(6, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 });
+  const ann = heroShape.of({ name: "Ann", actor: annActor, pending: null, alive: true });
+  const wWin = mkWin([ann], 1);
+  const wWin2 = rules.advance(rules.intend(wWin, "Ann", intentShape.descend()), 50);
+  assert.equal(wWin2.state, "won");
+  assert.ok(wWin2.log.some((l) => l.includes("escapes the dungeon with 0 gold!")));
+});
+
+test("shop floors: no monsters, six wares with prices, every cell visible and explored", () => {
+  const wShop = rules.fromSave(saveShape.of({ seed: 5, depth: 6, players: [{ name: "Ann", stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) }] }));
+  assert.equal(wShop.monsters.length, 0);
+  assert.equal(wShop.items.length, 6);
+  for (const it of wShop.items) {
+    assert.ok(["potion", "sword", "armor"].includes(it.kind));
+    assert.equal(it.price > 0, true);
+    assert.ok(wShop.grid.open(it.pos.x, it.pos.y));
+  }
+  const kinds = wShop.items.map((it) => it.kind);
+  assert.deepEqual(kinds, ["potion", "sword", "armor", "potion", "sword", "armor"]);
+  assert.equal(wShop.visible.count(), 48 * 32);
+  assert.equal(wShop.explored.count(), 48 * 32);
+});
+
+test("bumping and buying: offer, three log lines, wares block steps, other actions clear offer, new floors clear offer", () => {
+  const wShop = rules.fromSave(saveShape.of({ seed: 5, depth: 6, players: [{ name: "Ann", stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) }] }));
+  const swordWare = wShop.items.find((it) => it.kind === "sword");
+
+  const heroInit = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(18, 13), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, offer: null, alive: true });
+  const wShopAnn = worldShape.of({ seed: 5, rng: 5, depth: 6, time: 0, state: "playing", grid: wShop.grid, heroes: [heroInit], monsters: wShop.monsters, items: wShop.items, visible: wShop.visible, explored: wShop.explored, gold: 50, log: wShop.log, entry: wShop.entry });
+  const wFirst = rules.advance(rules.intend(wShopAnn, "Ann", intentShape.move(1, 0)), 50);
+  assert.equal(wFirst.heroes[0].offer, swordWare.id);
+  assert.equal(wFirst.log[wFirst.log.length - 1], `Ann looks at a sword: ${swordWare.price} gold. Bump it again to buy.`);
+
+  const heroOffer = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(18, 13), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, offer: swordWare.id, alive: true });
+  const wShopBuy = worldShape.of({ seed: 5, rng: 5, depth: 6, time: 0, state: "playing", grid: wShop.grid, heroes: [heroOffer], monsters: wShop.monsters, items: wShop.items, visible: wShop.visible, explored: wShop.explored, gold: 50, log: wShop.log, entry: wShop.entry });
+  const wBuy = rules.advance(rules.intend(wShopBuy, "Ann", intentShape.move(1, 0)), 50);
+  assert.equal(wBuy.heroes[0].offer, null);
+  assert.equal(wBuy.items.filter((it) => it.kind === "sword").length, 1);
+  assert.equal(wBuy.log[wBuy.log.length - 1], `Ann buys a sword for ${swordWare.price} gold.`);
+
+  const heroOfferLow = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(18, 13), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, offer: swordWare.id, alive: true });
+  const wShopLow = worldShape.of({ seed: 5, rng: 5, depth: 6, time: 0, state: "playing", grid: wShop.grid, heroes: [heroOfferLow], monsters: wShop.monsters, items: wShop.items, visible: wShop.visible, explored: wShop.explored, gold: 10, log: wShop.log, entry: wShop.entry });
+  const wBuyLow = rules.advance(rules.intend(wShopLow, "Ann", intentShape.move(1, 0)), 50);
+  assert.equal(wBuyLow.heroes[0].offer, null);
+  assert.equal(wBuyLow.log[wBuyLow.log.length - 1], `Not enough gold for a sword: ${swordWare.price} needed, the party has 10.`);
+
+  const heroOfferWait = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(18, 13), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, offer: swordWare.id, alive: true });
+  const wShopWait = worldShape.of({ seed: 5, rng: 5, depth: 6, time: 0, state: "playing", grid: wShop.grid, heroes: [heroOfferWait], monsters: wShop.monsters, items: wShop.items, visible: wShop.visible, explored: wShop.explored, gold: 50, log: wShop.log, entry: wShop.entry });
+  const wWait = rules.advance(rules.intend(wShopWait, "Ann", intentShape.wait()), 50);
+  assert.equal(wWait.heroes[0].offer, null);
+
+  const wNewFloor = rules.join(rules.fromSave(saveShape.of({ seed: 5, depth: 1, players: [{ name: "Ann", stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) }] })), "Ann");
+  assert.equal(wNewFloor.heroes[0].offer, null);
+});
+
 test("refuses: invalid inputs throw TypeError", () => {
   assert.throws(() => rules.newGame(-1), TypeError);
   assert.throws(() => rules.newGame(2.5), TypeError);
