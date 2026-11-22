@@ -206,10 +206,16 @@ test("intentFor: diagonal and numpad keys", () => {
   assert.strictEqual(intentFor("6").dx, 1);
 });
 
-test("commandFor: Escape->menu, P->pause, w->null", () => {
+test("commandFor: Escape->menu, P->pause, m/M->mute, -/_->quieter, =/+->louder, w->null", () => {
   assert.strictEqual(commandFor("Escape"), "menu");
   assert.strictEqual(commandFor("p"), "pause");
   assert.strictEqual(commandFor("P"), "pause");
+  assert.strictEqual(commandFor("m"), "mute");
+  assert.strictEqual(commandFor("M"), "mute");
+  assert.strictEqual(commandFor("-"), "quieter");
+  assert.strictEqual(commandFor("_"), "quieter");
+  assert.strictEqual(commandFor("="), "louder");
+  assert.strictEqual(commandFor("+"), "louder");
   assert.strictEqual(commandFor("w"), null);
   assert.strictEqual(commandFor("x"), null);
   assert.strictEqual(commandFor(""), null);
@@ -261,6 +267,30 @@ test("listen: keydown with command calls g once and prevents default", () => {
   assert.strictEqual(gCalled, 1);
   assert.strictEqual(lastCommand, "menu");
   assert.strictEqual(ev.defaultPrevented, true);
+});
+
+test("listen: keydown with mute/quieter/louder commands calls g and prevents default", () => {
+  const t = new MockTarget();
+  const f = () => {};
+  for (const [key, cmd] of [
+    ["m", "mute"],
+    ["M", "mute"],
+    ["-", "quieter"],
+    ["_", "quieter"],
+    ["=", "louder"],
+    ["+", "louder"],
+  ]) {
+    let gCalled = 0;
+    let lastCommand = null;
+    const g = (c) => { gCalled++; lastCommand = c; };
+    const stop = listen(t, { intent: f, command: g });
+    const ev = new MockEvent("keydown", { key });
+    t.dispatch(ev);
+    assert.strictEqual(gCalled, 1, `command called for ${key}`);
+    assert.strictEqual(lastCommand, cmd, `command for ${key}`);
+    assert.strictEqual(ev.defaultPrevented, true, `default prevented for ${key}`);
+    stop();
+  }
 });
 
 test("listen: keydown without intent or command doesn't call and doesn't prevent default", () => {
