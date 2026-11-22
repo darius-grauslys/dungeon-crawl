@@ -17,8 +17,9 @@ import * as strikeShape from "../../shapes/strike/index.mjs";
 import * as pointShape from "../../shapes/point/index.mjs";
 import * as heroShape from "../../shapes/hero/index.mjs";
 import * as saveShape from "../../shapes/save/index.mjs";
+import * as levelShape from "../../shapes/level/index.mjs";
 
-const MONSTER_KINDS_BY_DEPTH = {
+const MONSTER_KINDS_BY_STAGE = {
   1: ["bat", "slime"],
   2: ["bat", "slime", "snake"],
   3: ["slime", "snake", "skeleton"],
@@ -26,7 +27,7 @@ const MONSTER_KINDS_BY_DEPTH = {
   5: ["skeleton", "demon"],
 };
 
-const MONSTER_STATS = {
+const MONSTER_STATS_BASE = {
   bat: { hp: 3, maxHp: 3, attack: 2, defense: 0 },
   slime: { hp: 6, maxHp: 6, attack: 2, defense: 1 },
   snake: { hp: 5, maxHp: 5, attack: 3, defense: 0 },
@@ -34,7 +35,24 @@ const MONSTER_STATS = {
   demon: { hp: 16, maxHp: 16, attack: 6, defense: 3 },
 };
 
+const WARE_PRICES = {
+  potion: { base: 20, spread: 12 },
+  sword: { base: 30, spread: 6 },
+  armor: { base: 40, spread: 6 },
+};
+
 const HERO_START_STATS = { hp: 24, maxHp: 24, attack: 4, defense: 1 };
+
+function isShopDepth(depth) {
+  return levelShape.kind(depth) === "interior";
+}
+
+function wareLabel(kind) {
+  if (kind === "potion") return "a potion";
+  if (kind === "sword") return "a sword";
+  if (kind === "armor") return "armor";
+  return kind;
+}
 
 // Latency per action (world milliseconds). The EED's table, one constant table.
 const HERO_LATENCY = {
@@ -108,50 +126,76 @@ function startCells(plan) {
 function makeFloor(seed, depth, rngIn) {
   const plan = dungeon.generate(seed, depth);
   const spots = plan.spots;
-  const numMonsters = 2 + 2 * depth;
 
   let rng = rngIn;
   const monsters = [];
+  const items = [];
   let idCounter = 10;
 
+  if (isShopDepth(depth)) {
+    const kinds = ["potion", "sword", "armor", "potion", "sword", "armor"];
+    const round = levelShape.round(depth);
+    for (let i = 0; i < 6; i++) {
+      const kind = kinds[i];
+      const cfg = WARE_PRICES[kind];
+      const { rng: nr, value } = mulberryDraw(rng);
+      rng = nr;
+      const spread = cfg.spread;
+      const price = Math.round(cfg.base * Math.pow(1.25, round - 1)) - spread + Math.floor(value * (2 * spread + 1));
+      items.push(itemShape.of({ id: idCounter++, kind, pos: spots[i], amount: 0, price }));
+    }
+    return { plan, monsters, items, rng };
+  }
+
+  const stage = levelShape.stage(depth);
+  const tier = levelShape.tier(depth);
+  const numMonsters = 2 + 2 * stage;
+
   for (let i = 0; i < numMonsters; i++) {
-    const { rng: nr, item: kind } = pick(rng, MONSTER_KINDS_BY_DEPTH[depth]);
+    const { rng: nr, item: kind } = pick(rng, MONSTER_KINDS_BY_STAGE[stage]);
     rng = nr;
     const pos = spots[i];
-    const s = MONSTER_STATS[kind];
+    const s = MONSTER_STATS_BASE[kind];
     monsters.push(
       actorShape.of({
         id: idCounter++,
         kind,
         pos,
-        stats: statsShape.of({ hp: s.hp, maxHp: s.hp, attack: s.attack, defense: s.defense }),
+        stats: statsShape.of({ hp: s.hp + Math.floor(s.hp * tier / 2), maxHp: s.maxHp + Math.floor(s.maxHp * tier / 2), attack: s.attack + tier, defense: s.defense + Math.floor(tier / 2) }),
         ready: 0,
       })
     );
   }
 
-  const items = [];
-  for (let i = 0; i < 2; i++) {
-    items.push(itemShape.of({ id: idCounter++, kind: "potion", pos: spots[numMonsters + i], amount: 0 }));
+  const kinds = ["potion", "sword", "armor"];
+  for (let i = 0; i < 3; i++) {
+    const k = kinds[i];
+    if (stage >= 1 && k !== "potion") {
+      items.push(itemShape.of({ id: idCounter++, kind: k, pos: spots[numMonsters + i], amount: 0 }));
+    }
   }
+
   for (let i = 0; i < 2; i++) {
     const { rng: nr, value } = mulberryDraw(rng);
     rng = nr;
     const d = Math.floor(value * 8);
     items.push(
-      itemShape.of({ id: idCounter++, kind: "gold", pos: spots[numMonsters + 2 + i], amount: depth * (3 + d) })
+      itemShape.of({ id: idCounter++, kind: "gold", pos: spots[numMonsters + 3 + i], amount: depth * (3 + d) })
     );
-  }
-  if (depth === 2 || depth === 4) {
-    items.push(itemShape.of({ id: idCounter++, kind: "sword", pos: spots[numMonsters + 4], amount: 0 }));
-  } else if (depth === 3 || depth === 5) {
-    items.push(itemShape.of({ id: idCounter++, kind: "armor", pos: spots[numMonsters + 4], amount: 0 }));
   }
 
   return { plan, monsters, items, rng };
 }
 
+function allTrueMask(width, height) {
+  const cells = new Array(width * height).fill(true);
+  return maskShape.of(width, height, cells);
+}
+
 function computeVisible(world, heroes) {
+  if (isShopDepth(world.depth)) {
+    return allTrueMask(world.grid.width, world.grid.height);
+  }
   let visible = maskShape.empty(world.grid.width, world.grid.height);
   for (const h of heroes) {
     if (h.alive) {
@@ -167,8 +211,8 @@ export function newGame(seed) {
   }
   const depth = 1;
   const { monsters, items, plan, rng } = makeFloor(seed, depth, seed);
-  const visible = maskShape.empty(plan.grid.width, plan.grid.height);
-  const explored = maskShape.empty(plan.grid.width, plan.grid.height);
+  const visible = isShopDepth(depth) ? allTrueMask(plan.grid.width, plan.grid.height) : maskShape.empty(plan.grid.width, plan.grid.height);
+  const explored = isShopDepth(depth) ? allTrueMask(plan.grid.width, plan.grid.height) : maskShape.empty(plan.grid.width, plan.grid.height);
   return worldShape.of({
     seed,
     rng,
@@ -214,11 +258,11 @@ export function fromSave(save) {
       stats: statsShape.of({ hp, maxHp: sp.stats.maxHp, attack: sp.stats.attack, defense: sp.stats.defense }),
       ready: 0,
     });
-    heroes.push(heroShape.of({ name: sp.name, actor: a, pending: null, alive: true }));
+    heroes.push(heroShape.of({ name: sp.name, actor: a, pending: null, offer: null, alive: true }));
   }
 
-  const visible = computeVisible({ grid: plan.grid, heroes }, heroes);
-  const explored = maskShape.of(visible.width, visible.height, visible.cells());
+  const visible = computeVisible({ grid: plan.grid, depth }, heroes);
+  const explored = isShopDepth(depth) ? allTrueMask(visible.width, visible.height) : maskShape.of(visible.width, visible.height, visible.cells());
 
   const entryPlayers = save.players.map((p) => ({
     name: p.name,
@@ -238,7 +282,7 @@ export function fromSave(save) {
     visible,
     explored,
     gold: 0,
-    log: ["Welcome to the dungeon. Find the stairs (>)."],
+    log: isShopDepth(depth) ? ["A shop! Bump a ware twice to buy it."] : ["Welcome to the dungeon. Find the stairs (>)."],
     entry: saveShape.of({ seed, depth, players: entryPlayers }),
   });
 }
@@ -287,11 +331,11 @@ export function join(world, name) {
     stats: statsShape.of(HERO_START_STATS),
     ready: world.time,
   });
-  const newHero = heroShape.of({ name, actor: newHeroActor, pending: null, alive: true });
+  const newHero = heroShape.of({ name, actor: newHeroActor, pending: null, offer: null, alive: true });
 
   const newHeroes = [...world.heroes, newHero];
-  const visible = computeVisible(world, newHeroes);
-  const explored = maskShape.union(world.explored, visible);
+  const visible = computeVisible({ grid: world.grid, depth: world.depth }, newHeroes);
+  const explored = isShopDepth(world.depth) ? allTrueMask(world.grid.width, world.grid.height) : maskShape.union(world.explored, visible);
 
   const newEntryPlayers = [...world.entry.players, { name, stats: statsShape.of(HERO_START_STATS) }];
 
@@ -325,9 +369,9 @@ export function intend(world, name, intent) {
     if (intent.kind === "descend") {
       // heroShape.of rejects descend intents due to isIntent limitation;
       // worldShape.isHero accepts any frozen object with pending instanceof intentShape.Intent.
-      return Object.freeze({ name: hh.name, actor: hh.actor, pending: intent, alive: hh.alive });
+      return Object.freeze({ name: hh.name, actor: hh.actor, pending: intent, offer: hh.offer, alive: hh.alive });
     }
-    return heroShape.of({ name: hh.name, actor: hh.actor, pending: intent, alive: hh.alive });
+    return heroShape.of({ name: hh.name, actor: hh.actor, pending: intent, offer: hh.offer, alive: hh.alive });
   });
   return worldShape.of({
     seed: world.seed,
@@ -408,6 +452,8 @@ export function advance(world, ms) {
     let latency;
     let needsUpdate = false;
     let newActor;
+    let bumped = false;
+    let offerSet = null; // the new offer value if bumped, null otherwise
 
     if (intent.kind === "move") {
       const nx = h.actor.pos.x + intent.dx;
@@ -415,23 +461,58 @@ export function advance(world, ms) {
       const cell = world.grid.at(nx, ny);
       const monsterAt = monstersList.find((m) => m.pos.x === nx && m.pos.y === ny);
       const aliveHeroAt = heroes.find((hh) => hh.alive && hh.name !== h.name && hh.actor.pos.x === nx && hh.actor.pos.y === ny);
+      const wareAt = items.find((it) => it.price > 0 && it.pos.x === nx && it.pos.y === ny);
 
       const wouldBeAttack = !!monsterAt;
 
       // Held check: a hero's pending move that would not be an attack stays pending unfired until held passes.
-      if (!wouldBeAttack && h.actor.held > newTime) {
+      if (!wouldBeAttack && !wareAt && h.actor.held > newTime) {
         continue;
       }
 
       needsUpdate = true;
-      latency = wouldBeAttack ? HERO_LATENCY.attack : HERO_LATENCY.step;
       const facing = actorShape.facingFor(intent.dx, intent.dy);
 
-      if (cell === "wall" || aliveHeroAt) {
-        // step goes nowhere: facing updated, last unchanged
+      if (wareAt) {
+        // bump: fired move onto ware is a bump (attack latency, facing, last; holds no one)
+        bumped = true;
+        latency = HERO_LATENCY.attack;
+        let pos = pointShape.of(nx, ny);
+        let heroStats = { hp: h.actor.stats.hp, maxHp: h.actor.stats.maxHp, attack: h.actor.stats.attack, defense: h.actor.stats.defense };
+        if (h.offer === null || h.offer === undefined) {
+          offerSet = wareAt.id;
+          log.push(`${h.name} looks at ${wareLabel(wareAt.kind)}: ${wareAt.price} gold. Bump it again to buy.`);
+        } else if (h.offer === wareAt.id) {
+          // second bump of same ware: buy attempt
+          const price = wareAt.price;
+          if (gold >= price) {
+            gold -= price;
+            items = items.filter((it) => it.id !== wareAt.id);
+            if (wareAt.kind === "potion") {
+              heroStats.hp = Math.min(h.actor.stats.maxHp, h.actor.stats.hp + 8);
+            } else if (wareAt.kind === "sword") {
+              heroStats.attack += 2;
+            } else if (wareAt.kind === "armor") {
+              heroStats.defense += 1;
+            }
+            log.push(`${h.name} buys ${wareLabel(wareAt.kind)} for ${price} gold.`);
+            offerSet = null;
+          } else {
+            log.push(`Not enough gold for ${wareLabel(wareAt.kind)}: ${price} needed, the party has ${gold}.`);
+            offerSet = null;
+          }
+        } else {
+          offerSet = wareAt.id;
+          log.push(`${h.name} looks at ${wareLabel(wareAt.kind)}: ${wareAt.price} gold. Bump it again to buy.`);
+        }
+        newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: statsShape.of(heroStats), ready: newTime + latency, held: h.actor.held, facing, last: { kind: 'attack', dx: intent.dx, dy: intent.dy, at: newTime } });
+      } else if (cell === "wall" || aliveHeroAt) {
+        // step goes nowhere: facing updated, last unchanged, clear offer
+        latency = HERO_LATENCY.step;
         newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime + latency, held: h.actor.held, facing, last: h.actor.last });
       } else if (monsterAt) {
-        // attack on monster
+        // attack on monster: clear offer
+        latency = HERO_LATENCY.attack;
         const { roll, rng: nr } = d20(rng);
         rng = nr;
         const strike = combat.resolve(h.actor.stats, monsterAt.stats, roll);
@@ -448,7 +529,8 @@ export function advance(world, ms) {
         }
         newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime + latency, held: h.actor.held, facing, last: { kind: 'attack', dx: intent.dx, dy: intent.dy, at: newTime } });
       } else if (world.grid.open(nx, ny)) {
-        // step onto open cell, pick up items
+        // step onto open cell, pick up items, clear offer
+        latency = HERO_LATENCY.step;
         const itemsAt = items.filter((it) => it.pos.x === nx && it.pos.y === ny);
         let pos = pointShape.of(nx, ny);
         let heroStats = { hp: h.actor.stats.hp, maxHp: h.actor.stats.maxHp, attack: h.actor.stats.attack, defense: h.actor.stats.defense };
@@ -473,19 +555,51 @@ export function advance(world, ms) {
         items = items.filter((it) => !(it.pos.x === nx && it.pos.y === ny));
         newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos, stats: statsShape.of(heroStats), ready: newTime + latency, held: h.actor.held, facing, last: { kind: 'move', dx: intent.dx, dy: intent.dy, at: newTime } });
       } else {
-        // not open, no monster: step goes nowhere
+        // not open, no monster, no ware: step goes nowhere, clear offer
+        latency = HERO_LATENCY.step;
         newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime + latency, held: h.actor.held, facing, last: h.actor.last });
       }
     } else if (intent.kind === "attack") {
       const nx = h.actor.pos.x + intent.dx;
       const ny = h.actor.pos.y + intent.dy;
       const monsterAt = monstersList.find((m) => m.pos.x === nx && m.pos.y === ny);
+      const wareAt = items.find((it) => it.price > 0 && it.pos.x === nx && it.pos.y === ny);
 
       needsUpdate = true;
       latency = HERO_LATENCY.attack;
       const facing = actorShape.facingFor(intent.dx, intent.dy);
 
-      if (monsterAt) {
+      if (wareAt) {
+        // bump: attack toward ware is a bump (attack latency, facing, last; holds no one)
+        bumped = true;
+        let heroStats = { hp: h.actor.stats.hp, maxHp: h.actor.stats.maxHp, attack: h.actor.stats.attack, defense: h.actor.stats.defense };
+        if (h.offer === null || h.offer === undefined) {
+          offerSet = wareAt.id;
+          log.push(`${h.name} looks at ${wareLabel(wareAt.kind)}: ${wareAt.price} gold. Bump it again to buy.`);
+        } else if (h.offer === wareAt.id) {
+          const price = wareAt.price;
+          if (gold >= price) {
+            gold -= price;
+            items = items.filter((it) => it.id !== wareAt.id);
+            if (wareAt.kind === "potion") {
+              heroStats.hp = Math.min(h.actor.stats.maxHp, h.actor.stats.hp + 8);
+            } else if (wareAt.kind === "sword") {
+              heroStats.attack += 2;
+            } else if (wareAt.kind === "armor") {
+              heroStats.defense += 1;
+            }
+            log.push(`${h.name} buys ${wareLabel(wareAt.kind)} for ${price} gold.`);
+            offerSet = null;
+          } else {
+            log.push(`Not enough gold for ${wareLabel(wareAt.kind)}: ${price} needed, the party has ${gold}.`);
+            offerSet = null;
+          }
+        } else {
+          offerSet = wareAt.id;
+          log.push(`${h.name} looks at ${wareLabel(wareAt.kind)}: ${wareAt.price} gold. Bump it again to buy.`);
+        }
+        newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: statsShape.of(heroStats), ready: newTime + latency, held: h.actor.held, facing, last: { kind: 'attack', dx: intent.dx, dy: intent.dy, at: newTime } });
+      } else if (monsterAt) {
         const { roll, rng: nr } = d20(rng);
         rng = nr;
         const strike = combat.resolve(h.actor.stats, monsterAt.stats, roll);
@@ -500,8 +614,10 @@ export function advance(world, ms) {
         } else {
           monstersList = monstersList.map((m) => (m.id === monsterAt.id ? actorShape.of({ id: m.id, kind: m.kind, pos: m.pos, stats: statsShape.of({ hp: newHp, maxHp: m.stats.maxHp, attack: m.stats.attack, defense: m.stats.defense }), ready: m.ready, held: monsterHeld }) : m));
         }
+        newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime + latency, held: h.actor.held, facing, last: { kind: 'attack', dx: intent.dx, dy: intent.dy, at: newTime } });
+      } else {
+        newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime + latency, held: h.actor.held, facing, last: { kind: 'attack', dx: intent.dx, dy: intent.dy, at: newTime } });
       }
-      newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime + latency, held: h.actor.held, facing, last: { kind: 'attack', dx: intent.dx, dy: intent.dy, at: newTime } });
     } else if (intent.kind === "use") {
       needsUpdate = true;
       latency = HERO_LATENCY.use;
@@ -527,7 +643,17 @@ export function advance(world, ms) {
     }
 
     if (needsUpdate) {
-      heroes[hi] = heroShape.of({ name: h.name, actor: newActor, pending: null, alive: h.alive });
+      // offer is cleared for use/wait/descend and non-bump move/attack; bumps set/clear it via offerSet
+      let newOffer = h.offer;
+      if (bumped) {
+        newOffer = offerSet;
+      } else if (intent.kind === "use" || intent.kind === "wait" || intent.kind === "descend") {
+        newOffer = null;
+      } else if (intent.kind === "move" || intent.kind === "attack") {
+        // non-bump move/attack: clear offer
+        newOffer = null;
+      }
+      heroes[hi] = heroShape.of({ name: h.name, actor: newActor, pending: null, offer: newOffer, alive: h.alive });
     }
   }
 
@@ -558,6 +684,9 @@ export function advance(world, ms) {
       }
       for (let j = 0; j < heroes.length; j++) {
         if (heroes[j].alive && j !== targetHeroIndex) blocked.push(heroes[j].actor.pos);
+      }
+      for (const it of items) {
+        if (it.price > 0) blocked.push(it.pos);
       }
 
       const monsterActor = actorShape.of({ id: m.id, kind: m.kind, pos: m.pos, stats: m.stats, ready: m.ready, held: m.held, facing: m.facing, last: m.last });
@@ -610,7 +739,7 @@ export function advance(world, ms) {
   const anyAlive = heroes.some((h) => h.alive);
   if (heroes.length > 0 && !anyAlive) {
     const rewound = fromSave(world.entry);
-    const rewoundHeroes = rewound.heroes.map((h) => heroShape.of({ name: h.name, actor: actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime }), pending: null, alive: true }));
+    const rewoundHeroes = rewound.heroes.map((h) => heroShape.of({ name: h.name, actor: actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime }), pending: null, offer: null, alive: true }));
     const v = computeVisible(rewound, rewoundHeroes);
     const newLog = [...world.log, `The party has fallen. Depth ${world.depth} begins again.`].slice(-50);
     return worldShape.of({
@@ -637,7 +766,7 @@ export function advance(world, ms) {
   if (descendValid && stairs && anyAlive) {
     const allWithinAfter = heroes.filter((h) => h.alive).every((h) => isWithin5(h.actor.pos, stairs));
     if (allWithinAfter) {
-      if (world.depth === 5) {
+      if (world.depth === 29) {
         return worldShape.of({
           seed: world.seed,
           rng: world.rng,
@@ -665,11 +794,15 @@ export function advance(world, ms) {
         const maxHp = h.actor.stats.maxHp + 4;
         const hp = wasAlive ? Math.min(maxHp, h.actor.stats.hp + 4) : 1;
         const a = actorShape.of({ id: h.actor.id, kind: "hero", pos: startList[si++], stats: statsShape.of({ hp, maxHp, attack: h.actor.stats.attack, defense: h.actor.stats.defense }), ready: newTime });
-        newHeroes.push(heroShape.of({ name: h.name, actor: a, pending: null, alive: true }));
+        newHeroes.push(heroShape.of({ name: h.name, actor: a, pending: null, offer: null, alive: true }));
       }
-      const nv = computeVisible({ grid: plan.grid, heroes: newHeroes }, newHeroes);
-      const ne = maskShape.empty(plan.grid.width, plan.grid.height);
+      const nv = computeVisible({ grid: plan.grid, depth: nextDepth }, newHeroes);
+      const ne = isShopDepth(nextDepth) ? allTrueMask(plan.grid.width, plan.grid.height) : maskShape.empty(plan.grid.width, plan.grid.height);
       const saveNew = saveShape.of({ seed: world.seed, depth: nextDepth, players: newHeroes.map((h) => ({ name: h.name, stats: h.actor.stats })) });
+      const descendLog = [...world.log, `The party descends to depth ${nextDepth}.`];
+      if (isShopDepth(nextDepth)) {
+        descendLog.push("A shop! Bump a ware twice to buy it.");
+      }
       return worldShape.of({
         seed: world.seed,
         rng: nr,
@@ -683,7 +816,7 @@ export function advance(world, ms) {
         visible: nv,
         explored: ne,
         gold,
-        log: [...world.log, `The party descends to depth ${nextDepth}.`].slice(-50),
+        log: descendLog.slice(-50),
         entry: saveNew,
       });
     } else {

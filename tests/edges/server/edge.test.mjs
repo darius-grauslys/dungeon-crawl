@@ -78,8 +78,7 @@ test("create-join", async () => {
   client.send(message.create(null));
   const created = await client.waitFor("created");
   assert.match(created.session, /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/);
-  assert.match(created.password, /^[abcdefghjkmnpqrstuvwxyz23456789]{6}$/);
-  client.send(message.join(created.session, created.password, "Ann"));
+  client.send(message.join(created.session, "Ann"));
   const joined = await client.waitFor("joined");
   assert.strictEqual(joined.session, created.session);
   assert.strictEqual(joined.name, "Ann");
@@ -98,20 +97,9 @@ test("create-join", async () => {
 
 test("refusals", async () => {
   const srv = await start({ port: 0, root: process.cwd() });
-  const client = new Client(WS_URL(srv.port));
-  await client.opened;
-  client.send(message.create(null));
-  const created = await client.waitFor("created");
-  const bad = new Client(WS_URL(srv.port));
-  await bad.opened;
-  bad.send(message.join(created.session, "wrong", "Ann"));
-  const r1 = await bad.waitFor("refused");
-  assert.strictEqual(r1.reason, "bad-password");
-  bad.close();
-
   const noSession = new Client(WS_URL(srv.port));
   await noSession.opened;
-  noSession.send(message.join("ZZZZZZ", "x", "Ann"));
+  noSession.send(message.join("ZZZZZZ", "Ann"));
   const r2 = await noSession.waitFor("refused");
   assert.strictEqual(r2.reason, "no-session");
   noSession.close();
@@ -132,6 +120,74 @@ test("refusals", async () => {
   const created2 = await malformed.waitFor("created");
   assert.ok(created2.session);
   malformed.close();
+  await srv.close();
+});
+
+test("lobby", async () => {
+  const srv = await start({ port: 0, root: process.cwd() });
+
+  // Fresh server: list() -> lobby([])
+  const c0 = new Client(WS_URL(srv.port));
+  await c0.opened;
+  c0.send(message.list());
+  const lobby0 = await c0.waitFor("lobby");
+  assert.strictEqual(lobby0.sessions.length, 0);
+  c0.close();
+
+  // Client 1: create + join Ann
+  const c1 = new Client(WS_URL(srv.port));
+  await c1.opened;
+  c1.send(message.create(null));
+  const createdA = await c1.waitFor("created");
+  c1.send(message.join(createdA.session, "Ann"));
+  await c1.waitFor("joined");
+
+  // Client 2: create, no join
+  const c2 = new Client(WS_URL(srv.port));
+  await c2.opened;
+  c2.send(message.create(null));
+  const createdB = await c2.waitFor("created");
+
+  // Client 3: list
+  const c3 = new Client(WS_URL(srv.port));
+  await c3.opened;
+  c3.send(message.list());
+  const lobby = await c3.waitFor("lobby");
+  assert.strictEqual(lobby.sessions.length, 2);
+  assert.strictEqual(lobby.sessions[0].session, createdA.session);
+  assert.deepStrictEqual(lobby.sessions[0].players, ["Ann"]);
+  assert.strictEqual(lobby.sessions[0].depth, 1);
+  assert.strictEqual(lobby.sessions[1].session, createdB.session);
+  assert.deepStrictEqual(lobby.sessions[1].players, []);
+  assert.strictEqual(lobby.sessions[1].depth, 1);
+  c3.close();
+
+  // Client 2 joins a as Bob
+  c2.send(message.join(createdA.session, "Bob"));
+  await c2.waitFor("joined");
+
+  // list again
+  const c4 = new Client(WS_URL(srv.port));
+  await c4.opened;
+  c4.send(message.list());
+  const lobby2 = await c4.waitFor("lobby");
+  assert.strictEqual(lobby2.sessions[0].players.length, 2);
+  assert.deepStrictEqual(lobby2.sessions[0].players, ["Ann", "Bob"]);
+  c4.close();
+
+  // Ann's connection closes
+  c1.close();
+  await new Promise((r) => setTimeout(r, 100));
+
+  // list again
+  const c5 = new Client(WS_URL(srv.port));
+  await c5.opened;
+  c5.send(message.list());
+  const lobby3 = await c5.waitFor("lobby");
+  assert.deepStrictEqual(lobby3.sessions[0].players, ["Bob"]);
+  c5.close();
+
+  c2.close();
   await srv.close();
 });
 
@@ -161,12 +217,12 @@ test("party", async () => {
   await c1.opened;
   c1.send(message.create(null));
   const created = await c1.waitFor("created");
-  c1.send(message.join(created.session, created.password, "Ann"));
+  c1.send(message.join(created.session, "Ann"));
   await c1.waitFor("joined");
 
   const c2 = new Client(WS_URL(srv.port));
   await c2.opened;
-  c2.send(message.join(created.session, created.password, "Bob"));
+  c2.send(message.join(created.session, "Bob"));
   await c2.waitFor("joined");
 
   let s1 = null;
@@ -191,7 +247,7 @@ test("party", async () => {
 
   const c3 = new Client(WS_URL(srv.port));
   await c3.opened;
-  c3.send(message.join(created.session, created.password, "Ann"));
+  c3.send(message.join(created.session, "Ann"));
   const r = await c3.waitFor("refused");
   assert.strictEqual(r.reason, "name-taken");
   c3.close();
@@ -200,7 +256,7 @@ test("party", async () => {
   await new Promise((r) => setTimeout(r, 100));
   const c4 = new Client(WS_URL(srv.port));
   await c4.opened;
-  c4.send(message.join(created.session, created.password, "Ann"));
+  c4.send(message.join(created.session, "Ann"));
   const j = await c4.waitFor("joined");
   assert.strictEqual(j.name, "Ann");
   c4.close();
@@ -214,7 +270,7 @@ test("acts", async () => {
   await client.opened;
   client.send(message.create(null));
   const created = await client.waitFor("created");
-  client.send(message.join(created.session, created.password, "Ann"));
+  client.send(message.join(created.session, "Ann"));
   await client.waitFor("joined");
 
   let dx = 0, dy = 0;
@@ -260,7 +316,7 @@ test("pause", async () => {
   await client.opened;
   client.send(message.create(null));
   const created = await client.waitFor("created");
-  client.send(message.join(created.session, created.password, "Ann"));
+  client.send(message.join(created.session, "Ann"));
   await client.waitFor("joined");
   await client.waitFor("state");
   client.send(message.pause(true));
@@ -296,7 +352,7 @@ test("save-load", async () => {
   await client.opened;
   client.send(message.create(null));
   const created = await client.waitFor("created");
-  client.send(message.join(created.session, created.password, "Ann"));
+  client.send(message.join(created.session, "Ann"));
   await client.waitFor("joined");
   client.send(message.requestSave());
   const saved = await client.waitFor("saved");
@@ -310,7 +366,7 @@ test("save-load", async () => {
   await client2.opened;
   client2.send(message.create(saveObj));
   const created2 = await client2.waitFor("created");
-  client2.send(message.join(created2.session, created2.password, "Cy"));
+  client2.send(message.join(created2.session, "Cy"));
   await client2.waitFor("joined");
   const state = await client2.waitFor("state");
   assert.strictEqual(state.world.depth, 3);
@@ -333,7 +389,7 @@ test("idle", async () => {
   await new Promise((r) => setTimeout(r, 600));
   const joinClient = new Client(WS_URL(srv.port));
   await joinClient.opened;
-  joinClient.send(message.join(created.session, created.password, "Ann"));
+  joinClient.send(message.join(created.session, "Ann"));
   const r = await joinClient.waitFor("refused");
   assert.strictEqual(r.reason, "no-session");
   joinClient.close();
@@ -352,6 +408,5 @@ test("closes", async () => {
   const srv = await start({ port: 0, root: process.cwd() });
   const p = srv.port;
   await srv.close();
-  const res = await fetch(`http://127.0.0.1:${p}/`).catch((e) => e);
-  assert.ok(res instanceof Error || res.status >= 400);
+  await assert.rejects(fetch(`http://127.0.0.1:${p}/`));
 });
