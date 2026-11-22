@@ -164,3 +164,23 @@ test("server: closes after close()", async () => {
     // expected: connection fails
   }
 });
+
+test("server: host is handed to serve", async () => {
+  const mod = await import("../../../src/server/index.mjs");
+  const s = await mod.start({ port: 0, root: process.cwd(), host: "0.0.0.0" });
+  try {
+    assert.ok(s.url.startsWith("http://0.0.0.0:"), `url was ${s.url}`);
+  } finally {
+    await s.close();
+  }
+});
+
+test("server: url without host begins with 127.0.0.1", async () => {
+  const mod = await import("../../../src/server/index.mjs");
+  const s = await mod.start({ port: 0, root: process.cwd() });
+  try {
+    assert.ok(s.url.startsWith("http://127.0.0.1:"), `url was ${s.url}`);
+  } finally {
+    await s.close();
+  }
+});
