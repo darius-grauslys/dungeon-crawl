@@ -6,7 +6,7 @@ const FORMAT = "crawl-save";
 const VERSION = 1;
 const MAX_SEED = 4294967295;
 const MIN_DEPTH = 1;
-const MAX_DEPTH = 5;
+const MAX_DEPTH = 29;
 const MAX_PLAYERS = 4;
 
 /**
@@ -83,7 +83,7 @@ export function of({ seed, depth, players }) {
   }
 
   if (!Number.isInteger(depth) || depth < MIN_DEPTH || depth > MAX_DEPTH) {
-    throw new TypeError("save: depth must be an integer from 1 to 5");
+    throw new TypeError("save: depth must be an integer from 1 to 29");
   }
 
   const normalizedPlayers = normalizePlayers(players);
