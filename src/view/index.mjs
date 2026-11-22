@@ -230,8 +230,8 @@ function drawFlungItemSprite(fpos, it) {
   if (s) ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, fpos.px - 24, fpos.py - 24, 48, 48);
 }
 
-function drawCreatureSprite(name, facing, px, py, ox, oy, k, size, small) {
-  const s = atlas.sprite(name);
+function drawCreaturePose(pose, name, facing, px, py, ox, oy, k, size, small) {
+  const s = atlas.pose(name, pose.anim, pose.frame, pose.look);
   if (!s) return;
   const scale = small ? 0.5 : 1;
   const sq = 48 * size * scale;
@@ -416,7 +416,7 @@ export function draw(world, me, paused, nowIn) {
         if (m.pos.x === cx && m.pos.y === cy) {
           const anim = animate(m.last, now);
           if (loaded_) {
-            drawCreatureSprite(m.kind, m.facing, c * 48, r * 48, anim.ox, anim.oy, anim.k, m.size, m.small);
+            drawCreaturePose({ anim: "idle", frame: (Math.floor(now / 250) + m.id) % 3 }, m.kind, m.facing, c * 48, r * 48, anim.ox, anim.oy, anim.k, m.size, m.small);
           } else {
             drawCreatureFlat(false, false, c * 48, r * 48, anim.ox, anim.oy, anim.k, m.size, m.small);
           }
@@ -437,7 +437,17 @@ export function draw(world, me, paused, nowIn) {
           const anim = animate(h.actor.last, now);
           const isMe = h.name === me;
           if (loaded_) {
-            drawCreatureSprite("hero", h.actor.facing, c * 48, r * 48, anim.ox, anim.oy, anim.k, h.actor.size, h.actor.small);
+            const pose = { anim: "idle", frame: (Math.floor(now / 250) + h.actor.id) % 3, look: { colour: h.colour, group: h.group } };
+            const g = h.actor.gesture;
+            if (g) {
+              const t = now - g.at;
+              if (g.kind === "power" && t >= 0 && t < 600) {
+                pose.anim = "power_up"; pose.frame = Math.floor(t / 100);
+              } else if (g.kind === "use" && t >= 0 && t < 450) {
+                pose.anim = "power_up"; pose.frame = Math.floor(t / 150);
+              }
+            }
+            drawCreaturePose(pose, "hero", h.actor.facing, c * 48, r * 48, anim.ox, anim.oy, anim.k, h.actor.size, h.actor.small);
             if (!isMe) drawOutline(h.actor.facing, c * 48, r * 48, anim.ox, anim.oy, anim.k, h.actor.size, h.actor.small);
           } else {
             drawCreatureFlat(true, isMe, c * 48, r * 48, anim.ox, anim.oy, anim.k, h.actor.size, h.actor.small);
