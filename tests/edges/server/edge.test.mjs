@@ -404,6 +404,16 @@ test("idle", async () => {
   await srv.close();
 });
 
+test("host", async () => {
+  const srv0 = await start({ port: 0, root: process.cwd(), host: "0.0.0.0" });
+  assert.match(srv0.url, /^http:\/\/0\.0\.0\.0:/);
+  await srv0.close();
+
+  const srv1 = await start({ port: 0, root: process.cwd() });
+  assert.match(srv1.url, /^http:\/\/127\.0\.0\.1:/);
+  await srv1.close();
+});
+
 test("closes", async () => {
   const srv = await start({ port: 0, root: process.cwd() });
   const p = srv.port;
