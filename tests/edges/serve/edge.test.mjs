@@ -70,6 +70,13 @@ test("assets", async () => {
     const body = Buffer.from(new Uint8Array(await res.arrayBuffer()));
     const expected = readFileSync(process.cwd() + "/assets/sheets/heroes.png");
     assert.ok(body.equals(expected));
+
+    const res2 = await fetch(`${server.url}assets/sfx/coin.mp3`);
+    assert.equal(res2.status, 200);
+    assert.match(res2.headers.get("content-type") || "", /audio\/mpeg/);
+    const body2 = Buffer.from(new Uint8Array(await res2.arrayBuffer()));
+    const expected2 = readFileSync(process.cwd() + "/assets/sfx/coin.mp3");
+    assert.ok(body2.equals(expected2));
   } finally {
     await server.close();
   }

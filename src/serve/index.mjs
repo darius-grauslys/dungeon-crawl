@@ -24,6 +24,7 @@ const MIME = {
   ".png": "image/png",
   ".json": "application/json",
   ".txt": "text/plain; charset=utf-8",
+  ".mp3": "audio/mpeg",
 };
 
 function mimeFor(name) {
