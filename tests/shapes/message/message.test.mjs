@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { move, attack, use, wait, descend } from "../../../shapes/intent/index.mjs";
+import { move, attack, use, wait, descend, face } from "../../../shapes/intent/index.mjs";
 import { of as saveOf, isName } from "../../../shapes/save/index.mjs";
 import { of as statsOf } from "../../../shapes/stats/index.mjs";
 import { of as pointOf } from "../../../shapes/point/index.mjs";
@@ -56,7 +56,7 @@ test("message valid: constructors throw on bad input", () => {
   assert.throws(() => refused("bad-password"), TypeError);
   assert.throws(() => join("", "Ann"), TypeError);
   assert.throws(() => join("ABCDEF", ""), TypeError);
-  assert.throws(() => lobby([{ session: "ABCDEF", players: ["Ann"], depth: 30 }]), TypeError);
+  assert.throws(() => lobby([{ session: "ABCDEF", players: ["Ann"], depth: 34 }]), TypeError);
   assert.throws(() => lobby([{ session: "a", players: ["A"], depth: 1 }, { session: "b", players: ["B"], depth: 1 }, { session: "c", players: ["C"], depth: 1 }, { session: "d", players: ["D"], depth: 1 }, { session: "e", players: ["E"], depth: 1 }]), TypeError);
   assert.throws(() => created(""), TypeError);
   assert.throws(() => act({ kind: "move", dx: 1, dy: 0 }), TypeError);
@@ -89,6 +89,8 @@ test("message round-trip: all twelve kinds", () => {
     held: 300,
     facing: 'left',
     last: { kind: 'attack', dx: -1, dy: 0, at: 50 },
+    aim: { dx: 1, dy: 1 },
+    slow: 2,
   });
   const h = heroOf({ name: "Ann", actor: heroActor, pending: move(1, 0), alive: true, offer: 12 });
   const monsterActor = actorOf({
@@ -120,10 +122,13 @@ test("message round-trip: all twelve kinds", () => {
     create(saveOne),
     join("sess1", "Ann"),
     act(move(1, 0)),
+    act(move(-1, 1)),
     act(attack(1, 0)),
+    act(attack()),
     act(use()),
     act(wait()),
     act(descend()),
+    act(face(1, -1)),
     pause(false),
     requestSave(),
     lobby([

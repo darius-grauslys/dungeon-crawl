@@ -28,9 +28,11 @@ function isActor(v) {
   if (typeof v.stats.maxHp !== 'number' || !Number.isInteger(v.stats.maxHp)) return false;
   if (typeof v.stats.attack !== 'number' || !Number.isInteger(v.stats.attack)) return false;
   if (typeof v.stats.defense !== 'number' || !Number.isInteger(v.stats.defense)) return false;
+  if (typeof v.stats.range !== 'number' || !Number.isInteger(v.stats.range)) return false;
   if (v.stats.maxHp < 1) return false;
   if (v.stats.hp < 0 || v.stats.hp > v.stats.maxHp) return false;
   if (v.stats.attack < 0 || v.stats.defense < 0) return false;
+  if (v.stats.range < 1 || v.stats.range > 9) return false;
   if (typeof v.ready !== 'number' || !Number.isInteger(v.ready) || v.ready < 0) return false;
   if (typeof v.held !== 'number' || !Number.isInteger(v.held) || v.held < 0) return false;
   if (v.facing !== 'left' && v.facing !== 'right') return false;
@@ -39,11 +41,27 @@ function isActor(v) {
     if (v.last.kind !== 'move' && v.last.kind !== 'attack') return false;
     if (typeof v.last.dx !== 'number' || !Number.isInteger(v.last.dx)) return false;
     if (typeof v.last.dy !== 'number' || !Number.isInteger(v.last.dy)) return false;
-    if (!((v.last.dx === 1 && v.last.dy === 0) || (v.last.dx === -1 && v.last.dy === 0) || (v.last.dx === 0 && v.last.dy === 1) || (v.last.dx === 0 && v.last.dy === -1))) return false;
+    if (!((v.last.dx === 1 && (v.last.dy === -1 || v.last.dy === 0 || v.last.dy === 1)) ||
+          (v.last.dx === -1 && (v.last.dy === -1 || v.last.dy === 0 || v.last.dy === 1)) ||
+          (v.last.dx === 0 && (v.last.dy === 1 || v.last.dy === -1)))) return false;
     if (typeof v.last.at !== 'number' || !Number.isInteger(v.last.at) || v.last.at < 0) return false;
-    if (Object.keys(v.last).length !== 4) return false;
+    if (typeof v.last.reach !== 'number' || !Number.isInteger(v.last.reach) || v.last.reach < 1 || v.last.reach > 9) return false;
+    if (Object.keys(v.last).length !== 5) return false;
   }
-  return Object.keys(v).length === 8;
+  if (typeof v.aim !== 'object' || !Object.isFrozen(v.aim)) return false;
+  if (typeof v.aim.dx !== 'number' || !Number.isInteger(v.aim.dx)) return false;
+  if (typeof v.aim.dy !== 'number' || !Number.isInteger(v.aim.dy)) return false;
+  if (!((v.aim.dx === 1 && (v.aim.dy === -1 || v.aim.dy === 0 || v.aim.dy === 1)) ||
+        (v.aim.dx === -1 && (v.aim.dy === -1 || v.aim.dy === 0 || v.aim.dy === 1)) ||
+        (v.aim.dx === 0 && (v.aim.dy === 1 || v.aim.dy === -1)))) return false;
+  if (Object.keys(v.aim).length !== 2) return false;
+  if (typeof v.slow !== 'number' || !Number.isInteger(v.slow) || v.slow < 0 || v.slow > 3) return false;
+  if (v.mode !== 'roam' && v.mode !== 'guard' && v.mode !== 'dormant') return false;
+  if (v.kind === 'hero' && v.mode !== 'roam') return false;
+  if (![1, 2, 3].includes(v.size)) return false;
+  if (v.kind === 'hero' && v.size !== 1) return false;
+  if (typeof v.small !== 'boolean') return false;
+  return Object.keys(v).length === 13;
 }
 
 function isItem(v) {
@@ -56,7 +74,15 @@ function isItem(v) {
   if (Object.keys(v.pos).length !== 2) return false;
   if (typeof v.amount !== 'number' || !Number.isInteger(v.amount)) return false;
   if (typeof v.price !== 'number' || !Number.isInteger(v.price) || v.price < 0) return false;
-  return Object.keys(v).length === 5;
+  if (typeof v.pulled !== 'boolean') return false;
+  if (v.flung !== null) {
+    if (!v.flung || typeof v.flung !== 'object' || !Object.isFrozen(v.flung)) return false;
+    if (typeof v.flung.x !== 'number' || !Number.isInteger(v.flung.x) || v.flung.x < 0) return false;
+    if (typeof v.flung.y !== 'number' || !Number.isInteger(v.flung.y) || v.flung.y < 0) return false;
+    if (typeof v.flung.at !== 'number' || !Number.isInteger(v.flung.at) || v.flung.at < 0) return false;
+    if (Object.keys(v.flung).length !== 3) return false;
+  }
+  return Object.keys(v).length === 7;
 }
 
 function isHero(v) {
@@ -161,11 +187,17 @@ class World {
           maxHp: h.actor.stats.maxHp,
           attack: h.actor.stats.attack,
           defense: h.actor.stats.defense,
+          range: h.actor.stats.range,
         },
         ready: h.actor.ready,
         held: h.actor.held,
         facing: h.actor.facing,
-        last: h.actor.last ? { kind: h.actor.last.kind, dx: h.actor.last.dx, dy: h.actor.last.dy, at: h.actor.last.at } : null,
+        last: h.actor.last ? { kind: h.actor.last.kind, dx: h.actor.last.dx, dy: h.actor.last.dy, at: h.actor.last.at, reach: h.actor.last.reach } : null,
+        aim: { dx: h.actor.aim.dx, dy: h.actor.aim.dy },
+        slow: h.actor.slow,
+        mode: h.actor.mode,
+        size: h.actor.size,
+        small: h.actor.small,
       },
     }));
 
@@ -178,11 +210,17 @@ class World {
         maxHp: m.stats.maxHp,
         attack: m.stats.attack,
         defense: m.stats.defense,
+        range: m.stats.range,
       },
       ready: m.ready,
       held: m.held,
       facing: m.facing,
-      last: m.last ? { kind: m.last.kind, dx: m.last.dx, dy: m.last.dy, at: m.last.at } : null,
+      last: m.last ? { kind: m.last.kind, dx: m.last.dx, dy: m.last.dy, at: m.last.at, reach: m.last.reach } : null,
+      aim: { dx: m.aim.dx, dy: m.aim.dy },
+      slow: m.slow,
+      mode: m.mode,
+      size: m.size,
+      small: m.small,
     }));
 
     const itemsData = this.items.map((it) => ({
@@ -191,6 +229,8 @@ class World {
       pos: { x: it.pos.x, y: it.pos.y },
       amount: it.amount,
       price: it.price,
+      pulled: it.pulled,
+      flung: it.flung,
     }));
 
     return {
@@ -248,8 +288,8 @@ export function of(fields) {
   if (typeof rng !== 'number' || !Number.isInteger(rng) || rng < 0 || rng > MAX_INT) {
     throw new TypeError('world: rng must be an integer from 0 to 4294967295');
   }
-  if (typeof depth !== 'number' || !Number.isInteger(depth) || depth < 1 || depth > 29) {
-    throw new TypeError('world: depth must be an integer from 1 to 29');
+  if (typeof depth !== 'number' || !Number.isInteger(depth) || depth < 1 || depth > 33) {
+    throw new TypeError('world: depth must be an integer from 1 to 33');
   }
   if (typeof time !== 'number' || !Number.isInteger(time) || time < 0) {
     throw new TypeError('world: time must be an integer of 0 or more');
@@ -383,8 +423,8 @@ export function fromData(data) {
   if (typeof rng !== 'number' || !Number.isInteger(rng) || rng < 0 || rng > MAX_INT) {
     throw new TypeError('world: rng must be an integer from 0 to 4294967295');
   }
-  if (typeof depth !== 'number' || !Number.isInteger(depth) || depth < 1 || depth > 29) {
-    throw new TypeError('world: depth must be an integer from 1 to 29');
+  if (typeof depth !== 'number' || !Number.isInteger(depth) || depth < 1 || depth > 33) {
+    throw new TypeError('world: depth must be an integer from 1 to 33');
   }
   if (typeof time !== 'number' || !Number.isInteger(time) || time < 0) {
     throw new TypeError('world: time must be an integer of 0 or more');
@@ -488,11 +528,17 @@ export function fromData(data) {
         maxHp: actorData.stats.maxHp,
         attack: actorData.stats.attack,
         defense: actorData.stats.defense,
+        range: actorData.stats.range,
       }),
       ready: actorData.ready,
       held: actorData.held,
       facing: actorData.facing,
-      last: actorData.last ? { kind: actorData.last.kind, dx: actorData.last.dx, dy: actorData.last.dy, at: actorData.last.at } : null,
+      last: actorData.last ? { kind: actorData.last.kind, dx: actorData.last.dx, dy: actorData.last.dy, at: actorData.last.at, reach: actorData.last.reach } : null,
+      aim: { dx: actorData.aim.dx, dy: actorData.aim.dy },
+      slow: actorData.slow,
+      mode: actorData.mode,
+      size: actorData.size,
+      small: actorData.small,
     });
     const heroObj = heroShape.of({ name: h.name, actor: actorObj, pending, alive: h.alive, offer: h.offer });
     heroObjs.push(heroObj);
@@ -509,11 +555,17 @@ export function fromData(data) {
         maxHp: m.stats.maxHp,
         attack: m.stats.attack,
         defense: m.stats.defense,
+        range: m.stats.range,
       }),
       ready: m.ready,
       held: m.held,
       facing: m.facing,
-      last: m.last ? { kind: m.last.kind, dx: m.last.dx, dy: m.last.dy, at: m.last.at } : null,
+      last: m.last ? { kind: m.last.kind, dx: m.last.dx, dy: m.last.dy, at: m.last.at, reach: m.last.reach } : null,
+      aim: { dx: m.aim.dx, dy: m.aim.dy },
+      slow: m.slow,
+      mode: m.mode,
+      size: m.size,
+      small: m.small,
     });
     if (monsterObj.kind === 'hero') {
       throw new TypeError('world: monsters must not be of kind hero');
@@ -529,6 +581,8 @@ export function fromData(data) {
       pos: pointShape.of(it.pos.x, it.pos.y),
       amount: it.amount,
       price: it.price,
+      pulled: it.pulled,
+      flung: it.flung,
     });
     itemObjs.push(itemObj);
   }
