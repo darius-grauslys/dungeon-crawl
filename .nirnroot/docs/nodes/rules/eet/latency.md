@@ -105,6 +105,9 @@ As the EED states: replace the heroes and monsters of the `lair` world with `wit
 ## Intrinsic - misses:
 As the EED states: match each log line with a regular expression and read `<n>` from it.
 
+## Intrinsic - rolls-advance:
+As the EED states. Read `rng` from the world answered; set the skeleton back to 30 hit points with the shapes (`actor.with`, `stats.of`) between attacks.
+
 ## Intrinsic - magic:
 As the EED states: build the golem with `actor`'s `of` (`size: 1`, `mode: 'roam'`) and its stats with `stats`'s `of`.
 

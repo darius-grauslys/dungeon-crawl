@@ -7,7 +7,7 @@ is pure: take a world, answer a new one with `world.with` (or `of`).
 
 The world's `rng` is a mulberry32 state. A draw: `rng = (rng + 0x6D2B79F5) >>> 0`,
 then mix it (`t = rng; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); value = ((t ^ (t >>> 14)) >>> 0) / 4294967296`).
-Thread the state through every draw, and store the last state in the
+Thread the state through every draw, the attacks' roll and ward draws included, and store the last state in the
 world answered. A d20 roll is `1 + Math.floor(value * 20)`; a pick from a
 list is `list[Math.floor(value * list.length)]`. `newGame(seed)` and
 `fromSave` start `rng` at the seed; a new floor keeps threading it.

@@ -14,10 +14,16 @@ const PNG = Buffer.from([
   0x00, 0x2d, 0x51, 0x5e, 0x55, 0x0a,
 ]);
 
+const MP3 = Buffer.from([
+  0x4d, 0x50, 0x33, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00,
+]);
+
 async function makeFixture() {
   const dir = path.join(process.cwd(), "tests/internal/serve/.tmp");
   await mkdir(path.join(dir, "edges"), { recursive: true });
   await mkdir(path.join(dir, "assets", "sheets"), { recursive: true });
+  await mkdir(path.join(dir, "assets", "sfx"), { recursive: true });
   await writeFile(
     path.join(dir, "edges", "edge_to_play.mjs"),
     `export function start(doc) {\n` +
@@ -25,6 +31,7 @@ async function makeFixture() {
     `  return doc;\n}\n`
   );
   await writeFile(path.join(dir, "assets", "sheets", "heroes.png"), PNG);
+  await writeFile(path.join(dir, "assets", "sfx", "coin.mp3"), MP3);
   return dir;
 }
 
@@ -107,6 +114,11 @@ test("assets", async () => {
     assert.equal(r.status, 200);
     assert.equal(r.headers["content-type"], "image/png");
     assert.equal(Buffer.compare(r.body, PNG), 0);
+
+    const r2 = await fetch(srv.port, "/assets/sfx/coin.mp3");
+    assert.equal(r2.status, 200);
+    assert.equal(r2.headers["content-type"], "audio/mpeg");
+    assert.equal(Buffer.compare(r2.body, MP3), 0);
   } finally {
     await srv.close();
   }
@@ -311,6 +323,37 @@ function rawSendFragmented(socket, parts) {
     }
   }
 }
+
+test("host", async () => {
+  const root = await makeFixture();
+  let srv = await serve({ port: 0, root, host: "127.0.0.1" });
+  try {
+    assert.equal(srv.url, `http://127.0.0.1:${srv.port}/`);
+    const r = await fetch(srv.port, "/");
+    assert.equal(r.status, 200);
+  } finally {
+    await srv.close();
+  }
+
+  srv = await serve({ port: 0, root, host: "0.0.0.0" });
+  try {
+    assert.equal(srv.url, `http://0.0.0.0:${srv.port}/`);
+    const r = await fetch(srv.port, "/");
+    assert.equal(r.status, 200);
+  } finally {
+    await srv.close();
+  }
+
+  srv = await serve({ port: 0, root });
+  try {
+    assert.equal(srv.url, `http://127.0.0.1:${srv.port}/`);
+  } finally {
+    await srv.close();
+  }
+
+  await assert.rejects(() => serve({ port: 0, root, host: "" }), TypeError);
+  await assert.rejects(() => serve({ port: 0, root, host: 5 }), TypeError);
+});
 
 test("framing-fragmented", async () => {
   const root = await makeFixture();

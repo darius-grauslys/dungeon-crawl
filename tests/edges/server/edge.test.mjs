@@ -359,7 +359,7 @@ test("save-load", async () => {
   assert.strictEqual(saved.save.depth, 1);
   assert.strictEqual(saved.save.players.length, 1);
   assert.strictEqual(saved.save.players[0].name, "Ann");
-  assert.deepStrictEqual(saved.save.players[0].stats, { hp: 24, maxHp: 24, attack: 4, defense: 1, range: 1 });
+  assert.deepStrictEqual(saved.save.players[0].stats, { hp: 24, maxHp: 24, attack: 4, defense: 1, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
 
   const saveObj = save.of({seed: 9, depth: 3, players: [{name: "Cy", stats: stats.of({hp: 10, maxHp: 30, attack: 6, defense: 2})}]});
   const client2 = new Client(WS_URL(srv.port));
@@ -402,6 +402,16 @@ test("idle", async () => {
     c.close();
   }
   await srv.close();
+});
+
+test("host", async () => {
+  const srv0 = await start({ port: 0, root: process.cwd(), host: "0.0.0.0" });
+  assert.match(srv0.url, /^http:\/\/0\.0\.0\.0:/);
+  await srv0.close();
+
+  const srv1 = await start({ port: 0, root: process.cwd() });
+  assert.match(srv1.url, /^http:\/\/127\.0\.0\.1:/);
+  await srv1.close();
 });
 
 test("closes", async () => {
