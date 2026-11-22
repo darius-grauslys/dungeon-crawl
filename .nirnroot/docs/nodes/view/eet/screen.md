@@ -64,6 +64,9 @@ As the EED states: the ware with `item`'s `of` and its `price`, Ann's `offer` wi
 ## Intrinsic - themes:
 As the EED states: the same world with `depth` 1, 6, 7 and 8 (each `entry` of that depth).
 
+## Intrinsic - poses:
+As the EED states: build Ann's actor with `gesture` and her hero with `colour` as said; compare her 48 by 48 cell's pixels with `getImageData`.
+
 ## Intrinsic - sprites:
 As the EED states.
 

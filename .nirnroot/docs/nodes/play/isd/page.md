@@ -3,7 +3,10 @@
 `start`:
 
 1. Find or make the canvas; `view.init(canvas)`; `view.load('/assets/')`
-   (on its rejection `console.error`); `conn = net.connect(url, open)`;
+   (on its rejection `console.error`); `sound = audio.create({context:
+   options.audioContext})` (pass `context` only when the option is
+   given), `sound.load()`; a `keydown` and a `pointerdown` listener on
+   the document calling `sound.resume()` (removed by `stop`); `conn = net.connect(url, open)`;
    `menu.mount(document, handlers)` (closed); `landing.show(document,
    {create, join})`, whose `create(save, name)` remembers `name` and
    sends `create(save)`, and whose `join(session, name)` remembers both
@@ -39,6 +42,7 @@ Children this specification reaches:
 - [eed:menu](../../menu/EED.md)
 - [eed:view](../../view/EED.md)
 - [eed:input](../../input/EED.md)
+- [eed:audio](../../audio/EED.md)
 
 # API Shapes:
 - [shape:world](../../../shapes/world.md)
@@ -49,9 +53,11 @@ Children this specification reaches:
 # Inbound Side-Effects:
 `keydown` events on the document once in the game; the socket's messages;
 animation frames; the page's `location` (for the default url); the
-sprites, loaded by `view`.
+sprites, loaded by `view`; the sounds, loaded by `audio`; `pointerdown`
+events (to let sound play).
 
 # Outbound Side-Effects:
 A canvas appended to the body when the page has none; the landing and the
 menu in the page; drawing on the canvas; texts sent on the socket; a
-download of the save file; `console.error` when the sprites fail to load.
+download of the save file; `console.error` when the sprites fail to load;
+sound, through `audio`.

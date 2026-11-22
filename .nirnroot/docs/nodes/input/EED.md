@@ -40,6 +40,9 @@ every key).
 |---|---|
 | `Escape` | `menu` |
 | `p`, `P` | `pause` |
+| `m`, `M` | `mute` |
+| `-`, `_` | `quieter` |
+| `=`, `+` | `louder` |
 
 # API Shapes:
 - [shape:intent](../../shapes/intent.md)
@@ -49,14 +52,14 @@ every key).
 `intentFor(key, shift) -> intent`. The intent of one key alone, without chords: a direction key's `move` (or, with `shift` true, `face`), or the second table's; `null` for any other key (and for anything not a string).
 
 ## Function - command-for:
-`commandFor(key) -> string`. The last table's command (`menu` or `pause`) for a key; `null` for any other.
+`commandFor(key) -> string`. The last table's command (`menu`, `pause`, `mute`, `quieter` or `louder`) for a key; `null` for any other.
 
 ## Function - listen:
 `listen(target, {intent, command}) -> function`. Adds a `keydown`, a `keyup` and a `blur` listener to `target` (any `EventTarget`). For a `keydown` with none of `ctrlKey`, `altKey`, `metaKey` true, whose `key` has an intent (as `intentFor(key, shiftKey)`, made diagonal by a chord as above) or a command, it calls `event.preventDefault()` and then `intent(i)` or `command(c)`, once; other events are left alone. A `keyup` (and a `blur`) only lets keys go. Answers `stop`, a function that removes the listeners (calling it again does nothing).
 
 # Intrinsics:
 ## Intrinsic - keys:
-Every direction key answers its `move` without Shift and its `face` with Shift (`kind`, `dx`, `dy`): `intentFor('ArrowUp', false)` is `move(0, -1)`, `intentFor('u', false)` `move(1, -1)`, `intentFor('End', true)` `face(-1, 1)`, `intentFor('3', false)` `move(1, 1)`, `intentFor('ArrowLeft', true)` `face(-1, 0)`. `intentFor(' ', false)` and `intentFor(' ', true)` are `attack()` (`dx` and `dy` 0); `intentFor('e', true)` is `use()`; `intentFor('>', true)` and `intentFor('>', false)` are `descend()`; `'.'`, `'x'`, `'Escape'`, `''`, `null` and `5` answer `null`. `commandFor('Escape')` is `menu`, `commandFor('P')` `pause`, `commandFor('w')` `null`.
+Every direction key answers its `move` without Shift and its `face` with Shift (`kind`, `dx`, `dy`): `intentFor('ArrowUp', false)` is `move(0, -1)`, `intentFor('u', false)` `move(1, -1)`, `intentFor('End', true)` `face(-1, 1)`, `intentFor('3', false)` `move(1, 1)`, `intentFor('ArrowLeft', true)` `face(-1, 0)`. `intentFor(' ', false)` and `intentFor(' ', true)` are `attack()` (`dx` and `dy` 0); `intentFor('e', true)` is `use()`; `intentFor('>', true)` and `intentFor('>', false)` are `descend()`; `'.'`, `'x'`, `'Escape'`, `''`, `null` and `5` answer `null`. `commandFor('Escape')` is `menu`, `commandFor('P')` `pause`, `commandFor('m')` `mute`, `commandFor('-')` `quieter`, `commandFor('+')` `louder`, `commandFor('=')` `louder`, `commandFor('w')` `null`; `intentFor('m', false)` is `null`.
 
 ## Intrinsic - listens:
 With `stop = listen(t, {intent: f, command: g})` on a fresh `EventTarget` `t`: a cancelable `keydown` with `key` `'ArrowLeft'` calls `f` once with `move(-1, 0)` and is `defaultPrevented`; with `shiftKey` true too, `face(-1, 0)`; one with `key` `' '`, `attack()`; one with `key` `'>'` and `shiftKey` true calls `f` once with `descend()`; one with `key` `'Escape'` calls `g` once with `'menu'`; one with `key` `'x'` calls neither and isn't prevented; one with `key` `'w'` and `ctrlKey` true calls neither; a `keyup` with `key` `'w'` calls neither. After `stop()`, a `keydown` with `key` `'w'` calls neither; `stop()` again doesn't throw.

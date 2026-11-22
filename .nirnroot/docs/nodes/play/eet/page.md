@@ -7,7 +7,7 @@ answers an object with `send(text)` (recording the texts), `close()`,
 and the `onopen`, `onmessage`, `onclose`, `onerror` properties `net`
 sets; the test calls `socket.onopen()` to open it and
 `socket.onmessage({data: m.text()})` to deliver a message built with
-`message`'s constructors. Give `download` a recording function. Build
+`message`'s constructors. Give `download` a recording function, and `audioContext: null` (no sound in the tests). Build
 worlds with `world`'s `of` (a small grid, one hero `Ann`, `entry` the
 save of seed 1, depth 1 and no players). Dispatch keys as
 `document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape',
