@@ -41,13 +41,19 @@ function isStats(v) {
   if (typeof v.attack !== 'number' || !Number.isInteger(v.attack)) return false;
   if (typeof v.defense !== 'number' || !Number.isInteger(v.defense)) return false;
   if (typeof v.range !== 'number' || !Number.isInteger(v.range)) return false;
+  if (typeof v.magic !== 'number' || !Number.isInteger(v.magic)) return false;
+  if (typeof v.magicPower !== 'number' || !Number.isInteger(v.magicPower)) return false;
+  if (typeof v.magicResist !== 'number' || !Number.isInteger(v.magicResist)) return false;
   if (v.maxHp < 1) return false;
   if (v.hp < 0 || v.hp > v.maxHp) return false;
   if (v.attack < 0 || v.defense < 0) return false;
   if (v.range < 1 || v.range > 9) return false;
-  if (Object.keys(v).length !== 5) return false;
-  const s = statsShape.of({ hp: v.hp, maxHp: v.maxHp, attack: v.attack, defense: v.defense, range: v.range });
-  return s.hp === v.hp && s.maxHp === v.maxHp && s.attack === v.attack && s.defense === v.defense && s.range === v.range;
+  if (v.magic < 0) return false;
+  if (v.magicPower < 1) return false;
+  if (v.magicResist < 0) return false;
+  if (Object.keys(v).length !== 8) return false;
+  const s = statsShape.of({ hp: v.hp, maxHp: v.maxHp, attack: v.attack, defense: v.defense, range: v.range, magic: v.magic, magicPower: v.magicPower, magicResist: v.magicResist });
+  return s.hp === v.hp && s.maxHp === v.maxHp && s.attack === v.attack && s.defense === v.defense && s.range === v.range && s.magic === v.magic && s.magicPower === v.magicPower && s.magicResist === v.magicResist;
 }
 
 /**

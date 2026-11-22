@@ -219,6 +219,34 @@ test("two actors made by of from the same fields are deep equal", () => {
   assert.deepStrictEqual(a, b);
 });
 
+test("actor of accepts stats with magic: 6, magicPower: 2, magicResist: 1 and keeps them", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1, magic: 6, magicPower: 2, magicResist: 1 });
+  const a = of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s });
+  assert.strictEqual(a.stats.hp, 5);
+  assert.strictEqual(a.stats.maxHp, 10);
+  assert.strictEqual(a.stats.attack, 3);
+  assert.strictEqual(a.stats.defense, 1);
+  assert.strictEqual(a.stats.range, 1);
+  assert.strictEqual(a.stats.magic, 6);
+  assert.strictEqual(a.stats.magicPower, 2);
+  assert.strictEqual(a.stats.magicResist, 1);
+});
+
+test("actor with({stats}) keeps stats with magic fields", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1, magic: 6, magicPower: 2, magicResist: 1 });
+  const a = of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s });
+  const s2 = statsShape.of({ hp: 4, maxHp: 10, attack: 3, defense: 1, magic: 6, magicPower: 2, magicResist: 1 });
+  const b = a.with({ stats: s2 });
+  assert.strictEqual(b.stats.hp, 4);
+  assert.strictEqual(b.stats.magic, 6);
+  assert.strictEqual(b.stats.magicPower, 2);
+  assert.strictEqual(b.stats.magicResist, 1);
+  assert.strictEqual(a.stats.magic, 6);
+  assert.strictEqual(a.stats.magicPower, 2);
+  assert.strictEqual(a.stats.magicResist, 1);
+  assert.notStrictEqual(a, b);
+});
+
 test("with is a shared method, not an own property of an actor", () => {
   const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
   const a = of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s });
