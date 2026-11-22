@@ -328,12 +328,11 @@ function join(world, name) {
     if (!world.heroes.some((hh) => `${hh.actor.pos.x},${hh.actor.pos.y}` === `${sc.x},${sc.y}`)) { start = sc; break; }
   }
   if (!start) start = startList2[0];
-  const stats = statsShape.of(HERO_START_STATS);
-  const actor = actorShape.of({ id: 0, kind: "hero", pos: start, stats, ready: world.time });
   let nextId = 0;
   const existingIds = new Set(world.heroes.map((h) => h.actor.id));
   while (existingIds.has(nextId)) nextId++;
-  actor.id = nextId;
+  const stats = statsShape.of(HERO_START_STATS);
+  const actor = actorShape.of({ id: nextId, kind: "hero", pos: start, stats, ready: world.time });
   const newHero = heroShape.of({ name, actor, pending: null, alive: true, offer: null });
   const newHeroes = [...world.heroes, newHero];
   const newEntry = saveShape.of({ seed: world.seed, depth: world.depth, players: [...world.entry.players, { name, stats: { hp: 24, maxHp: 24, attack: 4, defense: 1, range: 1 } }] });
@@ -798,6 +797,7 @@ function advance(world, ms) {
             monsterLine = "The hero falls.";
           } else {
             monsterLine = `The ${m.kind} hits the hero for ${s.damage}.`;
+            heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer }) : hh);
           }
         } else {
           const nhp = target.stats.hp - s.damage;
@@ -860,6 +860,7 @@ function advance(world, ms) {
           monsterLine = "The hero falls.";
         } else {
           monsterLine = `The ${m.kind} hits the hero for ${s.damage}.`;
+          heroes = heroes.map((hh) => hh.actor.id === th.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer }) : hh);
         }
       } else {
         const tm = target.monster;
