@@ -28,7 +28,7 @@ test("new-game: deterministic and fields", () => {
   assert.deepEqual(w1.heroes, []);
   assert.equal(w1.monsters.length, 4);
   for (const m of w1.monsters) {
-    assert.ok(["bat", "slime"].includes(m.kind));
+    assert.ok(["bat", "slime", "snake"].includes(m.kind));
     assert.ok(w1.grid.open(m.pos.x, m.pos.y));
     assert.equal(m.ready, 0);
   }
@@ -51,7 +51,7 @@ test("joins: Ann joins, dup returns same, full returns null, bad name throws", (
   assert.equal(h.name, "Ann");
   assert.ok(h.alive);
   assert.equal(h.pending, null);
-  assert.deepEqual(h.actor.stats, { hp: 24, maxHp: 24, attack: 4, defense: 1 });
+  assert.deepEqual(h.actor.stats, { hp: 24, maxHp: 24, attack: 4, defense: 1, range: 1 });
   assert.equal(h.actor.ready, 0);
   assert.ok(wAnn.grid.open(h.actor.pos.x, h.actor.pos.y));
   assert.ok(wAnn.visible.at(h.actor.pos.x, h.actor.pos.y));
@@ -212,7 +212,7 @@ test("attacks: hero stays, bat sometimes gone sometimes stays", () => {
   assert.equal(wWall2.heroes[0].actor.ready, 400);
   assert.equal(wWall2.heroes[0].pending, null);
   assert.equal(wWall2.heroes[0].actor.facing, "left");
-  assert.deepEqual(wWall2.heroes[0].actor.last, { kind: "attack", dx: -1, dy: 0, at: 50 });
+  assert.deepEqual(wWall2.heroes[0].actor.last, { kind: "attack", dx: -1, dy: 0, at: 50, reach: 1 });
   assert.ok(wWall2.monsters.some((m) => m.kind === "bat"));
   assert.equal(wWall2.monsters.find((m) => m.kind === "bat").stats.hp, 1);
 });
@@ -231,7 +231,7 @@ test("held: attack sets defender held, held hero's non-attack move stays pending
   assert.equal(w2.heroes[0].actor.held, 350);
   assert.equal(w2.monsters[0].ready, 650);
   assert.equal(w2.monsters[0].facing, "left");
-  assert.deepEqual(w2.monsters[0].last, { kind: "attack", dx: -1, dy: 0, at: 50 });
+  assert.deepEqual(w2.monsters[0].last, { kind: "attack", dx: -1, dy: 0, at: 50, reach: 1 });
 
   const wPending = rules.intend(w2, "Ann", intentShape.move(-1, 0));
   let wAdv = wPending;
@@ -325,14 +325,14 @@ test("wipe: party falls, floor restarts from entry keeping time, gold, log", () 
     const demon = actorShape.of({ id: 1, kind: "demon", pos: pointShape.of(2, 1), stats: statsShape.of({ hp: 16, maxHp: 16, attack: 6, defense: 3 }), ready: 0 });
     const w = mkWorld([ann], [demon], r, 3);
     const w2 = rules.advance(w, 50);
-    if (w2.depth === 1 && w2.heroes[0].alive && w2.heroes[0].actor.stats.hp === 24 && w2.time === 50 && w2.gold === 3 && w2.log[w2.log.length - 1] === "The party has fallen. Depth 1 begins again.") {
+    if (w2.depth === 1 && w2.heroes[0].alive && w2.heroes[0].actor.stats.hp === 24 && w2.time === 50 && w2.gold === 3 && w2.log[w2.log.length - 1] === "The party has fallen. Level 1 begins again.") {
       wipeFound = true;
     }
   }
   assert.ok(wipeFound);
 });
 
-test("descends: within 5 chebyshev descends, beyond stays; depth 5 wins", () => {
+test("descends: within 5 chebyshev descends, beyond stays; descends to level 2", () => {
   const grid = tileGridShape.fromRows(["##########", "#.>......#", "##########"]);
   const visible = maskShape.empty(10, 3);
   const explored = maskShape.empty(10, 3);
@@ -361,7 +361,7 @@ test("descends: within 5 chebyshev descends, beyond stays; depth 5 wins", () => 
   assert.ok(bob2.alive);
   assert.equal(bob2.actor.stats.hp, 1);
   assert.equal(bob2.actor.stats.maxHp, 28);
-  assert.equal(wDescend.log[wDescend.log.length - 1], "The party descends to depth 2.");
+  assert.equal(wDescend.log[wDescend.log.length - 1], "The party descends to level 2.");
 
   // Ann at (8, 1): 6 from stairs, beyond 5: stays depth 1, logs the line
   const annActorFar = actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(8, 1), stats: statsShape.of({ hp: 20, maxHp: 24, attack: 4, defense: 1 }), ready: 0 });
@@ -383,7 +383,7 @@ test("saves: toSave and fromSave round-trip, hp 0 becomes 1", () => {
   assert.equal(w.heroes.length, 1);
   assert.equal(w.heroes[0].name, "Cy");
   assert.ok(w.heroes[0].alive);
-  assert.deepEqual(w.heroes[0].actor.stats, { hp: 10, maxHp: 30, attack: 6, defense: 2 });
+  assert.deepEqual(w.heroes[0].actor.stats, { hp: 10, maxHp: 30, attack: 6, defense: 2, range: 1 });
   assert.deepEqual(w.entry, s);
   const w2 = rules.fromSave(s);
   assert.deepStrictEqual(w, w2);
@@ -393,15 +393,15 @@ test("saves: toSave and fromSave round-trip, hp 0 becomes 1", () => {
   assert.equal(wZero.heroes[0].actor.stats.hp, 1);
 });
 
-test("level-based floors: stage monster counts, kinds, tier scaling, swords/armor, depth 29 win, shop arrival", () => {
+test("level-based floors: stage monster counts, kinds, tier scaling, swords/armor, depth 33 win, shop arrival", () => {
   const w1 = rules.newGame(5);
   assert.equal(w1.monsters.length, 4);
-  for (const m of w1.monsters) assert.ok(["bat", "slime"].includes(m.kind));
+  for (const m of w1.monsters) assert.ok(["bat", "slime", "snake"].includes(m.kind));
 
   const w3 = rules.fromSave(saveShape.of({ seed: 5, depth: 3, players: [] }));
   assert.equal(w3.monsters.length, 8);
   const kinds3 = new Set(w3.monsters.map((m) => m.kind));
-  for (const k of kinds3) assert.ok(["slime", "snake", "skeleton"].includes(k));
+  for (const k of kinds3) assert.ok(["bat", "slime", "snake"].includes(k));
 
   const w5 = rules.fromSave(saveShape.of({ seed: 5, depth: 5, players: [] }));
   assert.equal(w5.monsters.length, 12);
@@ -413,7 +413,7 @@ test("level-based floors: stage monster counts, kinds, tier scaling, swords/armo
   const gridWin = tileGridShape.fromRows(["##########", "#.......#>", "##########"]);
   const visibleWin = maskShape.empty(10, 3);
   const exploredWin = maskShape.empty(10, 3);
-  const mkWin = (heroes, rng) => worldShape.of({ seed: 1, rng, depth: 29, time: 0, state: "playing", grid: gridWin, heroes, monsters: [], items: [], visible: visibleWin, explored: exploredWin, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 29, players: [{ name: "Ann", stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) }] }) });
+  const mkWin = (heroes, rng) => worldShape.of({ seed: 1, rng, depth: 33, time: 0, state: "playing", grid: gridWin, heroes, monsters: [], items: [], visible: visibleWin, explored: exploredWin, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 33, players: [{ name: "Ann", stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) }] }) });
   const annActor = actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(6, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 });
   const ann = heroShape.of({ name: "Ann", actor: annActor, pending: null, alive: true });
   const wWin = mkWin([ann], 1);

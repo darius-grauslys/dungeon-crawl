@@ -14,6 +14,7 @@ import * as mask from "../../../shapes/mask/index.mjs";
 import * as point from "../../../shapes/point/index.mjs";
 import * as intent from "../../../shapes/intent/index.mjs";
 import * as item from "../../../shapes/item/index.mjs";
+import * as level from "../../../shapes/level/index.mjs";
 
 function makeWorld(changes) {
   const grid = tileGrid.fromRows(['####', '#..#', '####']);
@@ -35,11 +36,21 @@ function makeWorld(changes) {
 
 test("lines", () => {
   const w = makeWorld();
-  assert.deepEqual(lines(w, 'Ann'), ['Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Depth 2/29', 'Party: Ann 18/24, Bob fallen', 'c', 'd']);
-  assert.deepEqual(lines(w, 'Bob')[0], 'Bob   HP 0/28 (fallen)   ATK 4   DEF 1   Gold 7   Depth 2/29');
-  assert.deepEqual(lines(w, 'Eve')[0], 'Watching   Gold 7   Depth 2/29');
+  assert.deepEqual(lines(w, 'Ann'), ['Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Level 2/25', 'Party: Ann 18/24, Bob fallen', 'c', 'd']);
+  assert.deepEqual(lines(w, 'Bob')[0], 'Bob   HP 0/28 (fallen)   ATK 4   DEF 1   Gold 7   Level 2/25');
+  assert.deepEqual(lines(w, 'Eve')[0], 'Watching   Gold 7   Level 2/25');
   const w2 = makeWorld({ log: ['a'] });
-  assert.deepEqual(lines(w2, 'Ann'), ['Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Depth 2/29', 'Party: Ann 18/24, Bob fallen', 'a']);
+  assert.deepEqual(lines(w2, 'Ann'), ['Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Level 2/25', 'Party: Ann 18/24, Bob fallen', 'a']);
+  const w9 = makeWorld({ depth: 9 });
+  assert.deepEqual(lines(w9, 'Ann')[0], 'Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Level 7/25');
+  const w13 = makeWorld({ depth: 13 });
+  assert.deepEqual(lines(w13, 'Ann')[0], 'Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Shop');
+  const w14 = makeWorld({ depth: 14 });
+  assert.deepEqual(lines(w14, 'Ann')[0], 'Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Lair');
+  const slowActor = actor.of({ id: 0, kind: 'hero', pos: point.of(1, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }), slow: 2 });
+  const slowHero = hero.of({ name: 'Ann', actor: slowActor, alive: true });
+  const wSlow = world.of({ seed: 1, rng: 1, depth: 2, time: 0, state: 'playing', grid: tileGrid.fromRows(['####', '#..#', '####']), heroes: [slowHero, hero.of({ name: 'Bob', actor: actor.of({ id: 1, kind: 'hero', pos: point.of(2, 1), stats: stats.of({ hp: 0, maxHp: 28, attack: 4, defense: 1 }) }), alive: false })], monsters: [], items: [], visible: mask.empty(4, 3), explored: mask.empty(4, 3), gold: 7, log: ['a', 'b', 'c', 'd'], entry: save.of({ seed: 1, depth: 1, players: [] }) });
+  assert.deepEqual(lines(wSlow, 'Ann')[0], 'Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Level 2/25   Slowed 2');
 });
 
 test("bar", async () => {
@@ -132,7 +143,7 @@ test("world/valid", () => {
   const badEntry = save.of({ seed: 1, depth: 1, players: [] });
 
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'dead', grid: badGrid, heroes: [badAnnHero], monsters: [badMonster], items: [], visible: badVisible, explored: badExplored, gold: 0, log: [], entry: badEntry }), TypeError);
-  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 30, time: 0, state: 'playing', grid: badGrid, heroes: [badAnnHero], monsters: [badMonster], items: [], visible: badVisible, explored: badExplored, gold: 0, log: [], entry: badEntry }), TypeError);
+  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 34, time: 0, state: 'playing', grid: badGrid, heroes: [badAnnHero], monsters: [badMonster], items: [], visible: badVisible, explored: badExplored, gold: 0, log: [], entry: badEntry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: -1, state: 'playing', grid: badGrid, heroes: [badAnnHero], monsters: [badMonster], items: [], visible: badVisible, explored: badExplored, gold: 0, log: [], entry: badEntry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid: badGrid, heroes: [badAnnHero], monsters: [badMonster], items: [], visible: mask.empty(4, 3), explored: badExplored, gold: 0, log: [], entry: badEntry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid: badGrid, heroes: [badAnnHero], monsters: [actor.of({ id: 1, kind: 'hero', pos: point.of(2, 2), stats: stats.of({ hp: 10, maxHp: 20, attack: 2, defense: 2 }) })], items: [], visible: badVisible, explored: badExplored, gold: 0, log: [], entry: badEntry }), TypeError);
@@ -179,7 +190,72 @@ test("world/data", () => {
   assert.equal(w.data().items[1].price, 30);
   assert.equal(w.data().heroes[0].offer, 12);
   const badData = JSON.parse(JSON.stringify(w.data()));
-  badData.depth = 30;
+  badData.depth = 34;
   assert.throws(() => world.fromData(badData), TypeError);
   assert.throws(() => world.fromData({}), TypeError);
+});
+
+test("level/valid", () => {
+  assert.equal(level.MAX_DEPTH, 33);
+  assert.equal(level.MAX_LEVEL, 25);
+  assert.deepEqual(level.THEMES, ['dungeon', 'frozen', 'arid', 'temple', 'magma', 'interior']);
+  assert.deepEqual(level.DUNGEON_THEMES, ['dungeon', 'frozen', 'arid', 'temple', 'magma']);
+  assert.equal(Object.isFrozen(level.THEMES), true);
+  assert.equal(Object.isFrozen(level.DUNGEON_THEMES), true);
+  assert.equal(level.kind(1), 'dungeon');
+  assert.equal(level.kind(5), 'dungeon');
+  assert.equal(level.kind(8), 'dungeon');
+  assert.equal(level.kind(33), 'dungeon');
+  assert.equal(level.kind(6), 'interior');
+  assert.equal(level.kind(13), 'interior');
+  assert.equal(level.kind(20), 'interior');
+  assert.equal(level.kind(27), 'interior');
+  assert.equal(level.kind(7), 'boss');
+  assert.equal(level.kind(14), 'boss');
+  assert.equal(level.kind(21), 'boss');
+  assert.equal(level.kind(28), 'boss');
+  assert.equal(level.theme(1), 'dungeon');
+  assert.equal(level.theme(6), 'interior');
+  assert.equal(level.theme(7), 'dungeon');
+  assert.equal(level.theme(8), 'frozen');
+  assert.equal(level.theme(15), 'arid');
+  assert.equal(level.theme(26), 'temple');
+  assert.equal(level.theme(28), 'temple');
+  assert.equal(level.theme(29), 'magma');
+  assert.equal(level.theme(33), 'magma');
+  assert.deepEqual(level.blend(7), ['dungeon', 'frozen']);
+  assert.equal(Object.isFrozen(level.blend(7)), true);
+  assert.deepEqual(level.blend(28), ['temple', 'magma']);
+  assert.equal(level.blend(6), null);
+  assert.equal(level.blend(8), null);
+  assert.equal(level.tier(5), 0);
+  assert.equal(level.tier(6), 0);
+  assert.equal(level.tier(7), 0);
+  assert.equal(level.tier(8), 1);
+  assert.equal(level.tier(33), 4);
+  assert.equal(level.stage(1), 1);
+  assert.equal(level.stage(12), 5);
+  assert.equal(level.stage(13), 6);
+  assert.equal(level.stage(14), 7);
+  assert.equal(level.stage(29), 1);
+  assert.equal(level.round(6), 1);
+  assert.equal(level.round(7), 1);
+  assert.equal(level.round(27), 4);
+  assert.equal(level.round(8), 0);
+  assert.equal(level.number(1), 1);
+  assert.equal(level.number(5), 5);
+  assert.equal(level.number(8), 6);
+  assert.equal(level.number(12), 10);
+  assert.equal(level.number(33), 25);
+  assert.equal(level.number(6), 0);
+  assert.equal(level.number(7), 0);
+  assert.equal(level.label(8), 'Level 6');
+  assert.equal(level.label(13), 'Shop');
+  assert.equal(level.label(14), 'Lair');
+  assert.throws(() => level.kind(0), TypeError);
+  assert.throws(() => level.theme(34), TypeError);
+  assert.throws(() => level.tier(1.5), TypeError);
+  assert.throws(() => level.blend(40), TypeError);
+  assert.throws(() => level.number('3'), TypeError);
+  assert.throws(() => level.label(null), TypeError);
 });

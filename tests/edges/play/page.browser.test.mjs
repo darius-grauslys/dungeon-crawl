@@ -204,7 +204,15 @@ test("keys", async () => {
 
   ev = new KeyboardEvent("keydown", { key: "ArrowLeft", cancelable: true, shiftKey: true });
   document.dispatchEvent(ev);
-  assert.equal(open.recordedTexts()[open.recordedTexts().length - 1], message.act(intent.attack(-1, 0)).text());
+  assert.equal(open.recordedTexts()[open.recordedTexts().length - 1], message.act(intent.face(-1, 0)).text());
+
+  ev = new KeyboardEvent("keydown", { key: "u", cancelable: true });
+  document.dispatchEvent(ev);
+  assert.equal(open.recordedTexts()[open.recordedTexts().length - 1], message.act(intent.move(1, -1)).text());
+
+  ev = new KeyboardEvent("keydown", { key: " ", cancelable: true });
+  document.dispatchEvent(ev);
+  assert.equal(open.recordedTexts()[open.recordedTexts().length - 1], message.act(intent.attack()).text());
 
   ev = new KeyboardEvent("keydown", { key: "e", cancelable: true });
   document.dispatchEvent(ev);
@@ -342,7 +350,7 @@ test("world/valid", () => {
   assert.ok(Object.isFrozen(w.log));
 
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'dead', grid, heroes: [heroShape], monsters: [monsterActor], items: [goldItem], visible, explored, gold: 0, log: [], entry }), TypeError);
-  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 30, time: 0, state: 'playing', grid, heroes: [heroShape], monsters: [monsterActor], items: [goldItem], visible, explored, gold: 0, log: [], entry }), TypeError);
+  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 34, time: 0, state: 'playing', grid, heroes: [heroShape], monsters: [monsterActor], items: [goldItem], visible, explored, gold: 0, log: [], entry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: -1, state: 'playing', grid, heroes: [heroShape], monsters: [monsterActor], items: [goldItem], visible, explored, gold: 0, log: [], entry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid, heroes: [heroShape], monsters: [monsterActor], items: [goldItem], visible: mask.empty(4, 3), explored, gold: 0, log: [], entry }), TypeError);
   assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid, heroes: [heroShape], monsters: [heroActor], items: [goldItem], visible, explored, gold: 0, log: [], entry }), TypeError);
@@ -393,7 +401,7 @@ test("world/data", () => {
 
   assert.throws(() => world.fromData({}), TypeError);
   const badData = w.data();
-  badData.depth = 30;
+  badData.depth = 34;
   assert.throws(() => world.fromData(badData), TypeError);
 });
 
@@ -407,7 +415,7 @@ test("message/valid", () => {
   assert.throws(() => message.refused('bad-password'), TypeError);
   assert.throws(() => message.join('', 'Ann'), TypeError);
   assert.throws(() => message.join('ABCDEF', ''), TypeError);
-  assert.throws(() => message.lobby([{ session: 'ABCDEF', players: ['Ann'], depth: 30 }]), TypeError);
+  assert.throws(() => message.lobby([{ session: 'ABCDEF', players: ['Ann'], depth: 34 }]), TypeError);
   assert.throws(() => message.lobby([{ session: 'A', players: ['A'], depth: 1 }, { session: 'B', players: ['A'], depth: 1 }, { session: 'C', players: ['A'], depth: 1 }, { session: 'D', players: ['A'], depth: 1 }, { session: 'E', players: ['A'], depth: 1 }]), TypeError);
   assert.throws(() => message.created(''), TypeError);
   assert.throws(() => message.act({ kind: 'move', dx: 1, dy: 0 }), TypeError);
@@ -468,33 +476,36 @@ test("message/round-trip", () => {
   const m8 = message.act(intent.descend());
   assert.deepStrictEqual(message.parse(m8.text()), m8);
 
-  const m9 = message.state(w, false);
+  const m9 = message.act(intent.face(1, -1));
   assert.deepStrictEqual(message.parse(m9.text()), m9);
 
-  const m10 = message.create(sOnePlayer);
+  const m10 = message.state(w, false);
   assert.deepStrictEqual(message.parse(m10.text()), m10);
 
-  const m11 = message.saved(sOnePlayer);
+  const m11 = message.create(sOnePlayer);
   assert.deepStrictEqual(message.parse(m11.text()), m11);
 
-  const m12 = message.create(null);
+  const m12 = message.saved(sOnePlayer);
   assert.deepStrictEqual(message.parse(m12.text()), m12);
 
-  const m13 = message.join('ABCDEF', 'Ann');
+  const m13 = message.create(null);
   assert.deepStrictEqual(message.parse(m13.text()), m13);
 
-  const m14 = message.created('ABCDEF');
+  const m14 = message.join('ABCDEF', 'Ann');
   assert.deepStrictEqual(message.parse(m14.text()), m14);
 
-  const m15 = message.joined('ABCDEF', 'Ann');
+  const m15 = message.created('ABCDEF');
   assert.deepStrictEqual(message.parse(m15.text()), m15);
 
-  const m16 = message.refused('full');
+  const m16 = message.joined('ABCDEF', 'Ann');
   assert.deepStrictEqual(message.parse(m16.text()), m16);
 
-  const m17 = message.pause(true);
+  const m17 = message.refused('full');
   assert.deepStrictEqual(message.parse(m17.text()), m17);
 
-  const m18 = message.requestSave();
+  const m18 = message.pause(true);
   assert.deepStrictEqual(message.parse(m18.text()), m18);
+
+  const m19 = message.requestSave();
+  assert.deepStrictEqual(message.parse(m19.text()), m19);
 });
