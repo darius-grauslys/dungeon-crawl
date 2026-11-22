@@ -159,13 +159,12 @@ function makeFloor(seed, depth, rngIn) {
     rng = nr;
     const pos = spots[i];
     const s = MONSTER_STATS_BASE[kind];
-    const scale = 1 + tier;
     monsters.push(
       actorShape.of({
         id: idCounter++,
         kind,
         pos,
-        stats: statsShape.of({ hp: s.hp * scale, maxHp: s.maxHp * scale, attack: Math.round(s.attack * scale), defense: Math.round(s.defense * scale) }),
+        stats: statsShape.of({ hp: s.hp + Math.floor(s.hp * tier / 2), maxHp: s.maxHp + Math.floor(s.maxHp * tier / 2), attack: s.attack + tier, defense: s.defense + Math.floor(tier / 2) }),
         ready: 0,
       })
     );
@@ -485,7 +484,7 @@ export function advance(world, ms) {
         let heroStats = { hp: h.actor.stats.hp, maxHp: h.actor.stats.maxHp, attack: h.actor.stats.attack, defense: h.actor.stats.defense };
         if (h.offer === null || h.offer === undefined) {
           offerSet = wareAt.id;
-          log.push(`Bumped ${wareLabel(wareAt.kind)}.`);
+          log.push(`${h.name} looks at ${wareLabel(wareAt.kind)}: ${wareAt.price} gold. Bump it again to buy.`);
         } else if (h.offer === wareAt.id) {
           // second bump of same ware: buy attempt
           if (gold > 0) {
@@ -503,15 +502,15 @@ export function advance(world, ms) {
               heroStats.defense += 1;
               log.push(`${h.name} put on the bought armor (+1 defense).`);
             }
-            log.push(`Bought a ware for ${price} gold.`);
+            log.push(`${h.name} buys ${wareLabel(wareAt.kind)} for ${price} gold.`);
             offerSet = null;
           } else {
-            log.push(`Not enough gold to buy ${wareLabel(wareAt.kind)}.`);
+            log.push(`Not enough gold for ${wareLabel(wareAt.kind)}: ${wareAt.price} needed, the party has ${gold}.`);
             offerSet = null;
           }
         } else {
-          offerSet = null;
-          log.push(`Bumped ${wareLabel(wareAt.kind)}.`);
+          offerSet = wareAt.id;
+          log.push(`${h.name} looks at ${wareLabel(wareAt.kind)}: ${wareAt.price} gold. Bump it again to buy.`);
         }
         newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime + latency, held: h.actor.held, facing, last: { kind: 'attack', dx: intent.dx, dy: intent.dy, at: newTime } });
       } else if (cell === "wall" || aliveHeroAt) {
@@ -582,7 +581,7 @@ export function advance(world, ms) {
         bumped = true;
         if (h.offer === null || h.offer === undefined) {
           offerSet = wareAt.id;
-          log.push(`Bumped ${wareLabel(wareAt.kind)}.`);
+          log.push(`${h.name} looks at ${wareLabel(wareAt.kind)}: ${wareAt.price} gold. Bump it again to buy.`);
         } else if (h.offer === wareAt.id) {
           if (gold > 0) {
             const price = wareAt.price;
@@ -599,15 +598,15 @@ export function advance(world, ms) {
               log.push(`${h.name} put on the bought armor (+1 defense).`);
               h.actor.stats = statsShape.of({ hp: h.actor.stats.hp, maxHp: h.actor.stats.maxHp, attack: h.actor.stats.attack, defense: h.actor.stats.defense + 1 });
             }
-            log.push(`Bought a ware for ${price} gold.`);
+            log.push(`${h.name} buys ${wareLabel(wareAt.kind)} for ${price} gold.`);
             offerSet = null;
           } else {
-            log.push(`Not enough gold to buy ${wareLabel(wareAt.kind)}.`);
+            log.push(`Not enough gold for ${wareLabel(wareAt.kind)}: ${wareAt.price} needed, the party has ${gold}.`);
             offerSet = null;
           }
         } else {
-          offerSet = null;
-          log.push(`Bumped ${wareLabel(wareAt.kind)}.`);
+          offerSet = wareAt.id;
+          log.push(`${h.name} looks at ${wareLabel(wareAt.kind)}: ${wareAt.price} gold. Bump it again to buy.`);
         }
         newActor = actorShape.of({ id: h.actor.id, kind: "hero", pos: h.actor.pos, stats: h.actor.stats, ready: newTime + latency, held: h.actor.held, facing, last: { kind: 'attack', dx: intent.dx, dy: intent.dy, at: newTime } });
       } else if (monsterAt) {
