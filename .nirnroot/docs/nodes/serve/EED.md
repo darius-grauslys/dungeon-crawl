@@ -10,7 +10,7 @@ what it has to. Runs in Node.
 |---|---|
 | `/` | 200, `text/html; charset=utf-8`: the page (below) |
 | `/game.js` | 200, `text/javascript; charset=utf-8`: the bundle |
-| `/assets/<path>` | 200, the file `<root>/assets/<path>`, typed by its extension (`.png` `image/png`, `.json` `application/json`, `.txt` `text/plain; charset=utf-8`, anything else `application/octet-stream`) |
+| `/assets/<path>` | 200, the file `<root>/assets/<path>`, typed by its extension (`.png` `image/png`, `.json` `application/json`, `.txt` `text/plain; charset=utf-8`, `.mp3` `audio/mpeg`, anything else `application/octet-stream`) |
 | `/ws`, as a WebSocket upgrade | 101: a new connection |
 | anything else, a missing file, or a path that would leave `<root>/assets/` | 404 |
 
@@ -43,7 +43,7 @@ None
 `GET /game.js` answers 200, a `text/javascript` content type, and a non-empty body that matches `/export\s*\{[^}]*\bstart\b/` (its length depends on how much of `play` is implemented, so no length is asked).
 
 ## Intrinsic - assets:
-`GET /assets/sheets/heroes.png` answers 200, `image/png`, and exactly the bytes of `<root>/assets/sheets/heroes.png`.
+`GET /assets/sheets/heroes.png` answers 200, `image/png`, and exactly the bytes of `<root>/assets/sheets/heroes.png`; `GET /assets/sfx/coin.mp3` answers 200, `audio/mpeg`, and exactly the bytes of `<root>/assets/sfx/coin.mp3`.
 
 ## Intrinsic - not-found:
 `GET /nope`, `GET /assets/none.png`, `GET /assets/../package.json` (sent as written, not normalised: use `http.request` with that `path`) and `GET /assets/%2e%2e/package.json` answer 404; `POST /` answers 405.

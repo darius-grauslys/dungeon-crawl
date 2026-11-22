@@ -38,6 +38,9 @@ The edge under test:
 ## Intrinsic - table:
 As the EED states. Check `sprite('hero')` is `null` first, in a test of its own that runs before any `load` (tests run in the order written).
 
+## Intrinsic - poses:
+As the EED states.
+
 ## Intrinsic - themes:
 As the EED states; check the `null` before any `load` in the test that runs first, with `sprite('hero')`'s.
 

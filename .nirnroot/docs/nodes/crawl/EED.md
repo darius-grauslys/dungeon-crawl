@@ -9,7 +9,7 @@ beetles, mummies, cultists, spiders, ghosts, reapers, worms, imps,
 demons, and the stone golem), moving in eight directions, aiming and
 attacking at range, picking up potions, gold, swords, armor, rings and cross necklaces (or
 buying them in the shops), and wins by reaching the stairs of the last
-floor together. The root owns nothing but the
+floor together, with music for each theme and sounds for what happens. The root owns nothing but the
 program's entry, run by the launcher (`npm start`): it starts the game's
 server, which hands the game to browsers and runs every session.
 

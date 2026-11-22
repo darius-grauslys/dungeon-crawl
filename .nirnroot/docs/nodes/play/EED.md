@@ -1,7 +1,7 @@
 # play
 
 The game in a page: the landing, the connection to the server, the
-keyboard, the menu and the screen, wired together. It keeps the latest
+keyboard, the menu, the screen and the sound, wired together. It keeps the latest
 world the server sent and draws it. Runs in a browser.
 
 **The flow.** `start` shows the landing (`landing`) over the canvas and
@@ -30,8 +30,16 @@ In the game:
   states: `now` is the world's `time` plus the milliseconds since that
   state arrived (by `performance.now()`), at most 100 more; while paused,
   the world's `time`.
+- **Sound** (`audio`): each `state(world, paused)` that brings a new
+  world is handed on, `audio.update(previous, world, name)` (`previous`
+  the world kept before it, `null` for the first). The first key press
+  or click anywhere in the page (`keydown` or `pointerdown` on the
+  document, the landing's too) calls `audio.resume()`: browsers play
+  no sound before one.
 - The keys (`input`) while the menu is closed: an intent is sent as
-  `act(intent)`; `menu` opens the menu; `pause` sends `pause(!paused)`.
+  `act(intent)`; `menu` opens the menu; `pause` sends `pause(!paused)`;
+  `mute` calls `audio.toggleMute()`, `quieter` `audio.quieter()`,
+  `louder` `audio.louder()` (sending nothing).
   While the menu is open, only `menu` (Escape) does anything: it closes
   it.
 - The menu: `Settings` does nothing; `Save` sends `requestSave()`; the
@@ -47,7 +55,7 @@ the player can type in its fields).
 
 # Functions:
 ## Function - start:
-`start(document, options) -> handle`. Uses the first `<canvas>` of `document`, or, if it has none, creates one 960 by 720 and appends it to `document.body`. `options` (left out: `{}`): `url`, the WebSocket's (left out: `ws://` or, on an `https:` page, `wss://`, then the page's `location.host` and `/ws`); `open`, the socket factory given to `net` (left out: the browser's `WebSocket`); `download(filename, text)` (left out: a `Blob` of `application/json` saved through a temporary `<a download>`). Starts loading the sprites from `/assets/` (if they fail, it logs the error with `console.error` and plays on in flat colours) and then goes as the flow says, reading what arrived once every animation frame. Answers a handle: `screen()`, `landing` or `game`; `world()`, the latest world (`null` before one); `me()`, the name played (`null` before `joined`); `menuOpen()`; `stop()`, which stops it all (the keyboard, the frame loop, the socket; the landing and the menu are taken out of the page).
+`start(document, options) -> handle`. Uses the first `<canvas>` of `document`, or, if it has none, creates one 960 by 720 and appends it to `document.body`. `options` (left out: `{}`): `url`, the WebSocket's (left out: `ws://` or, on an `https:` page, `wss://`, then the page's `location.host` and `/ws`); `open`, the socket factory given to `net` (left out: the browser's `WebSocket`); `download(filename, text)` (left out: a `Blob` of `application/json` saved through a temporary `<a download>`); `audioContext`, given to `audio.create` as its `context` (left out: the page's own; `null`: no sound). Starts loading the sprites from `/assets/` (if they fail, it logs the error with `console.error` and plays on in flat colours) and the sounds (`audio.load()`) and then goes as the flow says, reading what arrived once every animation frame. Answers a handle: `screen()`, `landing` or `game`; `world()`, the latest world (`null` before one); `me()`, the name played (`null` before `joined`); `menuOpen()`; `stop()`, which stops it all (the keyboard, the frame loop, the socket; the landing and the menu are taken out of the page).
 
 # Intrinsics:
 ## Intrinsic - starts:
@@ -63,7 +71,7 @@ With the name `Ann` in `#landing-name` and a click on `#landing-create`, once th
 On the landing, the test delivers `refused('no-session')`: within half a second `#landing-error` reads `No such session.` and `h.screen()` is still `landing`. After `joined` no more `list()` is sent (none in the 2500 milliseconds after).
 
 ## Intrinsic - keys:
-In the game (after `joined` and a `state`): a `keydown` of `ArrowLeft` sends `act(move(-1, 0)).text()` and is `defaultPrevented`; with `shiftKey` true, `act(face(-1, 0))`; of `u`, `act(move(1, -1))`; of ` ` (space), `act(attack())`; of `e`, `act(use())`; of `>` (with `shiftKey` true), `act(descend())`; of `p`, `pause(true)`.
+In the game (after `joined` and a `state`): a `keydown` of `ArrowLeft` sends `act(move(-1, 0)).text()` and is `defaultPrevented`; with `shiftKey` true, `act(face(-1, 0))`; of `u`, `act(move(1, -1))`; of ` ` (space), `act(attack())`; of `e`, `act(use())`; of `>` (with `shiftKey` true), `act(descend())`; of `p`, `pause(true)`. A `keydown` of `m`, of `-` and of `=` each sends nothing and is `defaultPrevented` (they are the sound's).
 
 ## Intrinsic - menu:
 In the game, a `keydown` of `Escape` opens the menu (`#menu` displayed, `h.menuOpen()` true), whose `#menu-session` text is `Session ABCDEF`; while it is open a `keydown` of `ArrowLeft` sends nothing. A click on `#menu-save` sends `requestSave().text()`; the test delivers `saved(s)` (a save of depth 2): within half a second `download` has been called once with `'crawl-depth2.json'` and `s.text()`. A click on `#menu-pause` sends `pause(true).text()`; after the test delivers `state(w, true)`, `#menu-pause` reads `Resume`. A click on `#menu-back` closes the menu; `Escape` opens it again, and `Escape` closes it.

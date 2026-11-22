@@ -17,7 +17,7 @@ both 0.
 The module (`shapes/actor/index.mjs`) exports:
 
 - `of({id, kind, pos, stats, ready, held, facing, last, aim, slow,
-  mode, size, small})`:
+  mode, size, small, gesture})`:
   - `id` an integer of 0 or more; `kind` `'hero'` or one of
     `bestiary`'s `KINDS`; `pos` a `point`; `stats` a `stats`;
   - `ready` an integer of 0 or more, the world time (in milliseconds)
@@ -40,7 +40,14 @@ The module (`shapes/actor/index.mjs`) exports:
     leaves its cell) or `'dormant'` (it does nothing until a hero comes
     near) (left out: `'roam'`); a hero's is always `'roam'`;
   - `size` 1, 2 or 3 (left out: 1); a hero's is always 1;
-  - `small` a boolean (left out: `false`): drawn at half its size.
+  - `small` a boolean (left out: `false`): drawn at half its size;
+  - `gesture` the last gesture it made, or `null` (left out: `null`): an
+    object `{kind, at}` with `kind` `'use'` (it used something: pulled
+    a lever, bumped a ware, or used nothing) or `'power'` (it took a
+    power-up: picked up or bought a potion, sword, armor, ring or
+    necklace), and `at` an integer of 0 or more, the world time it
+    happened; the actor keeps a frozen copy with those two keys alone.
+    The screen plays its animation from `at`.
   Any other input is refused with a `TypeError`.
 - `KINDS`: `'hero'` and then `bestiary`'s `KINDS`, in order (a frozen
   array of 19).
@@ -89,6 +96,9 @@ Property `size`.
 ## Field - small:
 Property `small`.
 
+## Field - gesture:
+Property `gesture`: a frozen `{kind, at}`, or `null`.
+
 ## Field - covers:
 `covers(x, y)`: whether the actor covers the cell `(x, y)`. A method on
 the prototype, never an own property.
@@ -100,11 +110,12 @@ the prototype, never an own property.
 ## Field - with:
 `with(changes)` answers a new actor, this one with the properties of
 `changes` (any of `pos`, `stats`, `ready`, `held`, `facing`, `last`,
-`aim`, `slow`, `mode`, `size`, `small`) put in, checked as `of` checks
-them; this one is unchanged. `with` is a method every actor shares (on
+`aim`, `slow`, `mode`, `size`, `small`, `gesture`) put in, checked as
+`of` checks them; this one is unchanged. `with` is a method every actor shares (on
 its prototype, as a class method is), never an own property: an actor's
 own properties are `id`, `kind`, `pos`, `stats`, `ready`, `held`,
-`facing`, `last`, `aim`, `slow`, `mode`, `size` and `small` alone, so
+`facing`, `last`, `aim`, `slow`, `mode`, `size`, `small` and `gesture`
+alone, so
 two actors of equal fields are deep equal (`assert.deepStrictEqual`).
 
 # Intrinsics:
@@ -112,7 +123,7 @@ two actors of equal fields are deep equal (`assert.deepStrictEqual`).
 `of({id: 0, kind: 'hero', pos: point.of(1, 2), stats: s})` has those
 values, `ready` 0, `held` 0, `facing` `'right'`, `last` `null`, `aim`
 `{dx: 1, dy: 0}`, `slow` 0, `mode` `'roam'`, `size` 1, `small` false,
-and is frozen; with `ready: 250` it has `ready` 250. A `golem` of `size`
+`gesture` `null`, and is frozen; with `ready: 250` it has `ready` 250. A `golem` of `size`
 3, `mode` `'dormant'`, and an `archer` of `aim` `{dx: -1, dy: 1}` and
 `slow` 2, are accepted. `kind: 'dragon'`, `id: -1`, `pos: {x: 1, y: 2}`
 (a plain object, not a `point`), a missing `stats`, `ready: -1` or
@@ -126,7 +137,10 @@ and is frozen; with `ready: 250` it has `ready` 250. A `golem` of `size`
 2); `a.with({ready: 400}).ready` is 400; `a.with({held: 300, facing:
 'left', last: {kind: 'attack', dx: -1, dy: 1, at: 50}})` has those, its
 `last` frozen and deep equal to `{kind: 'attack', dx: -1, dy: 1, at: 50,
-reach: 1}`. Two actors made by `of` from the same fields pass
+reach: 1}`; `a.with({gesture: {kind: 'power', at: 50}}).gesture` is
+frozen and deep equal to `{kind: 'power', at: 50}`, and `gesture` of
+`{kind: 'wave', at: 0}`, `{kind: 'use', at: -1}` or `{kind: 'use'}`
+throws a `TypeError`. Two actors made by `of` from the same fields pass
 `assert.deepStrictEqual`, and `with` is not an own property
 (`Object.hasOwn(a, 'with')` false). `KINDS` has 19 kinds, the first
 `'hero'`, then `'bat'`, the last `'golem'`.

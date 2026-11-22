@@ -40,13 +40,13 @@ the constructors of the shapes it holds.
 | `log` | a plain array of the strings |
 | `grid` | an array of strings, one per row, with `tile-grid`'s chars (`#`, `.`, `>`) |
 | `visible`, `explored` | an array of strings, one per row, `1` for true and `0` for false |
-| `heroes` | `[{name, alive, pending, offer, actor}]`: `pending` `null` or `{kind, dx, dy}`; `offer` `null` or a ware's id |
+| `heroes` | `[{name, alive, pending, offer, colour, group, actor}]`: `pending` `null` or `{kind, dx, dy}`; `offer` `null` or a ware's id |
 | `monsters` | `[actor]` |
 | `items` | `[{id, kind, pos: {x, y}, amount, price, pulled, flung}]`: `flung` `null` or `{x, y, at}` |
 | `entry` | the save's `data()` |
 
-An actor's data is `{id, kind, pos: {x, y}, stats: {hp, maxHp, attack, defense, range, magic, magicPower, magicResist}, ready, held, facing, last, aim: {dx, dy}, slow, mode, size, small}`,
-`last` `null` or `{kind, dx, dy, at, reach}`.
+An actor's data is `{id, kind, pos: {x, y}, stats: {hp, maxHp, attack, defense, range, magic, magicPower, magicResist}, ready, held, facing, last, aim: {dx, dy}, slow, mode, size, small, gesture}`,
+`last` `null` or `{kind, dx, dy, at, reach}`, `gesture` `null` or `{kind, at}`.
 
 # Fields:
 ## Field - seed:

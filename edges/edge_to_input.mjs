@@ -11,7 +11,7 @@ export function intentFor(...args) {
 }
 
 // __nirnroot_begin__ command-for
-// `commandFor(key) -> string`. The last table's command (`menu` or `pause`) for a key; `null` for any other.
+// `commandFor(key) -> string`. The last table's command (`menu`, `pause`, `mute`, `quieter` or `louder`) for a key; `null` for any other.
 // __nirnroot_end__
 export function commandFor(...args) {
   return target.commandFor(...args);

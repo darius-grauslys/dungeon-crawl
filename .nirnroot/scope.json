@@ -1,5 +1,5 @@
 {
-  "digest": "38fe9d2a7b84e9b7075ae239b56b3b9bf3a1bdc024785bc6d0cc8dcb0e5a0068",
+  "digest": "e961df75df896a6ce575449414a0d5bd2604a1bfb11112c2056f62db0e47bebe",
   "fixtures": {},
   "nodes": {
     "atlas": {
@@ -29,6 +29,60 @@
         "tests/internal/atlas/"
       ],
       "parent": "view"
+    },
+    "audio": {
+      "children": [
+        "cues",
+        "mixer"
+      ],
+      "code": [
+        "src/audio/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "bestiary",
+          "hero",
+          "intent",
+          "item",
+          "level",
+          "mask",
+          "point",
+          "save",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "edge-tests": [
+        "tests/edges/audio/"
+      ],
+      "forwarder": [
+        "edges/edge_to_audio.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "bestiary",
+          "cue",
+          "hero",
+          "intent",
+          "item",
+          "level",
+          "mask",
+          "point",
+          "save",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/audio/"
+      ],
+      "parent": "play"
     },
     "combat": {
       "children": [],
@@ -92,6 +146,58 @@
         "tests/internal/crawl/"
       ],
       "parent": null
+    },
+    "cues": {
+      "children": [],
+      "code": [
+        "src/cues/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "bestiary",
+          "cue",
+          "hero",
+          "intent",
+          "item",
+          "level",
+          "mask",
+          "point",
+          "save",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "edge-tests": [
+        "tests/edges/cues/"
+      ],
+      "forwarder": [
+        "edges/edge_to_cues.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "bestiary",
+          "cue",
+          "hero",
+          "intent",
+          "item",
+          "level",
+          "mask",
+          "point",
+          "save",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/cues/"
+      ],
+      "parent": "audio"
     },
     "dungeon": {
       "children": [],
@@ -293,6 +399,34 @@
       ],
       "parent": "play"
     },
+    "mixer": {
+      "children": [],
+      "code": [
+        "src/mixer/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": [
+          "cue"
+        ]
+      },
+      "edge-tests": [
+        "tests/edges/mixer/"
+      ],
+      "forwarder": [
+        "edges/edge_to_mixer.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "cue"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/mixer/"
+      ],
+      "parent": "audio"
+    },
     "monsters": {
       "children": [],
       "code": [
@@ -385,6 +519,7 @@
     },
     "play": {
       "children": [
+        "audio",
         "input",
         "landing",
         "menu",
@@ -681,6 +816,17 @@
       ],
       "tests": [
         "tests/shapes/bestiary/"
+      ]
+    },
+    "cue": {
+      "closure": [
+        "cue"
+      ],
+      "code": [
+        "shapes/cue/"
+      ],
+      "tests": [
+        "tests/shapes/cue/"
       ]
     },
     "floor-plan": {

@@ -94,6 +94,23 @@ to its `pos` (`p` 1), raised by `32 sin(π p)` pixels; at or past 400
 ms, or before `at`, on its own cell. (It is drawn when its own cell is
 `visible`.)
 
+**Poses.** Once the sprites are loaded, every creature is drawn as
+`atlas.pose(name, anim, frame, look)`: `name` `hero` for a hero (`look`
+its hero's `{colour, group}`), its kind for a monster. With `t = now -
+gesture.at` for an actor whose `gesture` is not `null`:
+
+- a hero whose `gesture` is `power` and `t` from 0 below 600: `power_up`,
+  frame `Math.floor(t / 100)` (all six, 100 ms each);
+- a hero whose `gesture` is `use` and `t` from 0 below 450: `power_up`,
+  frame `Math.floor(t / 150)` (its first three: the hand raised, 150 ms
+  each);
+- otherwise, every creature: `idle`, frame `(Math.floor(now / 250) +
+  id) % 3` (`id` the actor's: so creatures side by side don't breathe in
+  step).
+
+The hero's `sleep`, `debuff` and `stun` animations are not drawn yet.
+In flat colours there are no poses.
+
 **Animations.** A creature is drawn at its cell, moved by an offset
 `(ox, oy)` in canvas pixels and scaled by `k` about its own centre (its
 48-pixel square, or the inset square in flat colours, keeps its centre
@@ -126,9 +143,9 @@ rgb(230, 200, 60)); a creature is a square inset 8 pixels within its
 cell
 (`me`'s hero rgb(60, 120, 255), any other hero rgb(60, 200, 120), any
 monster rgb(220, 50, 50)); an item a square inset 16 pixels
-(rgb(240, 180, 40)). Once loaded, each is its sprite of the same name
-(`atlas`; every hero is `hero`; a monster its kind; an item its kind,
-but a `pulled` lever `lever-pulled`; a tile its theme's `floor`,
+(rgb(240, 180, 40)). Once loaded, each is its sprite (`atlas`): a
+creature a frame of its animation (**Poses**, below); an item the sprite
+of its kind, but a `pulled` lever `lever-pulled`; a tile its theme's `floor`,
 `stairs` or, for a standing wall, `wall-<m>`), drawn
 over the whole cell; then every
 hero but `me`'s gets a 3-pixel outline of rgb(60, 200, 120) inside its
@@ -192,6 +209,9 @@ On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, 
 
 ## Intrinsic - flies:
 On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, the monster and the gold left out, plus a `gold` at (5, 1) `flung` from (3, 1) at 0: `draw(w, 'Ann', false, 200)` makes the pixel (216, 40) rgb(240, 180, 40) (halfway, at (4, 1), raised 32) and the centre of (5, 1) the floor's rgb(50, 36, 44); at `now` 400 the centre of (5, 1) is rgb(240, 180, 40). With Ann's `last` `{kind: 'attack', dx: 1, dy: 0, at: 0, reach: 3}` (and no gold), at `now` 180 the pixel (144, 72) is rgb(255, 160, 40).
+
+## Intrinsic - poses:
+After `load('/assets/')` resolves, the `flat-colours` world with Bob, the monster and the gold left out (Ann, `id` 0, `colour` 0, at (1, 1), `gesture` `null`): `draw(w, 'Ann', false, 0)` and `draw(w, 'Ann', false, 250)` differ in at least 5 pixels of Ann's cell (idle frames 0 and 1), and `draw(w, 'Ann', false, 750)` is the same as at 0 in every pixel of her cell (frame 0 again). With Ann's `colour` 1: at `now` 0 her cell differs from colour 0's in at least 5 pixels. With Ann's `gesture` `{kind: 'power', at: 0}` (and her `last` `null`): her cell at `now` 350 differs from her idle cell at 0 in at least 20 pixels, and at `now` 600 (past the gesture) is the same as the idle frame `Math.floor(600 / 250) % 3` = 2, drawn without a gesture at 600. With `gesture` `{kind: 'use', at: 0}`: at `now` 300 her cell is the same, in every pixel, as with `{kind: 'power', at: 0}` at `now` 200 (both `power_up` frame 2); at 450 it is idle again.
 
 ## Intrinsic - sprites:
 After `load('/assets/')` resolves and a `draw(w, 'Ann', false)` of the `flat-colours` world, Ann's cell (48 by 48 pixels) holds at least 3 different colours, and its centre pixel is not rgb(60, 120, 255); the pixel 1 in from the top-left corner of Bob's cell is rgb(60, 200, 120). With the monster a `snake` facing `right`, and then the same world with it facing `left`: at least 10 pixels of the monster's cell differ between the two (the floor under it is not mirrored, so compare no more than that), and the first is pixel for pixel the drawing of the snake with `facing` left out. The wall cells (2, 0) and (4, 0) (both `wall-10`) are pixel for pixel the same, and (0, 0) (`wall-6`) differs from (2, 0) in at least 10 pixels.

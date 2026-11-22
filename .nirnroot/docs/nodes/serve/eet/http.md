@@ -16,6 +16,7 @@ None
 
 # Assets:
 - [asset:sheets/heroes.png](../../../../../assets/sheets/heroes.png)
+- [asset:sfx/coin.mp3](../../../../../assets/sfx/coin.mp3)
 
 # Intrinsics:
 ## Intrinsic - page:

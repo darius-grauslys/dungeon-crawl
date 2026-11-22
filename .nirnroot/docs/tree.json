@@ -15,5 +15,8 @@
   "view": {"parent": "play"},
   "atlas": {"parent": "view"},
   "hud": {"parent": "view"},
-  "input": {"parent": "play"}
+  "input": {"parent": "play"},
+  "audio": {"parent": "play"},
+  "cues": {"parent": "audio"},
+  "mixer": {"parent": "audio"}
 }
