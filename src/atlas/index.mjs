@@ -8,7 +8,7 @@ const TABLE = [
   { name: "stairs", sheet: "sheets/dungeon.png", sx: 0, sy: 96 },
   { name: "hero", sheet: "sheets/heroes.png", sx: 0, sy: 0 },
   { name: "skeleton", sheet: "sheets/monsters.png", sx: 0, sy: 0 },
-  { name: "slime", sheet: "sheets/monsters.png", sx: 0, sy: 48 },
+  { name: "slime", sheet: "sheets/monsters.png", sx: 64, sy: 48 },
   { name: "snake", sheet: "sheets/monsters.png", sx: 0, sy: 64 },
   { name: "bat", sheet: "sheets/monsters.png", sx: 128, sy: 0 },
   { name: "demon", sheet: "sheets/monsters.png", sx: 128, sy: 32 },
@@ -16,6 +16,21 @@ const TABLE = [
   { name: "gold", sheet: "sheets/items.png", sx: 48, sy: 80 },
   { name: "sword", sheet: "sheets/items.png", sx: 64, sy: 16 },
   { name: "armor", sheet: "sheets/items.png", sx: 64, sy: 48 },
+  { name: "archer", sheet: "sheets/monsters.png", sx: 64, sy: 0 },
+  { name: "blue-slime", sheet: "sheets/monsters.png", sx: 0, sy: 48 },
+  { name: "blue-snake", sheet: "sheets/frozen-monsters.png", sx: 0, sy: 16 },
+  { name: "golem", sheet: "sheets/monsters.png", sx: 64, sy: 112 },
+  { name: "beetle", sheet: "sheets/arid-monsters.png", sx: 0, sy: 0 },
+  { name: "mummy", sheet: "sheets/arid-monsters.png", sx: 0, sy: 48 },
+  { name: "cultist", sheet: "sheets/arid-monsters.png", sx: 0, sy: 32 },
+  { name: "spider", sheet: "sheets/temple-monsters.png", sx: 128, sy: 16 },
+  { name: "ghost", sheet: "sheets/temple-monsters.png", sx: 64, sy: 32 },
+  { name: "reaper", sheet: "sheets/temple-monsters.png", sx: 128, sy: 32 },
+  { name: "worm", sheet: "sheets/magma-monsters.png", sx: 0, sy: 48 },
+  { name: "fire-slime", sheet: "sheets/magma-monsters.png", sx: 64, sy: 48 },
+  { name: "imp", sheet: "sheets/magma-monsters.png", sx: 64, sy: 32 },
+  { name: "lever", sheet: "sheets/generics.png", sx: 16, sy: 80 },
+  { name: "lever-pulled", sheet: "sheets/generics.png", sx: 32, sy: 80 },
   { name: "wall-0", sheet: "sheets/dungeon.png", sx: 48, sy: 0 },
   { name: "wall-1", sheet: "sheets/dungeon.png", sx: 0, sy: 32 },
   { name: "wall-2", sheet: "sheets/dungeon.png", sx: 48, sy: 32 },
@@ -36,7 +51,7 @@ const TABLE = [
 
 const _names = TABLE.map((r) => r.name);
 
-/** `names() -> array`. The twenty-nine names, in the table's order, a fresh array each call. */
+/** `names() -> array`. The forty-four names, in the table's order, a fresh array each call. */
 export function names() {
   return [..._names];
 }
@@ -73,13 +88,18 @@ const _SHEETS = [
   "sheets/magma-floor.png",
   "sheets/interior.png",
   "sheets/interior-floor.png",
+  "sheets/generics.png",
+  "sheets/frozen-monsters.png",
+  "sheets/arid-monsters.png",
+  "sheets/temple-monsters.png",
+  "sheets/magma-monsters.png",
 ];
 
 let _loadId = 0;
 let _sprites = null;
 let _tiles = null;
 
-/** `load(base) -> promise`. `base` a URL prefix ending in `/`; each sheet is fetched from `base` plus its path in the table. Resolves, with nothing, once all fifteen are loaded and keyed; rejects, with an `Error` whose message contains the sheet's path, as soon as one fails to load. A later `load` replaces what an earlier one loaded once it resolves. */
+/** `load(base) -> promise`. `base` a URL prefix ending in `/`; each sheet is fetched from `base` plus its path in the table. Resolves, with nothing, once all twenty are loaded and keyed; rejects, with an `Error` whose message contains the sheet's path, as soon as one fails to load. A later `load` replaces what an earlier one loaded once it resolves. */
 export async function load(base) {
   const myId = ++_loadId;
 
