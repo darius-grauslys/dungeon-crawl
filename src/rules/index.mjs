@@ -871,12 +871,12 @@ function advance(world, ms) {
           }
         }
         log.push(monsterLine);
-        let updatedM = m.with({ ready: newTime + bestiary.entry(m.kind).strike, facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach: 1 } });
+        let updatedM = m.with({ mode, ready: newTime + bestiary.entry(m.kind).strike, facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach: 1 } });
         if (m.slow > 0) updatedM = updatedM.with({ slow: m.slow - 1 });
         newMonsters = monstersAfter2.concat([updatedM]);
         acted = true; continue;
       }
-      const updatedM = m.with({ pos: pointShape.of(m.pos.x + dx, m.pos.y + dy), ready: newTime + bestiary.entry(m.kind).step, facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 } });
+      const updatedM = m.with({ mode, pos: pointShape.of(m.pos.x + dx, m.pos.y + dy), ready: newTime + bestiary.entry(m.kind).step, facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 } });
       newMonsters = monstersAfter.concat([updatedM]);
       acted = true; continue;
     } else if (decideIntent.kind === "attack") {
@@ -930,7 +930,7 @@ function advance(world, ms) {
         else monsterLine = `The ${m.kind} hits the ${tm.kind} for ${s.damage}.`;
       }
       log.push(monsterLine);
-      let updatedM = m.with({ ready: newTime + bestiary.entry(m.kind).strike, facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach } });
+      let updatedM = m.with({ mode, ready: newTime + bestiary.entry(m.kind).strike, facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach } });
       if (m.slow > 0) updatedM = updatedM.with({ slow: m.slow - 1 });
       newMonsters = monstersAfter2.concat([updatedM]);
       acted = true; continue;
