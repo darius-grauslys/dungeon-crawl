@@ -25,7 +25,7 @@ connects to the server (`net`). On the landing:
 In the game:
 - Every `state(world, paused)` is kept and given to the menu
   (`setPaused`). From the first one on, the screen is drawn every
-  animation frame, `view.draw(world, name, paused, now)` with the latest
+  animation frame, `view.draw(world, name, paused, now, aiming)` with the latest
   world, so the creatures' animations play smoothly between the server's
   states: `now` is the world's `time` plus the milliseconds since that
   state arrived (by `performance.now()`), at most 100 more; while paused,
@@ -40,6 +40,9 @@ In the game:
   `act(intent)`; `menu` opens the menu; `pause` sends `pause(!paused)`;
   `mute` calls `audio.toggleMute()`, `quieter` `audio.quieter()`,
   `louder` `audio.louder()` (sending nothing).
+- **Aiming**: while the player holds Shift in the game (`input`'s
+  `aiming`), the screen is drawn with `aiming` true, so the aim dot
+  shows; when Shift is let go (or the page loses focus), false.
   While the menu is open, only `menu` (Escape) does anything: it closes
   it.
 - The menu: `Settings` does nothing; `Save` sends `requestSave()`; the
@@ -71,7 +74,7 @@ With the name `Ann` in `#landing-name` and a click on `#landing-create`, once th
 On the landing, the test delivers `refused('no-session')`: within half a second `#landing-error` reads `No such session.` and `h.screen()` is still `landing`. After `joined` no more `list()` is sent (none in the 2500 milliseconds after).
 
 ## Intrinsic - keys:
-In the game (after `joined` and a `state`): a `keydown` of `ArrowLeft` sends `act(move(-1, 0)).text()` and is `defaultPrevented`; with `shiftKey` true, `act(face(-1, 0))`; of `u`, `act(move(1, -1))`; of ` ` (space), `act(attack())`; of `e`, `act(use())`; of `>` (with `shiftKey` true), `act(descend())`; of `p`, `pause(true)`. A `keydown` of `m`, of `-` and of `=` each sends nothing and is `defaultPrevented` (they are the sound's).
+In the game (after `joined` and a `state`): a `keydown` of `ArrowLeft` sends `act(move(-1, 0)).text()` and is `defaultPrevented`; with `shiftKey` true, `act(face(-1, 0))`; of `u`, `act(move(1, -1))`; of ` ` (space), `act(attack())`; of `e`, `act(use())`; of `>` (with `shiftKey` true), `act(descend())`; of `p`, `pause(true)`. A `keydown` of `Shift` sends nothing and is not `defaultPrevented`. A `keydown` of `m`, of `-` and of `=` each sends nothing and is `defaultPrevented` (they are the sound's).
 
 ## Intrinsic - menu:
 In the game, a `keydown` of `Escape` opens the menu (`#menu` displayed, `h.menuOpen()` true), whose `#menu-session` text is `Session ABCDEF`; while it is open a `keydown` of `ArrowLeft` sends nothing. A click on `#menu-save` sends `requestSave().text()`; the test delivers `saved(s)` (a save of depth 2): within half a second `download` has been called once with `'crawl-depth2.json'` and `s.text()`. A click on `#menu-pause` sends `pause(true).text()`; after the test delivers `state(w, true)`, `#menu-pause` reads `Resume`. A click on `#menu-back` closes the menu; `Escape` opens it again, and `Escape` closes it.

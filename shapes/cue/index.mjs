@@ -1,10 +1,28 @@
-// cue: an API Shape, a stub seeded by nirnroot. Its implementer replaces it.
+// cue: a sound to play now: which one, and how loud. Immutable.
 
-export const _sheo_stub = true;
+export const NAMES = Object.freeze([
+  "step",
+  "swing",
+  "shot",
+  "hit",
+  "death",
+  "coin",
+  "powerup",
+  "use",
+  "stairs",
+]);
 
-/** Fields: name, gain. */
-export class Cue {
-  constructor(...args) {
-    throw new Error("not implemented: shape cue");
+/**
+ * Build a cue from {name, gain}.
+ * name must be one of NAMES; gain a number above 0 and at most 1.
+ * Any other input is refused with a TypeError. The result is frozen.
+ */
+export function of({ name, gain }) {
+  if (typeof name !== "string" || !NAMES.includes(name)) {
+    throw new TypeError(`invalid cue name: ${String(name)}`);
   }
+  if (typeof gain !== "number" || Number.isNaN(gain) || gain <= 0 || gain > 1) {
+    throw new TypeError(`invalid cue gain: ${String(gain)}`);
+  }
+  return Object.freeze({ name, gain });
 }

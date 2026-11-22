@@ -68,7 +68,13 @@ function isActor(v) {
   if (![1, 2, 3].includes(v.size)) return false;
   if (v.kind === 'hero' && v.size !== 1) return false;
   if (typeof v.small !== 'boolean') return false;
-  return Object.keys(v).length === 13;
+  if (v.gesture !== null) {
+    if (!v.gesture || typeof v.gesture !== 'object' || !Object.isFrozen(v.gesture)) return false;
+    if (v.gesture.kind !== 'use' && v.gesture.kind !== 'power') return false;
+    if (typeof v.gesture.at !== 'number' || !Number.isInteger(v.gesture.at) || v.gesture.at < 0) return false;
+    if (Object.keys(v.gesture).length !== 2) return false;
+  }
+  return Object.keys(v).length === 14;
 }
 
 function isItem(v) {
@@ -101,7 +107,9 @@ function isHero(v) {
   }
   if (typeof v.alive !== 'boolean') return false;
   if (v.offer !== null && (typeof v.offer !== 'number' || !Number.isInteger(v.offer) || v.offer < 0)) return false;
-  return Object.keys(v).length === 5;
+  if (typeof v.colour !== 'number' || !Number.isInteger(v.colour) || v.colour < 0 || v.colour > 3) return false;
+  if (typeof v.group !== 'number' || !Number.isInteger(v.group) || v.group < 0 || v.group > 5) return false;
+  return Object.keys(v).length === 7;
 }
 
 /**
@@ -204,23 +212,17 @@ class World {
         mode: h.actor.mode,
         size: h.actor.size,
         small: h.actor.small,
+        gesture: h.actor.gesture ? { kind: h.actor.gesture.kind, at: h.actor.gesture.at } : null,
       };
-      if ('gesture' in h.actor) {
-        actorData.gesture = h.actor.gesture ? { kind: h.actor.gesture.kind, at: h.actor.gesture.at } : null;
-      }
       const heroData = {
         name: h.name,
         alive: h.alive,
         pending: h.pending ? { kind: h.pending.kind, dx: h.pending.dx, dy: h.pending.dy } : null,
         offer: h.offer,
+        colour: h.colour ?? 0,
+        group: h.group ?? 0,
         actor: actorData,
       };
-      if ('colour' in h) {
-        heroData.colour = h.colour;
-      }
-      if ('group' in h) {
-        heroData.group = h.group;
-      }
       return heroData;
     });
 
@@ -248,10 +250,8 @@ class World {
         mode: m.mode,
         size: m.size,
         small: m.small,
+        gesture: m.gesture ? { kind: m.gesture.kind, at: m.gesture.at } : null,
       };
-      if ('gesture' in m) {
-        monsterData.gesture = m.gesture ? { kind: m.gesture.kind, at: m.gesture.at } : null;
-      }
       return monsterData;
     });
 
@@ -546,6 +546,10 @@ export function fromData(data) {
         pending = intentShape.use();
       } else if (h.pending.kind === 'wait') {
         pending = intentShape.wait();
+      } else if (h.pending.kind === 'descend') {
+        pending = intentShape.descend();
+      } else if (h.pending.kind === 'face') {
+        pending = intentShape.face(h.pending.dx, h.pending.dy);
       } else {
         throw new TypeError('world: hero pending kind must be valid');
       }
@@ -574,8 +578,9 @@ export function fromData(data) {
       mode: actorData.mode,
       size: actorData.size,
       small: actorData.small,
+      gesture: actorData.gesture ? { kind: actorData.gesture.kind, at: actorData.gesture.at } : null,
     });
-    const heroObj = heroShape.of({ name: h.name, actor: actorObj, pending, alive: h.alive, offer: h.offer });
+    const heroObj = heroShape.of({ name: h.name, actor: actorObj, pending, alive: h.alive, offer: h.offer, colour: h.colour ?? 0, group: h.group ?? 0 });
     heroObjs.push(heroObj);
   }
 
@@ -604,6 +609,7 @@ export function fromData(data) {
       mode: m.mode,
       size: m.size,
       small: m.small,
+      gesture: m.gesture ? { kind: m.gesture.kind, at: m.gesture.at } : null,
     });
     if (monsterObj.kind === 'hero') {
       throw new TypeError('world: monsters must not be of kind hero');

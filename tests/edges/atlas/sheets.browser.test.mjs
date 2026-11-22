@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { load, sprite, tile, names } from "../../../edges/edge_to_atlas.mjs";
+import { load, sprite, tile, pose, frames, names } from "../../../edges/edge_to_atlas.mjs";
 import * as spriteShape from "../../../shapes/sprite/index.mjs";
 
 const NAMES = [
@@ -11,7 +11,7 @@ const NAMES = [
   "bat", "demon", "potion", "gold", "sword", "armor",
   "archer", "blue-slime", "blue-snake", "golem", "beetle", "mummy",
   "cultist", "spider", "ghost", "reaper", "worm", "fire-slime", "imp",
-  "lever", "lever-pulled",
+  "lever", "lever-pulled", "ring", "necklace",
   "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5",
   "wall-6", "wall-7", "wall-8", "wall-9", "wall-10", "wall-11",
   "wall-12", "wall-13", "wall-14", "wall-15"
@@ -29,20 +29,33 @@ test("themes: before load, tile('frozen','floor') is null and sprite('hero') is 
 
 // Intrinsic - table:
 // `names()` is the table's names in order. Before any `load`, `sprite('hero')` is `null`;
-// `sprite('dragon')` throws a `TypeError`. `names()` has 44 names, `wall-0` to `wall-15` the last sixteen in order, `lever-pulled` just before `wall-0`;
+// `sprite('dragon')` throws a `TypeError`. `names()` has 46 names, `wall-0` to `wall-15` the last sixteen in order, `necklace` just before `wall-0` and `ring` before it, `lever-pulled` before `ring`;
+// `sprite('ring')` has `sx` 0 and `sy` 64, `sprite('necklace')` `sx` 128 and `sy` 64;
 // `sprite('wall-16')` throws a `TypeError`.
-test("table: before load, sprite('hero') is null; sprite('dragon') and sprite('wall-16') throw; names() has 44 names with lever-pulled before wall-0..wall-15 last", () => {
+test("table: before load, sprite('hero') is null; sprite('dragon') and sprite('wall-16') throw; names() has 46 names with lever-pulled, ring, necklace before wall-0..wall-15 last", () => {
   assert.equal(sprite("hero"), null);
   assert.throws(() => sprite("dragon"), TypeError);
   assert.throws(() => sprite("wall-16"), TypeError);
   const n = names();
-  assert.equal(n.length, 44);
+  assert.equal(n.length, 46);
   assert.deepEqual(n.slice(-16), [
     "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5", "wall-6", "wall-7",
     "wall-8", "wall-9", "wall-10", "wall-11", "wall-12", "wall-13", "wall-14", "wall-15"
   ]);
-  assert.equal(n[n.length - 17], "lever-pulled");
+  assert.equal(n[n.length - 17], "necklace");
+  assert.equal(n[n.length - 18], "ring");
+  assert.equal(n[n.length - 19], "lever-pulled");
   assert.deepEqual(n, NAMES);
+});
+
+// Intrinsic - poses:
+// Before any `load`, `pose('hero', 'idle', 0)` is `null`; `pose('hero', 'idle', 3)`, `pose('hero', 'walk', 0)`, `pose('bat', 'sleep', 0)` and `pose('hero', 'idle', 0, {colour: 4, group: 0})` throw a `TypeError`.
+test("poses: before load, pose('hero','idle',0) is null; pose('hero','idle',3), pose('hero','walk',0), pose('bat','sleep',0), pose('hero','idle',0,{colour:4,group:0}) throw", () => {
+  assert.equal(pose("hero", "idle", 0), null);
+  assert.throws(() => pose("hero", "idle", 3), TypeError);
+  assert.throws(() => pose("hero", "walk", 0), TypeError);
+  assert.throws(() => pose("bat", "sleep", 0), TypeError);
+  assert.throws(() => pose("hero", "idle", 0, { colour: 4, group: 0 }), TypeError);
 });
 
 // Intrinsic - keyed:
@@ -112,6 +125,8 @@ test("table: after load, each name's sprite has the EED table's sx, sy, sw 16, s
     imp: [64, 32],
     lever: [16, 80],
     "lever-pulled": [32, 80],
+    ring: [0, 64],
+    necklace: [128, 64],
     "wall-0": [48, 0],
     "wall-1": [0, 32],
     "wall-2": [48, 32],
@@ -218,6 +233,77 @@ test("themes: after load, theme tiles have correct values", async () => {
     assert.ok(w, `tile('${theme}', 'wall-10') should exist`);
     assert.equal(w.sw, 16, `tile('${theme}', 'wall-10').sw`);
     assert.equal(w.sh, 16, `tile('${theme}', 'wall-10').sh`);
+  }
+});
+
+// Intrinsic - poses:
+// After `load('/assets/')` resolves: `frames('hero', 'idle')` is 3, `frames('hero', 'sleep')` 4, `frames('hero', 'debuff')` 4, `frames('hero', 'power_up')` 6, `frames('hero', 'stun')` 5, `frames('golem', 'idle')` 3; `frames('golem', 'stun')`, `frames('dragon', 'idle')` and `frames('wall-0', 'idle')` throw a `TypeError`. `pose('hero', 'idle', 0)` has the same `image`, `sx` and `sy` as `sprite('hero')`; `pose('hero', 'idle', 2)` `sx` 32, `sy` 0; `pose('hero', 'idle', 1, {colour: 3, group: 0})` `sx` 208, `sy` 0; `pose('hero', 'sleep', 2)` `sx` 0, `sy` 48; `pose('hero', 'debuff', 1, {colour: 1, group: 0})` `sx` 80, `sy` 80; `pose('hero', 'power_up', 3, {colour: 1, group: 0})` `sx` 64, `sy` 144; `pose('hero', 'power_up', 5)` `sx` 32, `sy` 144; `pose('hero', 'stun', 4, {colour: 2, group: 0})` `sx` 160, `sy` 192; `pose('hero', 'idle', 0, {colour: 0, group: 2})` `sx` 0, `sy` 480; `pose('golem', 'idle', 2)` `sx` 96, `sy` 112 and the same `image` as `sprite('golem')`; `pose('blue-snake', 'idle', 1)` `sx` 16, `sy` 16; every pose is 16 by 16.
+test("poses: after load, frames counts and pose positions match EED", async () => {
+  await load("/assets/");
+
+  // frames counts
+  assert.equal(frames("hero", "idle"), 3);
+  assert.equal(frames("hero", "sleep"), 4);
+  assert.equal(frames("hero", "debuff"), 4);
+  assert.equal(frames("hero", "power_up"), 6);
+  assert.equal(frames("hero", "stun"), 5);
+  assert.equal(frames("golem", "idle"), 3);
+  assert.throws(() => frames("golem", "stun"), TypeError);
+  assert.throws(() => frames("dragon", "idle"), TypeError);
+  assert.throws(() => frames("wall-0", "idle"), TypeError);
+
+  // pose positions
+  const heroPose0 = pose("hero", "idle", 0);
+  const heroSprite = sprite("hero");
+  assert.equal(heroPose0.image, heroSprite.image);
+  assert.equal(heroPose0.sx, heroSprite.sx);
+  assert.equal(heroPose0.sy, heroSprite.sy);
+
+  const idle2 = pose("hero", "idle", 2);
+  assert.equal(idle2.sx, 32);
+  assert.equal(idle2.sy, 0);
+
+  const idle1c3 = pose("hero", "idle", 1, { colour: 3, group: 0 });
+  assert.equal(idle1c3.sx, 208);
+  assert.equal(idle1c3.sy, 0);
+
+  const sleep2 = pose("hero", "sleep", 2);
+  assert.equal(sleep2.sx, 0);
+  assert.equal(sleep2.sy, 48);
+
+  const buff1 = pose("hero", "debuff", 1, { colour: 1, group: 0 });
+  assert.equal(buff1.sx, 80);
+  assert.equal(buff1.sy, 80);
+
+  const pu3 = pose("hero", "power_up", 3, { colour: 1, group: 0 });
+  assert.equal(pu3.sx, 64);
+  assert.equal(pu3.sy, 144);
+
+  const pu5 = pose("hero", "power_up", 5);
+  assert.equal(pu5.sx, 32);
+  assert.equal(pu5.sy, 144);
+
+  const stun4 = pose("hero", "stun", 4, { colour: 2, group: 0 });
+  assert.equal(stun4.sx, 160);
+  assert.equal(stun4.sy, 192);
+
+  const idle0g2 = pose("hero", "idle", 0, { colour: 0, group: 2 });
+  assert.equal(idle0g2.sx, 0);
+  assert.equal(idle0g2.sy, 480);
+
+  const golemPose2 = pose("golem", "idle", 2);
+  assert.equal(golemPose2.sx, 96);
+  assert.equal(golemPose2.sy, 112);
+  assert.equal(golemPose2.image, sprite("golem").image);
+
+  const blueSnakePose1 = pose("blue-snake", "idle", 1);
+  assert.equal(blueSnakePose1.sx, 16);
+  assert.equal(blueSnakePose1.sy, 16);
+
+  // every pose is 16 by 16
+  for (const p of [heroPose0, idle2, idle1c3, sleep2, buff1, pu3, pu5, stun4, idle0g2, golemPose2, blueSnakePose1]) {
+    assert.equal(p.sw, 16);
+    assert.equal(p.sh, 16);
   }
 });
 

@@ -28,6 +28,8 @@ test("valid: of builds a hero with defaults", () => {
   assert.strictEqual(h.pending, null);
   assert.strictEqual(h.alive, true);
   assert.strictEqual(h.offer, null);
+  assert.strictEqual(h.colour, 0);
+  assert.strictEqual(h.group, 0);
   assert.ok(Object.isFrozen(h));
 });
 
@@ -47,6 +49,16 @@ test("valid: with replaces offer, leaves original unchanged", () => {
   assert.strictEqual(h.offer, null);
 });
 
+test("valid: with replaces colour and group, leaves original unchanged", () => {
+  const a = heroActor(5);
+  const h = of({ name: "Ann", actor: a });
+  const h2 = h.with({ colour: 2, group: 1 });
+  assert.strictEqual(h2.colour, 2);
+  assert.strictEqual(h2.group, 1);
+  assert.strictEqual(h.colour, 0);
+  assert.strictEqual(h.group, 0);
+});
+
 test("valid: offer: -1 throws a TypeError", () => {
   const a = heroActor(5);
   assert.throws(() => of({ name: "Ann", actor: a, offer: -1 }), TypeError);
@@ -55,6 +67,26 @@ test("valid: offer: -1 throws a TypeError", () => {
 test("valid: offer: '12' throws a TypeError", () => {
   const a = heroActor(5);
   assert.throws(() => of({ name: "Ann", actor: a, offer: "12" }), TypeError);
+});
+
+test("valid: colour: 4 throws a TypeError", () => {
+  const a = heroActor(5);
+  assert.throws(() => of({ name: "Ann", actor: a, colour: 4 }), TypeError);
+});
+
+test("valid: colour: 1.5 throws a TypeError", () => {
+  const a = heroActor(5);
+  assert.throws(() => of({ name: "Ann", actor: a, colour: 1.5 }), TypeError);
+});
+
+test("valid: group: 6 throws a TypeError", () => {
+  const a = heroActor(5);
+  assert.throws(() => of({ name: "Ann", actor: a, group: 6 }), TypeError);
+});
+
+test("valid: group: -1 throws a TypeError", () => {
+  const a = heroActor(5);
+  assert.throws(() => of({ name: "Ann", actor: a, group: -1 }), TypeError);
 });
 
 test("valid: a name '' throws a TypeError", () => {
