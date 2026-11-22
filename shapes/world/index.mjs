@@ -546,6 +546,10 @@ export function fromData(data) {
         pending = intentShape.use();
       } else if (h.pending.kind === 'wait') {
         pending = intentShape.wait();
+      } else if (h.pending.kind === 'descend') {
+        pending = intentShape.descend();
+      } else if (h.pending.kind === 'face') {
+        pending = intentShape.face(h.pending.dx, h.pending.dy);
       } else {
         throw new TypeError('world: hero pending kind must be valid');
       }
