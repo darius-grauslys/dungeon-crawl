@@ -101,10 +101,20 @@ test("keys: intentFor answers the table's intent for each key, null otherwise", 
   for (const k of [".", "x", "Escape", "", null, 5]) {
     assert.equal(intentFor(k), null);
   }
+  // 'm', 'M', '-', '_', '=', '+' answer null for intentFor (they are commands)
+  for (const k of ["m", "M", "-", "_", "=", "+"]) {
+    assert.equal(intentFor(k), null);
+  }
 
   // commandFor
   assert.equal(commandFor("Escape"), "menu");
   assert.equal(commandFor("P"), "pause");
+  assert.equal(commandFor("m"), "mute");
+  assert.equal(commandFor("M"), "mute");
+  assert.equal(commandFor("-"), "quieter");
+  assert.equal(commandFor("_"), "quieter");
+  assert.equal(commandFor("="), "louder");
+  assert.equal(commandFor("+"), "louder");
   assert.equal(commandFor("w"), null);
 });
 
@@ -171,12 +181,20 @@ test("listens: listen turns keypresses into intents, stops when stopped", async 
   assert.equal(commandReceived, "menu");
   assert.equal(ev3.defaultPrevented, true);
 
+  // keydown with key 'm' calls g once with 'mute', prevented
+  const evMute = new Event("keydown", { cancelable: true });
+  Object.defineProperty(evMute, "key", { value: "m" });
+  t.dispatchEvent(evMute);
+  assert.equal(commandCalled, 2);
+  assert.equal(commandReceived, "mute");
+  assert.equal(evMute.defaultPrevented, true);
+
   // keydown with key 'x' calls neither and isn't prevented
   const ev4 = new Event("keydown", { cancelable: true });
   Object.defineProperty(ev4, "key", { value: "x" });
   t.dispatchEvent(ev4);
   assert.equal(intentCalled, 4);
-  assert.equal(commandCalled, 1);
+  assert.equal(commandCalled, 2);
   assert.equal(ev4.defaultPrevented, false);
 
   // keydown with key 'w' and ctrlKey true calls neither
@@ -185,14 +203,14 @@ test("listens: listen turns keypresses into intents, stops when stopped", async 
   Object.defineProperty(ev5, "ctrlKey", { value: true });
   t.dispatchEvent(ev5);
   assert.equal(intentCalled, 4);
-  assert.equal(commandCalled, 1);
+  assert.equal(commandCalled, 2);
 
   // keyup with key 'w' calls neither
   const ev6 = new Event("keyup", { cancelable: true });
   Object.defineProperty(ev6, "key", { value: "w" });
   t.dispatchEvent(ev6);
   assert.equal(intentCalled, 4);
-  assert.equal(commandCalled, 1);
+  assert.equal(commandCalled, 2);
 
   // after stop(), keydown with key 'w' calls neither
   stop();
@@ -200,7 +218,7 @@ test("listens: listen turns keypresses into intents, stops when stopped", async 
   Object.defineProperty(ev7, "key", { value: "w" });
   t.dispatchEvent(ev7);
   assert.equal(intentCalled, 4);
-  assert.equal(commandCalled, 1);
+  assert.equal(commandCalled, 2);
 
   // stop() again doesn't throw
   assert.doesNotThrow(() => stop());
