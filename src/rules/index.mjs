@@ -307,7 +307,10 @@ function fromSave(save) {
   }
   const visible = isShopDepth(save.depth) ? allTrueMask(grid.width, grid.height) : computeVisible(grid, save.depth, newHeroes);
   const explored = isShopDepth(save.depth) ? visible : maskShape.empty(grid.width, grid.height);
-  const log = ["Welcome to the dungeon. Find the stairs (>)."];
+  let log = ["Welcome to the dungeon. Find the stairs (>)."];
+  if (isShopDepth(save.depth)) log = ["A shop! Bump a ware twice to buy it."];
+  else if (isLairDepth(save.depth)) log = ["Welcome to the dungeon. Find the stairs (>)."];
+  else if (save.depth > 1) log = [`The party descends to level ${levelShape.number(save.depth)}.`];
   return worldShape.of({
     seed: save.seed, rng, depth: save.depth, time: 0, state: "playing", grid,
     heroes: newHeroes, monsters, items, visible, explored, gold: 0,
