@@ -44,6 +44,27 @@ test("before load, tile('frozen', 'floor') is null; bad theme/name throw TypeErr
   assert.throws(() => tile("frozen", "hero"), TypeError);
 });
 
+test("frames: hero counts and monster idle count, bad args throw", () => {
+  assert.strictEqual(frames("hero", "idle"), 3);
+  assert.strictEqual(frames("hero", "sleep"), 4);
+  assert.strictEqual(frames("hero", "debuff"), 4);
+  assert.strictEqual(frames("hero", "power_up"), 6);
+  assert.strictEqual(frames("hero", "stun"), 5);
+  assert.strictEqual(frames("golem", "idle"), 3);
+  assert.throws(() => frames("golem", "stun"), TypeError);
+  assert.throws(() => frames("dragon", "idle"), TypeError);
+  assert.throws(() => frames("wall-0", "idle"), TypeError);
+  assert.throws(() => frames("hero", "walk"), TypeError);
+});
+
+test("before load, pose('hero','idle',0) is null; bad args throw", () => {
+  assert.strictEqual(pose("hero", "idle", 0), null);
+  assert.throws(() => pose("hero", "idle", 3), TypeError);
+  assert.throws(() => pose("hero", "walk", 0), TypeError);
+  assert.throws(() => pose("bat", "sleep", 0), TypeError);
+  assert.throws(() => pose("hero", "idle", 0, { colour: 4, group: 0 }), TypeError);
+});
+
 test("after load, wall-6 and wall-9 have correct rects", async () => {
   await load("/assets/");
   const w6 = sprite("wall-6");
@@ -140,27 +161,6 @@ test("after load, magma stairs rect and all themes 16x16", async () => {
     assert.strictEqual(w.sw, 16);
     assert.strictEqual(w.sh, 16);
   }
-});
-
-test("frames: hero counts and monster idle count, bad args throw", () => {
-  assert.strictEqual(frames("hero", "idle"), 3);
-  assert.strictEqual(frames("hero", "sleep"), 4);
-  assert.strictEqual(frames("hero", "debuff"), 4);
-  assert.strictEqual(frames("hero", "power_up"), 6);
-  assert.strictEqual(frames("hero", "stun"), 5);
-  assert.strictEqual(frames("golem", "idle"), 3);
-  assert.throws(() => frames("golem", "stun"), TypeError);
-  assert.throws(() => frames("dragon", "idle"), TypeError);
-  assert.throws(() => frames("wall-0", "idle"), TypeError);
-  assert.throws(() => frames("hero", "walk"), TypeError);
-});
-
-test("before load, pose('hero','idle',0) is null; bad args throw", () => {
-  assert.strictEqual(pose("hero", "idle", 0), null);
-  assert.throws(() => pose("hero", "idle", 3), TypeError);
-  assert.throws(() => pose("hero", "walk", 0), TypeError);
-  assert.throws(() => pose("bat", "sleep", 0), TypeError);
-  assert.throws(() => pose("hero", "idle", 0, { colour: 4, group: 0 }), TypeError);
 });
 
 test("after load, hero pose rects and monster poses", async () => {
