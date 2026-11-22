@@ -731,6 +731,8 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
       rng = nrr;
       const s = combat.resolve(h.actor.stats, monster.stats, roll, ward);
       let monsterLine = "";
+      let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("attack"), aim: (dx === 0 && dy === 0) ? h.actor.aim : { dx: aimDx, dy: aimDy }, facing: actorShape.facingFor(aimDx, aimDy), last: { kind: "attack", dx: aimDx, dy: aimDy, at: newTime, reach } });
+      if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
       const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
       if (!s.hit) {
         monsterLine = `${h.name} misses the ${monster.kind}.`;

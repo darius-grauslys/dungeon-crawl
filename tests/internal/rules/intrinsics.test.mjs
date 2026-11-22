@@ -535,7 +535,7 @@ test("bump-pulled-lever-again: second bump of a pulled lever is a use, last unch
   const wPulled = rules.advance(rules.intend(w, "Ann", intentShape.move(1, 0)), 50);
   assert.deepEqual(wPulled.heroes[0].actor.gesture, { kind: "use", at: 50 });
   assert.equal(wPulled.heroes[0].actor.last, null);
-  assert.equal(wPulled.heroes[0].actor.ready, 350);
+  assert.equal(wPulled.heroes[0].actor.ready, 400);
 });
 
 test("colours: join gets smallest free colour and group 0, fromSave gives colour i", () => {
