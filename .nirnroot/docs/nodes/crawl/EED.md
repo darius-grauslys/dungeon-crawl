@@ -18,7 +18,7 @@ None
 
 # Functions:
 ## Function - main:
-`main() -> promise`. Starts `server` on the port of the `PORT` environment variable (an integer; unset or not an integer: 8000) with the project's directory (the current directory) as `root`, then prints `Crawl is running at <url>` (the server's `url`) to standard output, and resolves. The server keeps the process alive.
+`main() -> promise`. Starts `server` on the port of the `PORT` environment variable (an integer; unset or not an integer: 8000) with the project's directory (the current directory) as `root`, and, when the command line has `--host <address>` or `--host=<address>` (`npm start -- --host 0.0.0.0`), that address as its `host` (otherwise none: every interface), then prints `Crawl is running at <url>` (the server's `url`) to standard output, and resolves. The server keeps the process alive.
 
 # Intrinsics:
 None

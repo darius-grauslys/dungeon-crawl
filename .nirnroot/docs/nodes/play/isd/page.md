@@ -17,11 +17,11 @@
 2. The keys: `input` prevents the default of every key it maps, so it
    must not listen while the landing shows (the player types there).
    Only on `joined` call `stopKeys = input.listen(document, {intent,
-   command})`; `stop` calls `stopKeys` if it was set.
+   command, aiming})`, `aiming(held)` keeping whether Shift is held, for `view.draw`'s `aiming`; `stop` calls `stopKeys` if it was set.
 3. A frame loop (`requestAnimationFrame` of the document's `defaultView`, or the global one for a document with none): each
    frame, `conn.drain()` and handle each message as the EED's flow says;
    remember the `performance.now()` at which the latest `state` came; once
-there is a world, draw every frame (`view.draw(world, me, paused, now)`,
+there is a world, draw every frame (`view.draw(world, me, paused, now, aiming)`,
 `now` as the EED says).
 4. `created(session)`: send the `join`.
    `joined`: `landing.hide()`, clear the lobby interval, `menu.setSession(session)`,

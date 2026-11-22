@@ -33,7 +33,7 @@ None
 
 # Functions:
 ## Function - serve:
-`serve({port, root}) -> promise`. `port` an integer from 0 to 65535 (0: any free port); `root` the project's directory. Listens on every interface (so other machines of the network can play). Resolves, once listening, to a handle: `port`, the port it listens on; `url`, `http://127.0.0.1:<port>/`; `drain()`, every text frame received since the last `drain`, in arrival order, as `[connection, text]` pairs; `closed()`, the connections that closed since the last call, for any reason, each once; `send(connection, text)`, one text frame to that connection (a no-op for one that is closed or unknown); `end(connection)`, closing that connection (close code 1000; it then appears in `closed()`; a no-op for one not open); and `close()`, answering a promise that resolves once every connection (close code 1001) and the listener have closed. Rejects if the bundle fails to build or the port can't be had.
+`serve({port, root, host}) -> promise`. `port` an integer from 0 to 65535 (0: any free port); `root` the project's directory; `host` (left out: every interface) a non-empty string, the address to listen on (`'0.0.0.0'`, `'127.0.0.1'`, a machine's address). Left out, it listens on every interface (so other machines of the network can play). Resolves, once listening, to a handle: `port`, the port it listens on; `url`, `http://<host>:<port>/` with the `host` given, or `http://127.0.0.1:<port>/` with none; `drain()`, every text frame received since the last `drain`, in arrival order, as `[connection, text]` pairs; `closed()`, the connections that closed since the last call, for any reason, each once; `send(connection, text)`, one text frame to that connection (a no-op for one that is closed or unknown); `end(connection)`, closing that connection (close code 1000; it then appears in `closed()`; a no-op for one not open); and `close()`, answering a promise that resolves once every connection (close code 1001) and the listener have closed. Rejects if the bundle fails to build or the port can't be had.
 
 # Intrinsics:
 ## Intrinsic - page:
@@ -53,6 +53,9 @@ Two WebSocket clients connecting to `/ws` are connections 1 and 2; a text `hello
 
 ## Intrinsic - closed:
 A client that closes appears in `closed()` exactly once; one closed with `end` too, and its client sees the socket close.
+
+## Intrinsic - host:
+`serve({port: 0, root, host: '127.0.0.1'})` resolves with a `url` of `http://127.0.0.1:<port>/`, and `GET /` on it answers 200; with `host: '0.0.0.0'`, the `url` is `http://0.0.0.0:<port>/` and `GET /` on `http://127.0.0.1:<port>/` answers 200; with no `host`, the `url` is `http://127.0.0.1:<port>/`. `host: ''` and `host: 5` reject (or throw) a `TypeError`. Close each handle.
 
 ## Intrinsic - closes:
 After `close()` resolves, an open client has seen its socket close, and a request to the port fails to connect.

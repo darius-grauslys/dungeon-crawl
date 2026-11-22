@@ -10,7 +10,7 @@ function where(depth) {
   return lbl;
 }
 
-/** `lines(world, me) -> array of strings`. First the status line of `me`'s hero, `<name>   HP <hp>/<maxHp>   ATK <attack>   DEF <defense>   Gold <gold>   <where>` (three spaces between the parts; ` (fallen)` after the HP part of a hero not alive; `   Slowed <slow>` at the end while its actor's `slow` is above 0), or `Watching   Gold <gold>   <where>` with no hero of that name; `<where>` is `Level <n>/25` on a dungeon floor (`n` `level.number(depth)`), `Shop` on a shop and `Lair` on a lair (shops and lairs have no number); then the party line, `Party: ` and each hero in order as `<name> <hp>/<maxHp>`, or `<name> fallen` for one not alive, joined by `, ` (`Party: none` with no heroes); then the last two lines of the world's log, oldest first (fewer when the log is shorter). */
+/** `lines(world, me) -> array of strings`. First the status line of `me`'s hero, `<name>   HP <hp>/<maxHp>   ATK <attack>   DEF <defense>   Gold <gold>   <where>` (three spaces between the parts; ` (fallen)` after the HP part of a hero not alive; `   MP <magicPower>   MR <magicResist>` right after the DEF part when its `magicPower` is above 1 or its `magicResist` above 0, and not otherwise; `   Slowed <slow>` at the end while its actor's `slow` is above 0), or `Watching   Gold <gold>   <where>` with no hero of that name; `<where>` is `Level <n>/25` on a dungeon floor (`n` `level.number(depth)`), `Shop` on a shop and `Lair` on a lair (shops and lairs have no number); then the party line, `Party: ` and each hero in order as `<name> <hp>/<maxHp>`, or `<name> fallen` for one not alive, joined by `, ` (`Party: none` with no heroes); then the last two lines of the world's log, oldest first (fewer when the log is shorter). */
 export function lines(world, me) {
   const gold = world.gold;
   const depth = world.depth;
@@ -26,13 +26,19 @@ export function lines(world, me) {
     const maxHp = stats.maxHp;
     const attack = stats.attack;
     const defense = stats.defense;
+    const magicPower = stats.magicPower;
+    const magicResist = stats.magicResist;
     const hpPart = hero.alive ? `HP ${hp}/${maxHp}` : `HP ${hp}/${maxHp} (fallen)`;
+    let mpMrPart = "";
+    if (magicPower > 1 || magicResist > 0) {
+      mpMrPart = `   MP ${magicPower}   MR ${magicResist}`;
+    }
     let slowPart = "";
     const slow = hero.actor.slow;
     if (slow > 0) {
       slowPart = `   Slowed ${slow}`;
     }
-    statusLine = `${hero.name}   ${hpPart}   ATK ${attack}   DEF ${defense}   Gold ${gold}   ${whereText}${slowPart}`;
+    statusLine = `${hero.name}   ${hpPart}   ATK ${attack}   DEF ${defense}${mpMrPart}   Gold ${gold}   ${whereText}${slowPart}`;
   } else {
     statusLine = `Watching   Gold ${gold}   ${whereText}`;
   }
