@@ -14,8 +14,14 @@ function isIntent(v) {
   if (typeof v.dx !== 'number' || !Number.isInteger(v.dx)) return false;
   if (typeof v.dy !== 'number' || !Number.isInteger(v.dy)) return false;
 
-  if (v.kind === 'move' || v.kind === 'attack') {
-    const f = v.kind === 'move' ? intentShape.move : intentShape.attack;
+  // move/attack/face: rebuild with (dx, dy)
+  if (v.kind === 'move' || v.kind === 'attack' || v.kind === 'face') {
+    const f =
+      v.kind === 'move'
+        ? intentShape.move
+        : v.kind === 'attack'
+        ? intentShape.attack
+        : intentShape.face;
     try {
       const e = f(v.dx, v.dy);
       return e.kind === v.kind && e.dx === v.dx && e.dy === v.dy;
@@ -23,9 +29,13 @@ function isIntent(v) {
       return false;
     }
   }
-  // use or wait: dx and dy must be 0
-  if (v.dx !== 0 || v.dy !== 0) return false;
-  const e = v.kind === 'use' ? intentShape.use() : intentShape.wait();
+  // use/wait/descend: rebuild with no arguments
+  const e =
+    v.kind === 'use'
+      ? intentShape.use()
+      : v.kind === 'wait'
+      ? intentShape.wait()
+      : intentShape.descend();
   return e.kind === v.kind && e.dx === 0 && e.dy === 0;
 }
 
