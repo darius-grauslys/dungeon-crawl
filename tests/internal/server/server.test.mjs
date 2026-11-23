@@ -184,3 +184,42 @@ test("server: url without host begins with 127.0.0.1", async () => {
     await s.close();
   }
 });
+
+test("server: create with bad save leaves lobby unchanged", async () => {
+  const mod = await import("../../../src/server/index.mjs");
+  const s = await mod.start({ port: 0, root: process.cwd() });
+  try {
+    const ws = makeWs(s.url);
+    await waitOpen(ws);
+
+    // Create a couple of valid sessions.
+    ws.send(JSON.stringify({ kind: "create", save: null }));
+    await waitMessage(ws, (m) => m.kind === "created");
+    ws.send(JSON.stringify({ kind: "create", save: null }));
+    await waitMessage(ws, (m) => m.kind === "created");
+
+    // Count sessions in the lobby.
+    ws.send(JSON.stringify({ kind: "list" }));
+    const lobby0 = await waitMessage(ws, (m) => m.kind === "lobby");
+    const count0 = JSON.parse(lobby0).sessions.length;
+    assert.strictEqual(count0, 2);
+
+    // Create with a save whose world can't be made (version 2 is invalid).
+    ws.send(JSON.stringify({
+      kind: "create",
+      save: { format: "crawl-save", version: 2, seed: 1, depth: 1, players: [] },
+    }));
+    const refused = await waitMessage(ws, (m) => m.kind === "refused");
+    assert.strictEqual(JSON.parse(refused).reason, "malformed");
+
+    // The lobby must be unchanged: no session was made.
+    ws.send(JSON.stringify({ kind: "list" }));
+    const lobby1 = await waitMessage(ws, (m) => m.kind === "lobby");
+    const count1 = JSON.parse(lobby1).sessions.length;
+    assert.strictEqual(count1, count0);
+
+    ws.close();
+  } finally {
+    await s.close();
+  }
+});
