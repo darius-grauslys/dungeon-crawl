@@ -2064,12 +2064,14 @@ function advance(world, ms) {
   const oldTime = world.time;
   const tier = levelShape.tier(world.depth);
   const dmgBase = [4, 8, 16, 32, 32][tier] || 4;
-  const raisedSpikesAtNew = [];
+  const raisedSpikesNoCross = [];
   for (const s of (world.spikes || [])) {
+    let crossed = false;
     let mmStart = Math.floor(oldTime / 400) * 400;
     if (mmStart <= oldTime) mmStart += 400;
     for (let mm = mmStart; mm <= newTime; mm += 400) {
       if (((mm / 400) + s.shift) % 6 === 5) {
+        crossed = true;
         // spike raised at mm: strike every creature on ground covering it
         for (const h of heroes) {
           if (!h.alive) continue;
@@ -2106,12 +2108,12 @@ function advance(world, ms) {
       }
     }
     const idx = ((((Math.floor(newTime / 400)) + s.shift) % 6) + 6) % 6;
-    if ([0, 1, 0, 1, 0, 2][idx] === 2) raisedSpikesAtNew.push({ x: s.x, y: s.y });
+    if ([0, 1, 0, 1, 0, 2][idx] === 2 && !crossed) raisedSpikesNoCross.push({ x: s.x, y: s.y });
   }
-  // creatures whose step brought them onto a raised spike are struck at once
+  // creatures whose step brought them onto a raised spike (not raised this advance) are struck at once
   for (const h of heroes) {
     if (!h.alive) continue;
-    for (const rs of raisedSpikesAtNew) {
+    for (const rs of raisedSpikesNoCross) {
       if (h.actor.covers(rs.x, rs.y)) {
         const dmg = Math.max(1, dmgBase - h.actor.stats.defense);
         const nhp = h.actor.stats.hp - dmg;
@@ -2122,6 +2124,25 @@ function advance(world, ms) {
         } else {
           const nstats = statsShape.of({ hp: nhp, maxHp: h.actor.stats.maxHp, attack: h.actor.stats.attack, defense: h.actor.stats.defense, range: h.actor.stats.range, magic: h.actor.stats.magic, magicPower: h.actor.stats.magicPower, magicResist: h.actor.stats.magicResist });
           heroes = heroes.map((hh) => hh.actor.id === h.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+        }
+      }
+    }
+  }
+  for (const [id, mm] of monsterMap.entries()) {
+    if (mm.air) continue;
+    for (const rs of raisedSpikesNoCross) {
+      if (mm.covers(rs.x, rs.y)) {
+        const dmg = Math.max(1, dmgBase - mm.stats.defense);
+        const nhp = mm.stats.hp - dmg;
+        log.push(`The spikes hit the ${mm.kind} for ${dmg}.`);
+        if (nhp <= 0) {
+          log.push(`The ${mm.kind} is slain.`);
+          const split = maybeSplitSlime(mm, currentGrid, monsterMap, heroes, items, newTime, log, rng);
+          if (split.monsters) { for (const sm of split.monsters) monsterMap.set(sm.id, sm); rng = split.rng; }
+          monsterMap.delete(id);
+        } else {
+          const nstats = statsShape.of({ hp: nhp, maxHp: mm.stats.maxHp, attack: mm.stats.attack, defense: mm.stats.defense, range: mm.stats.range, magic: mm.stats.magic, magicPower: mm.stats.magicPower, magicResist: mm.stats.magicResist });
+          monsterMap.set(id, mm.with({ stats: nstats }));
         }
       }
     }
