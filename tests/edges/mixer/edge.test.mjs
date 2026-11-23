@@ -315,12 +315,34 @@ test("mixer: music 0 fades out, nothing starts", async () => {
   assert.ok(!records.some((r) => r.includes("/music/dungeon-0")));
 });
 
+test("mixer: music tracks 6 to 9 fetch their files", async () => {
+  const context = makeFakeContext();
+  const records = [];
+  const fetch = makeFetch(records);
+  const mixer = create({ context, fetch, random: () => 0 });
+  await load(mixer);
+  context.currentTime = 10;
+  await music(mixer, 9);
+  await settle();
+  assert.ok(records.some((r) => r.includes("/music/boss.mp3")));
+  await music(mixer, 8);
+  await settle();
+  assert.ok(records.some((r) => r.includes("/music/shop.mp3")));
+  await music(mixer, 7);
+  await settle();
+  assert.ok(records.some((r) => r.includes("/music/desert-dungeon.mp3")));
+  await music(mixer, 6);
+  await settle();
+  assert.ok(records.some((r) => r.includes("/music/dark-comical.mp3")));
+});
+
 test("mixer: music type errors", () => {
   const context = makeFakeContext();
   const records = [];
   const fetch = makeFetch(records);
   const mixer = create({ context, fetch, random: () => 0 });
-  assert.throws(() => music(mixer, 6), TypeError);
+  assert.throws(() => music(mixer, 10), TypeError);
+  assert.throws(() => music(mixer, -1), TypeError);
   assert.throws(() => music(mixer, 1.5), TypeError);
 });
 
