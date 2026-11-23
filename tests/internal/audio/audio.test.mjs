@@ -7,7 +7,7 @@ import * as tileGrid from "../../../shapes/tile-grid/index.mjs";
 import * as mask from "../../../shapes/mask/index.mjs";
 import * as save from "../../../shapes/save/index.mjs";
 import * as world from "../../../shapes/world/index.mjs";
-import { create, load, update, volume, mute, resume } from "../../../src/audio/index.mjs";
+import { create, load, update, volume, mute, resume, trackFor } from "../../../src/audio/index.mjs";
 
 function makeWorld(depth = 1, state = "playing") {
   const grid = tileGrid.fromRows(["#####", "#...#", "#####"]);
@@ -165,4 +165,40 @@ test("create: context left out with no AudioContext makes no mixer", () => {
   } finally {
     if (savedWindow === undefined) delete global.window; else global.window = savedWindow;
   }
+});
+
+test("trackFor: not playing is 0", () => {
+  assert.strictEqual(trackFor({ state: "won", depth: 33 }), 0);
+});
+
+test("trackFor: dungeon stages 1,3,5 are tier+1", () => {
+  assert.strictEqual(trackFor({ state: "playing", depth: 1 }), 1);
+  assert.strictEqual(trackFor({ state: "playing", depth: 3 }), 1);
+  assert.strictEqual(trackFor({ state: "playing", depth: 5 }), 1);
+  assert.strictEqual(trackFor({ state: "playing", depth: 8 }), 2);
+  assert.strictEqual(trackFor({ state: "playing", depth: 33 }), 5);
+});
+
+test("trackFor: dungeon stage 2 is 6, stage 4 is 7", () => {
+  assert.strictEqual(trackFor({ state: "playing", depth: 2 }), 6);
+  assert.strictEqual(trackFor({ state: "playing", depth: 9 }), 6);
+  assert.strictEqual(trackFor({ state: "playing", depth: 4 }), 7);
+  assert.strictEqual(trackFor({ state: "playing", depth: 11 }), 7);
+});
+
+test("trackFor: shop (interior) is 8", () => {
+  assert.strictEqual(trackFor({ state: "playing", depth: 6 }), 8);
+  assert.strictEqual(trackFor({ state: "playing", depth: 13 }), 8);
+  assert.strictEqual(trackFor({ state: "playing", depth: 20 }), 8);
+  assert.strictEqual(trackFor({ state: "playing", depth: 27 }), 8);
+});
+
+test("trackFor: boss rounds 1..3 are 9", () => {
+  assert.strictEqual(trackFor({ state: "playing", depth: 7 }), 9);
+  assert.strictEqual(trackFor({ state: "playing", depth: 14 }), 9);
+  assert.strictEqual(trackFor({ state: "playing", depth: 21 }), 9);
+});
+
+test("trackFor: boss round 4 (empty lair) is tier+1", () => {
+  assert.strictEqual(trackFor({ state: "playing", depth: 28 }), 4);
 });
