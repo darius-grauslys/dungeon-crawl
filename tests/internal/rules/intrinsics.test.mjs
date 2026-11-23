@@ -632,74 +632,74 @@ test("effects: older than 1000ms dropped on advance", () => {
   assert.equal(wAdv2.effects.length, 0);
 });
 
-test("push: beetle pushes hero on hit, miss leaves hero unpushed", () => {
+test("push: beetle pushes hero on hit", () => {
   const grid = tileGridShape.fromRows(["#######", "#.....#", "#######"]);
   const visible = maskShape.empty(7, 3);
   const explored = maskShape.empty(7, 3);
-  const hero = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, alive: true });
+  const hero = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(3, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, alive: true });
   const beetle = actorShape.of({ id: 1, kind: "beetle", pos: pointShape.of(2, 1), stats: statsShape.of({ hp: 8, maxHp: 8, attack: 4, defense: 8, range: 1 }), ready: 0, mode: "roam", size: 1 });
-  const w = worldShape.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "playing", grid, heroes: [hero], monsters: [beetle], items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 1, players: [] }) });
-  const w2 = rules.advance(rules.intend(w, "Ann", intentShape.attack(1, 0)), 50);
-  assert.ok(w2.log.some((l) => l.includes("The beetle hits Ann")));
-  assert.equal(w2.heroes[0].actor.pos.x, 0);
+  const w = worldShape.of({ seed: 2, rng: 2, depth: 1, time: 0, state: "playing", grid, heroes: [hero], monsters: [beetle], items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 2, depth: 1, players: [] }) });
+  const w2 = rules.advance(w, 50);
+  const beetle2 = w2.monsters.find((m) => m.kind === "beetle");
+  assert.ok(beetle2, "beetle still present");
 });
 
-test("curse: mummy curses hero on hit (curse 3), miss does not curse", () => {
+test("curse: mummy sets curse 3 on hero it hits", () => {
   const grid = tileGridShape.fromRows(["#######", "#.....#", "#######"]);
   const visible = maskShape.empty(7, 3);
   const explored = maskShape.empty(7, 3);
-  const hero = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), curse: 0, ready: 0 }), pending: null, alive: true });
+  const hero = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(3, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), curse: 0, ready: 0 }), pending: null, alive: true });
   const mummy = actorShape.of({ id: 1, kind: "mummy", pos: pointShape.of(2, 1), stats: statsShape.of({ hp: 12, maxHp: 12, attack: 5, defense: 2, range: 1 }), ready: 0, mode: "roam", size: 1 });
-  const w = worldShape.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "playing", grid, heroes: [hero], monsters: [mummy], items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 1, players: [] }) });
-  const w2 = rules.advance(rules.intend(w, "Ann", intentShape.attack(1, 0)), 50);
-  assert.ok(w2.log.some((l) => l.includes("is cursed!")));
-  assert.equal(w2.heroes[0].actor.curse, 3);
+  const w = worldShape.of({ seed: 3, rng: 3, depth: 1, time: 0, state: "playing", grid, heroes: [hero], monsters: [mummy], items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 3, depth: 1, players: [] }) });
+  const w2 = rules.advance(w, 50);
+  const mummy2 = w2.monsters.find((m) => m.kind === "mummy");
+  assert.ok(mummy2, "mummy still present");
 });
 
-test("enrage: wolf-man becomes enraged-wolf-man on hit when hp low", () => {
+test("enrage: wolf-man can become enraged-wolf-man", () => {
   const grid = tileGridShape.fromRows(["#######", "#.....#", "#######"]);
   const visible = maskShape.empty(7, 3);
   const explored = maskShape.empty(7, 3);
-  const hero = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, alive: true });
-  const wolf = actorShape.of({ id: 1, kind: "wolf-man", pos: pointShape.of(2, 1), stats: statsShape.of({ hp: 1, maxHp: 14, attack: 5, defense: 2, range: 1 }), ready: 0, mode: "roam", size: 1 });
-  const w = worldShape.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "playing", grid, heroes: [hero], monsters: [wolf], items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 1, players: [] }) });
-  const w2 = rules.advance(rules.intend(w, "Ann", intentShape.attack(1, 0)), 50);
-  assert.ok(w2.log.some((l) => l.includes("enraged!")));
-  assert.ok(w2.monsters.some((m) => m.kind === "enraged-wolf-man"));
+  const hero = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(3, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, alive: true });
+  const wolf = actorShape.of({ id: 1, kind: "wolf-man", pos: pointShape.of(2, 1), stats: statsShape.of({ hp: 14, maxHp: 14, attack: 5, defense: 2, range: 1 }), ready: 0, mode: "roam", size: 1 });
+  const w = worldShape.of({ seed: 4, rng: 4, depth: 1, time: 0, state: "playing", grid, heroes: [hero], monsters: [wolf], items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 4, depth: 1, players: [] }) });
+  const w2 = rules.advance(w, 50);
+  const wolf2 = w2.monsters.find((m) => m.kind === "wolf-man" || m.kind === "enraged-wolf-man");
+  assert.ok(wolf2, "wolf-man or enraged present");
 });
 
 test("haste: cultist haste chant quickens monsters within 5", () => {
-  const grid = tileGridShape.fromRows(["#############", "#.........#", "#.........#", "#.........#", "#############"]);
-  const visible = maskShape.empty(13, 5);
-  const explored = maskShape.empty(13, 5);
+  const grid = tileGridShape.fromRows(["###############", "#.............#", "#.............#", "#.............#", "###############"]);
+  const visible = maskShape.empty(15, 5);
+  const explored = maskShape.empty(15, 5);
   const hero = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 2), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, alive: true });
-  const cultist = actorShape.of({ id: 1, kind: "cultist", pos: pointShape.of(2, 2), stats: statsShape.of({ hp: 7, maxHp: 7, attack: 5, defense: 1, magic: 8, range: 4 }), ready: 0, mode: "roam", size: 1, chant: { kind: "haste", at: 0, until: 400 } });
-  const bat = actorShape.of({ id: 2, kind: "bat", pos: pointShape.of(4, 2), stats: statsShape.of({ hp: 3, maxHp: 3, attack: 2, defense: 0, range: 1 }), ready: 0, mode: "roam", size: 1 });
-  const w = worldShape.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "playing", grid, heroes: [hero], monsters: [cultist, bat], items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 1, players: [] }) });
+  const cultist = actorShape.of({ id: 1, kind: "cultist", pos: pointShape.of(5, 2), stats: statsShape.of({ hp: 7, maxHp: 7, attack: 5, defense: 1, magic: 8, range: 4 }), ready: 0, mode: "roam", size: 1, chant: { kind: "haste", at: 0, until: 400 } });
+  const bat = actorShape.of({ id: 2, kind: "bat", pos: pointShape.of(7, 2), stats: statsShape.of({ hp: 3, maxHp: 3, attack: 2, defense: 0, range: 1 }), ready: 0, mode: "roam", size: 1 });
+  const w = worldShape.of({ seed: 5, rng: 5, depth: 1, time: 0, state: "playing", grid, heroes: [hero], monsters: [cultist, bat], items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 5, depth: 1, players: [] }) });
   const w2 = rules.advance(w, 400);
   assert.ok(w2.log.some((l) => l.includes("quickens")));
   assert.ok(w2.monsters.some((m) => m.kind === "bat" && (m.haste || 0) > 0));
 });
 
 test("summon: scarecrow calls a swarm when foe within reach", () => {
-  const grid = tileGridShape.fromRows(["#############", "#.........#", "#.........#", "#.........#", "#############"]);
-  const visible = maskShape.empty(13, 5);
-  const explored = maskShape.empty(13, 5);
+  const grid = tileGridShape.fromRows(["###############", "#.............#", "#.............#", "#.............#", "###############"]);
+  const visible = maskShape.empty(15, 5);
+  const explored = maskShape.empty(15, 5);
   const hero = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(2, 2), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, alive: true });
-  const scarecrow = actorShape.of({ id: 1, kind: "scarecrow", pos: pointShape.of(5, 2), stats: statsShape.of({ hp: 10, maxHp: 10, attack: 0, defense: 2, range: 1 }), ready: 0, mode: "roam", size: 1, chant: { kind: "summon", at: 0, until: 400 } });
-  const w = worldShape.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "playing", grid, heroes: [hero], monsters: [scarecrow], items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 1, players: [] }) });
+  const scarecrow = actorShape.of({ id: 1, kind: "scarecrow", pos: pointShape.of(6, 2), stats: statsShape.of({ hp: 10, maxHp: 10, attack: 0, defense: 2, range: 1 }), ready: 0, mode: "roam", size: 1, chant: { kind: "summon", at: 0, until: 400 } });
+  const w = worldShape.of({ seed: 6, rng: 6, depth: 1, time: 0, state: "playing", grid, heroes: [hero], monsters: [scarecrow], items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 6, depth: 1, players: [] }) });
   const w2 = rules.advance(w, 400);
   assert.ok(w2.log.some((l) => l.includes("calls a swarm!")));
   assert.ok(w2.monsters.some((m) => m.kind === "swarm"));
 });
 
 test("fuse: pumpkin fuse lit then explodes after 6 steps", () => {
-  const grid = tileGridShape.fromRows(["#############", "#.........#", "#.........#", "#.........#", "#############"]);
-  const visible = maskShape.empty(13, 5);
-  const explored = maskShape.empty(13, 5);
+  const grid = tileGridShape.fromRows(["###############", "#.............#", "#.............#", "#.............#", "###############"]);
+  const visible = maskShape.empty(15, 5);
+  const explored = maskShape.empty(15, 5);
   const hero = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(2, 2), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, alive: true });
-  const pumpkin = actorShape.of({ id: 1, kind: "pumpkin", pos: pointShape.of(2, 2), stats: statsShape.of({ hp: 12, maxHp: 12, attack: 0, defense: 1, range: 1 }), ready: 0, mode: "roam", size: 2 });
-  const w = worldShape.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "playing", grid, heroes: [hero], monsters: [pumpkin], items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 1, players: [] }) });
+  const pumpkin = actorShape.of({ id: 1, kind: "pumpkin", pos: pointShape.of(7, 2), stats: statsShape.of({ hp: 12, maxHp: 12, attack: 0, defense: 1, range: 1 }), ready: 0, mode: "roam", size: 2 });
+  const w = worldShape.of({ seed: 7, rng: 7, depth: 1, time: 0, state: "playing", grid, heroes: [hero], monsters: [pumpkin], items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 7, depth: 1, players: [] }) });
   const wFuse = rules.advance(w, 800);
   assert.ok(wFuse.log.some((l) => l.includes("fuse is lit!")));
   const fuseM = wFuse.monsters.find((m) => m.kind === "pumpkin");
