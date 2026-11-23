@@ -564,6 +564,7 @@ test("leaps: crouch spreads wider and flattens", async () => {
 
   view.draw(w, "Ann", false, 125);
   let img = ctx.getImageData(0, 0, 800, 600).data;
+  // crouch at 125: (198,80) creature (spread), (216,60) floor (flattened)
   assert.deepEqual(pixelAt(img, 198, 80), [220, 50, 50, 255], "crouch at 125: (198,80) creature");
   assert.deepEqual(pixelAt(img, 216, 60), [50, 36, 44, 255], "crouch at 125: (216,60) floor");
 
