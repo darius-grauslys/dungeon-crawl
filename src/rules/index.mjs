@@ -658,6 +658,9 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
   let monstersList = state.monstersList;
   let offer = h.offer;
   let rng = state.rng;
+  let idCounter = 10;
+  for (const mm of monstersList) if (mm.id > idCounter) idCounter = mm.id;
+  idCounter++;
 
   // Curse tick: each action a cursed hero fires deals it 1 damage and takes 1 off curse
   if (h.actor.curse > 0) {
@@ -1157,13 +1160,6 @@ function advance(world, ms) {
         const updatedM = m.with({ chant: null, ready: newTime + step, haste: 3 });
         monsterMap.set(m.id, updatedM);
         log.push("The cultist's chant quickens the monsters!");
-        monsterMap.set(entry.id, monsterMap.get(m.id));
-        monsterMap.get(entry.id).mode = mode;
-        monsterMap.get(entry.id).pos = m.pos;
-        monsterMap.get(entry.id).facing = m.facing;
-        monsterMap.get(entry.id).last = m.last;
-        monsterMap.get(entry.id).held = m.held;
-        monsterMap.get(entry.id).small = m.small;
         acted = true; continue;
       }
       if (!m.chant) {
@@ -1188,13 +1184,6 @@ function advance(world, ms) {
           const updatedM = m.with({ chant: { kind: 'haste', at: newTime, until }, ready: until });
           monsterMap.set(m.id, updatedM);
           log.push("The cultist begins to chant.");
-          monsterMap.set(entry.id, monsterMap.get(m.id));
-          monsterMap.get(entry.id).mode = mode;
-          monsterMap.get(entry.id).pos = m.pos;
-          monsterMap.get(entry.id).facing = m.facing;
-          monsterMap.get(entry.id).last = m.last;
-          monsterMap.get(entry.id).held = m.held;
-          monsterMap.get(entry.id).small = m.small;
           acted = true; continue;
         }
       }
@@ -1203,7 +1192,7 @@ function advance(world, ms) {
       if (m.chant && m.chant.kind === "summon") {
         const swarmsWithin5 = [...monsterMap.values()].filter((mm) => mm.kind === "swarm" && distanceLe(m, mm) <= 5).length;
         if (swarmsWithin5 >= 3) {
-          monsterMap.set(entry.id, m.with({ ready: newTime + step, mode }));
+          monsterMap.set(m.id, m.with({ ready: newTime + step }));
           acted = true; continue;
         }
         const swarmsPlaced = [...monsterMap.values()].filter((mm) => mm.kind === "swarm").length;
@@ -1234,13 +1223,6 @@ function advance(world, ms) {
         const updatedM = m.with({ chant: null, cooldown: newTime + 8 * step, ready: newTime + step });
         monsterMap.set(m.id, updatedM);
         log.push("The scarecrow calls a swarm!");
-        monsterMap.set(entry.id, monsterMap.get(m.id));
-        monsterMap.get(entry.id).mode = mode;
-        monsterMap.get(entry.id).pos = m.pos;
-        monsterMap.get(entry.id).facing = m.facing;
-        monsterMap.get(entry.id).last = m.last;
-        monsterMap.get(entry.id).held = m.held;
-        monsterMap.get(entry.id).small = m.small;
         acted = true; continue;
       }
       if (!m.chant) {
@@ -1257,17 +1239,10 @@ function advance(world, ms) {
           const updatedM = m.with({ chant: { kind: 'summon', at: newTime, until }, ready: until });
           monsterMap.set(m.id, updatedM);
           log.push("The scarecrow begins to chant.");
-          monsterMap.set(entry.id, monsterMap.get(m.id));
-          monsterMap.get(entry.id).mode = mode;
-          monsterMap.get(entry.id).pos = m.pos;
-          monsterMap.get(entry.id).facing = m.facing;
-          monsterMap.get(entry.id).last = m.last;
-          monsterMap.get(entry.id).held = m.held;
-          monsterMap.get(entry.id).small = m.small;
           acted = true; continue;
         }
       }
-      monsterMap.set(entry.id, m.with({ ready: newTime + step, mode }));
+      monsterMap.set(m.id, m.with({ ready: newTime + step }));
       acted = true; continue;
     } else if (m.kind === "pumpkin") {
       const step = bestiary.entry(m.kind).step;
@@ -1308,8 +1283,7 @@ function advance(world, ms) {
               }
             }
           }
-          monsterMap.set(entry.id, m.with({ ready: newTime + step }));
-          monsterMap.delete(entry.id);
+          monsterMap.delete(m.id);
           acted = true; continue;
         }
       } else {
@@ -1333,13 +1307,6 @@ function advance(world, ms) {
           const updatedM = m.with({ fuse: { at: newTime } });
           monsterMap.set(m.id, updatedM);
           log.push("The pumpkin's fuse is lit!");
-          monsterMap.set(entry.id, monsterMap.get(m.id));
-          monsterMap.get(entry.id).mode = mode;
-          monsterMap.get(entry.id).pos = m.pos;
-          monsterMap.get(entry.id).facing = m.facing;
-          monsterMap.get(entry.id).last = m.last;
-          monsterMap.get(entry.id).held = m.held;
-          monsterMap.get(entry.id).small = m.small;
         }
       }
     }
@@ -1595,7 +1562,7 @@ function advance(world, ms) {
         reach = k;
       }
       reach = target ? mk : 1;
-      if (!target) { monsterMap.set(m.id, m.with({ ready: newTime + monsterLatency(m, "step"), facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach: 1 } })); if (m.haste > 0) monsterMap.get(m.id) = monsterMap.get(m.id).with({ haste: m.haste - 1 }); acted = true; continue; }
+      if (!target) { let updatedM = m.with({ ready: newTime + monsterLatency(m, "step"), facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach: 1 } }); if (m.haste > 0) updatedM = updatedM.with({ haste: m.haste - 1 }); monsterMap.set(m.id, updatedM); acted = true; continue; }
       const tStats = target.type === 'hero' ? target.hero.actor.stats : target.monster.stats;
       const { rng: nrr, roll, ward } = combatDraw(rng);
       rng = nrr;
