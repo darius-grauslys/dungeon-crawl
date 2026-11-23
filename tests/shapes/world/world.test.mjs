@@ -633,3 +633,23 @@ test('world: intrinsic data - round trip with spikes, air, flung, web item', () 
   assert.deepStrictEqual(round, w);
   assert.deepStrictEqual(w.data().spikes, [{ x: 2, y: 1, shift: 1 }]);
 });
+
+test('world: intrinsic valid - monster with last kind lunge is accepted', () => {
+  const { grid, hero, item, visible, explored, entry } = makeValidComponents();
+  const snakeMonster = actorShape.of({
+    id: 1,
+    kind: 'snake',
+    pos: pointShape.of(2, 0),
+    stats: statsShape.of({ hp: 5, maxHp: 5, attack: 3, defense: 0 }),
+    last: { kind: 'lunge', dx: 1, dy: 0, at: 10, reach: 2 }
+  });
+  const fields = {
+    seed: 123, rng: 456, depth: 2, time: 0, state: 'playing',
+    grid, heroes: [hero], monsters: [snakeMonster], items: [item],
+    visible, explored, gold: 7, log: ['start'], entry
+  };
+  const w = worldOf(fields);
+  assert.strictEqual(w.monsters[0].last.kind, 'lunge');
+  const round = worldFromData(JSON.parse(JSON.stringify(w.data())));
+  assert.deepStrictEqual(round, w);
+});
