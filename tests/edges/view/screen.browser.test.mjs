@@ -662,6 +662,77 @@ test("prices", async () => {
   assert.equal(greenHighRedLowAnn, 0, "above Ann, none with green above 245 and red below 170");
 });
 
+test("effects", async () => {
+  const canvas = document.querySelector("canvas");
+  init(canvas);
+
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const visible = fullMask(7, 3);
+  const explored = fullMask(7, 3);
+  const hAnn = makeHero("Ann", 0, 1, 1, true);
+  const hBob = makeHero("Bob", 1, 3, 1, true);
+
+  const ctx = canvas.getContext("2d");
+  const centerPixel = (cx, cy) => {
+    const data = ctx.getImageData(cx * 48 + 24, cy * 48 + 24, 1, 1).data;
+    return { r: data[0], g: data[1], b: data[2] };
+  };
+
+  // fuse
+  {
+    const monster = actor.of({ id: 2, kind: "slime", pos: point.of(4, 1), stats: makeStats(), fuse: { at: 0 } });
+    const w = world.of({
+      seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+      grid, heroes: [hAnn, hBob], monsters: [monster], items: [],
+      visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
+    });
+    draw(w, "Ann", false, 50);
+    let p = centerPixel(4, 1);
+    assert.ok(Math.abs(p.r - 236) <= 3 && Math.abs(p.g - 127) <= 3 && Math.abs(p.b - 82) <= 3, "fuse lit at now 50");
+    draw(w, "Ann", false, 150);
+    p = centerPixel(4, 1);
+    assert.equal(p.r, 220); assert.equal(p.g, 50); assert.equal(p.b, 50);
+    draw(w, "Ann", false, 2650);
+    p = centerPixel(4, 1);
+    assert.ok(Math.abs(p.r - 236) <= 3 && Math.abs(p.g - 127) <= 3 && Math.abs(p.b - 82) <= 3, "fuse lit at now 2650");
+    draw(w, "Ann", false, 2750);
+    p = centerPixel(4, 1);
+    assert.equal(p.r, 220); assert.equal(p.g, 50); assert.equal(p.b, 50);
+  }
+
+  // chant
+  {
+    const monster = actor.of({ id: 2, kind: "slime", pos: point.of(4, 1), stats: makeStats(), chant: { kind: "haste", at: 0, until: 1200 } });
+    const w = world.of({
+      seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+      grid, heroes: [hAnn, hBob], monsters: [monster], items: [],
+      visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
+    });
+    draw(w, "Ann", false, 100);
+    let p = centerPixel(4, 1);
+    assert.equal(p.r, 255); assert.equal(p.g, 240); assert.equal(p.b, 180);
+    draw(w, "Ann", false, 1300);
+    p = centerPixel(4, 1);
+    assert.equal(p.r, 220); assert.equal(p.g, 50); assert.equal(p.b, 50);
+  }
+
+  // blast
+  {
+    const w = world.of({
+      seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+      grid, heroes: [hAnn, hBob], monsters: [], items: [],
+      visible, explored, gold: 0, log: ["hello"], entry: makeEntry(),
+      effects: [{ kind: "blast", x: 4, y: 1, size: 1, at: 0 }]
+    });
+    draw(w, "Ann", false, 100);
+    let p = centerPixel(5, 1);
+    assert.equal(p.r, 255); assert.equal(p.g, 240); assert.equal(p.b, 180);
+    draw(w, "Ann", false, 500);
+    p = centerPixel(5, 1);
+    assert.equal(p.r, 50); assert.equal(p.g, 36); assert.equal(p.b, 44);
+  }
+});
+
 test("themes", async () => {
   const canvas = document.querySelector("canvas");
   init(canvas);
@@ -751,18 +822,18 @@ test("themes", async () => {
 
   const worldDepth1A = makeWorld32x3(1, 1, 1);
   const worldDepth7A = makeWorld32x3(7, 1, 1);
-  const pixel1A = collectCellPixels32x3(worldDepth1A, 3, 1);
-  const pixel7A = collectCellPixels32x3(worldDepth7A, 3, 1);
-  assert.deepEqual(pixel1A, pixel7A, "cell (3,1) at depth 7 is pixel for pixel same as depth 1");
+  const pixel1A = collectCellPixels32x3(worldDepth1A, 3, 0);
+  const pixel7A = collectCellPixels32x3(worldDepth7A, 3, 0);
+  assert.deepEqual(pixel1A, pixel7A, "wall cell (3,0) at depth 7 is pixel for pixel same as depth 1");
 
   const worldDepth1B = makeWorld32x3(1, 30, 1);
   const worldDepth8B = makeWorld32x3(8, 30, 1);
   const worldDepth7B = makeWorld32x3(7, 30, 1);
-  const pixel1B = collectCellPixels32x3(worldDepth1B, 28, 1);
-  const pixel8B = collectCellPixels32x3(worldDepth8B, 28, 1);
-  const pixel7B = collectCellPixels32x3(worldDepth7B, 28, 1);
-  assert.deepEqual(pixel7B, pixel8B, "cell (28,1) at depth 7 is pixel for pixel same as depth 8");
-  assert.ok(diffPixels(pixel1B, pixel7B) >= 10, "cell (28,1) at depth 7 differs from depth 1 in at least 10 pixels");
+  const pixel1B = collectCellPixels32x3(worldDepth1B, 28, 0);
+  const pixel8B = collectCellPixels32x3(worldDepth8B, 28, 0);
+  const pixel7B = collectCellPixels32x3(worldDepth7B, 28, 0);
+  assert.deepEqual(pixel7B, pixel8B, "wall cell (28,0) at depth 7 is pixel for pixel same as depth 8");
+  assert.ok(diffPixels(pixel1B, pixel7B) >= 10, "wall cell (28,0) at depth 7 differs from depth 1 in at least 10 pixels");
 });
 
 test("poses", async () => {
@@ -956,6 +1027,140 @@ test("sprites", async () => {
     if (wall00[i] !== wall20[i]) wallDiff++;
   }
   assert.ok(wallDiff >= 10, "wall-6 (0,0) differs from wall-10 (2,0) in at least 10 pixels");
+});
+
+test("floors", async () => {
+  const canvas = document.querySelector("canvas");
+  init(canvas);
+
+  await load("/assets/");
+
+  const grid = tileGrid.fromRows([
+    "###############",
+    "#.............#",
+    "#.............#",
+    "#.............#",
+    "#.............#",
+    "#.............#",
+    "#.............#",
+    "#.............#",
+    "#.............#",
+    "#.............#",
+    "###############"
+  ]);
+  const visible = fullMask(15, 11);
+  const explored = fullMask(15, 11);
+  const hAnn = makeHero("Ann", 0, 1, 1, true);
+
+  const makeWorldForSeed = (seed) => world.of({
+    seed, rng: 1, depth: 1, time: 0, state: "playing",
+    grid, heroes: [hAnn], monsters: [], items: [],
+    visible, explored, gold: 0, log: ["hello"], entry: save.of({ seed, depth: 1, players: [] })
+  });
+
+  const w1 = makeWorldForSeed(1);
+  draw(w1, "Ann", false);
+
+  const ctx = canvas.getContext("2d");
+
+  const collectCell = (cx, cy) => {
+    const data = ctx.getImageData(cx * 48, cy * 48, 48, 48).data;
+    const pixels = [];
+    for (let i = 0; i < data.length; i += 4) {
+      pixels.push(data[i], data[i + 1], data[i + 2], data[i + 3]);
+    }
+    return pixels;
+  };
+
+  const cell75 = collectCell(7, 5);
+  const cell15 = collectCell(1, 5);
+
+  const sheetImg = new Image();
+  sheetImg.src = "/assets/sheets/floor.png";
+  await sheetImg.decode();
+
+  const drawSpriteToPixels = async (sy) => {
+    const scratch = document.createElement("canvas");
+    scratch.width = 48; scratch.height = 48;
+    const sctx = scratch.getContext("2d");
+    sctx.fillStyle = "rgb(22, 13, 19)";
+    sctx.fillRect(0, 0, 48, 48);
+    sctx.imageSmoothingEnabled = false;
+    const sheetCanvas = document.createElement("canvas");
+    sheetCanvas.width = sheetImg.width;
+    sheetCanvas.height = sheetImg.height;
+    const sctxSheet = sheetCanvas.getContext("2d");
+    sctxSheet.drawImage(sheetImg, 0, 0);
+    const sheetData = sctxSheet.getImageData(0, 0, sheetImg.width, sheetImg.height).data;
+    const transparentSheet = sctxSheet.createImageData(sheetImg.width, sheetImg.height);
+    for (let i = 0; i < sheetData.length; i += 4) {
+      const r = sheetData[i], g = sheetData[i + 1], b = sheetData[i + 2], a = sheetData[i + 3];
+      if (r === 22 && g === 13 && b === 19) {
+        transparentSheet.data[i] = 0;
+        transparentSheet.data[i + 1] = 0;
+        transparentSheet.data[i + 2] = 0;
+        transparentSheet.data[i + 3] = 0;
+      } else {
+        transparentSheet.data[i] = r;
+        transparentSheet.data[i + 1] = g;
+        transparentSheet.data[i + 2] = b;
+        transparentSheet.data[i + 3] = a;
+      }
+    }
+    sctxSheet.putImageData(transparentSheet, 0, 0);
+    sctx.drawImage(sheetCanvas, 0, sy, 16, 16, 0, 0, 48, 48);
+    const data = sctx.getImageData(0, 0, 48, 48).data;
+    const pixels = [];
+    for (let i = 0; i < data.length; i += 4) {
+      pixels.push(data[i], data[i + 1], data[i + 2], data[i + 3]);
+    }
+    return pixels;
+  };
+
+  const match = (a, b) => {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  };
+
+  const calmestSy = [304, 336, 0, 320, 352, 368, 16];
+  let matched75 = false;
+  for (const sy of calmestSy) {
+    if (match(await drawSpriteToPixels(sy), cell75)) { matched75 = true; break; }
+  }
+  assert.ok(matched75, "cell (7,5) matches one of the seven calmest dungeon floor patterns");
+
+  const busiestSy = [96, 112, 128, 240, 288, 272, 256];
+  let matched15 = false;
+  for (const sy of busiestSy) {
+    if (match(await drawSpriteToPixels(sy), cell15)) { matched15 = true; break; }
+  }
+  assert.ok(matched15, "cell (1,5) matches one of the seven busiest dungeon floor patterns");
+
+  // same world drawn twice gives same pixels
+  draw(w1, "Ann", false);
+  assert.deepEqual(collectCell(7, 5), cell75);
+
+  // seed 2: 13x9 floor cells not all same as seed 1
+  const pixels1 = [];
+  for (let x = 1; x <= 13; x++) {
+    for (let y = 1; y <= 9; y++) {
+      pixels1.push(...collectCell(x, y));
+    }
+  }
+  const w2 = makeWorldForSeed(2);
+  draw(w2, "Ann", false);
+  const pixels2 = [];
+  for (let x = 1; x <= 13; x++) {
+    for (let y = 1; y <= 9; y++) {
+      pixels2.push(...collectCell(x, y));
+    }
+  }
+  let anyDiff = false;
+  for (let i = 0; i < pixels1.length; i++) {
+    if (pixels1[i] !== pixels2[i]) { anyDiff = true; break; }
+  }
+  assert.ok(anyDiff, "with seed 2 the 13x9 floor cells are not all the same as with seed 1");
 });
 
 test("world/valid", () => {
