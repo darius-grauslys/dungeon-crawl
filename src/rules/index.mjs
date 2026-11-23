@@ -1399,7 +1399,13 @@ function advance(world, ms) {
 
     let decideMonster = m;
     if (m.mode === "dormant") decideMonster = m.with({ mode: "roam" });
-    const decideIntent = monstersNode.decide(decideMonster, currentGrid, foesCells, threatsCells, blockedCells, turn);
+    const friends = [];
+    for (const mm of monsterMap.values()) {
+      if (mm.id === m.id) continue;
+      if (bestiary.hostile(m.kind, mm.kind)) continue;
+      friends.push(mm);
+    }
+    const decideIntent = monstersNode.decide(decideMonster, currentGrid, foesCells, threatsCells, blockedCells, turn, friends);
 
     let acted = false;
     if (decideIntent.kind === "move") {
