@@ -10,6 +10,8 @@ export const NAMES = Object.freeze([
   "powerup",
   "use",
   "stairs",
+  "hiss",
+  "boom",
 ]);
 
 /**
