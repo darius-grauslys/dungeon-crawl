@@ -168,12 +168,18 @@ function floorTileIndices(world, theme) {
   }
 
   const { regionId, regionType } = computeRegions(world);
-  const Hbase = 1 + Math.floor(h(world, 1000, 0) * Math.floor(N / 2));
+  const half = Math.floor(N / 2);
 
   function baseForRegion(r) {
-    if (regionType[r] === 'hall') return Hbase;
-    const roomBase = h(world, r, 2) < 0.5 ? Hbase - 1 : Hbase + 1;
-    return Math.min(roomBase, N - 2);
+    if (regionType[r] === 'hall') {
+      // halls get busy patterns: base in [half, N-2]
+      const hb = half + Math.floor(h(world, r, 3) * (N - 1 - half));
+      return Math.min(hb, N - 2);
+    } else {
+      // rooms get calm patterns: base in [0, half-1]
+      const rb = Math.floor(h(world, r, 2) * half);
+      return Math.min(rb, N - 2);
+    }
   }
 
   for (let cy = 0; cy < H; cy++) {
