@@ -44,11 +44,13 @@ test("chases: snake routes around walls", () => {
 test("reach: snake and bat limits", () => {
   const grid = tileGrid.of(20, 3, Array(60).fill("floor"));
   const snake = actor.of({ id: 1, kind: "snake", pos: point.of(0, 1), stats: s });
-  assert.deepEqual(decide(snake, grid, [point.of(7, 1)], [], [], 0), intent.wait());
+  // foe at (7,1): out of reach (snake reach 6), roams: id 1 turn 0 heading right (1,0).
+  assert.deepEqual(decide(snake, grid, [point.of(7, 1)], [], [], 0), intent.move(1, 0));
   assert.deepEqual(decide(snake, grid, [point.of(6, 1)], [], [], 0), intent.move(1, 0));
   const bat = actor.of({ id: 2, kind: "bat", pos: point.of(0, 1), stats: s });
   assert.deepEqual(decide(bat, grid, [point.of(9, 1)], [], [], 0), intent.move(1, 0));
-  assert.deepEqual(decide(bat, grid, [point.of(10, 1)], [], [], 0), intent.wait());
+  // foe at (10,1): out of reach (bat reach 9), roams: id 2 turn 0 heading down (0,1).
+  assert.deepEqual(decide(bat, grid, [point.of(10, 1)], [], [], 0), intent.move(0, 1));
   const snake2 = actor.of({ id: 3, kind: "snake", pos: point.of(0, 1), stats: s });
   assert.deepEqual(decide(snake2, grid, [point.of(6, 2)], [], [], 0), intent.move(1, 1));
 });
@@ -93,8 +95,8 @@ test("flees: worm flees threat", () => {
   const worm2 = actor.of({ id: 2, kind: "worm", pos: point.of(4, 4), stats: s });
   assert.deepEqual(decide(worm2, grid, [], [point.of(4, 2)], [], 0), intent.move(0, 1));
   const worm3 = actor.of({ id: 3, kind: "worm", pos: point.of(4, 4), stats: s });
-  // threat at (10,4): distance 6 > 5, waits.
-  assert.deepEqual(decide(worm3, grid, [], [point.of(10, 4)], [], 0), intent.wait());
+  // threat at (10,4): distance 6 > 5, does not flee, roams: id 3 turn 0 heading left (-1,0).
+  assert.deepEqual(decide(worm3, grid, [], [point.of(10, 4)], [], 0), intent.move(-1, 0));
 });
 
 test("flees: no step farther, waits", () => {
@@ -182,6 +184,49 @@ test("abilities: summmon waits, fuse never attacks", () => {
   // swarm (ability split) with foe next to it attacks.
   const swarm = actor.of({ id: 3, kind: "swarm", pos: point.of(4, 4), stats: s });
   assert.deepEqual(decide(swarm, grid, [point.of(4, 3)], [], [], 0), intent.move(0, -1));
+});
+
+test("roams: heading from last move or id+turn", () => {
+  const grid = tileGrid.of(12, 12, Array(144).fill("floor"));
+  // bat id 1 at (5,5), last null, turn 0: heading (1+0)%8=1=(1,0), moves (1,0).
+  const bat = actor.of({ id: 1, kind: "bat", pos: point.of(5, 5), stats: s });
+  assert.deepEqual(decide(bat, grid, [], [], [], 0), intent.move(1, 0));
+  // last was move (0,1): heading (0,1), moves (0,1).
+  const batMove = actor.of({ id: 1, kind: "bat", pos: point.of(5, 5), stats: s, last: { kind: "move", dx: 0, dy: 1, at: 0, reach: 1 } });
+  assert.deepEqual(decide(batMove, grid, [], [], [], 0), intent.move(0, 1));
+});
+
+test("roams: flocking with friends", () => {
+  const grid = tileGrid.of(12, 12, Array(144).fill("floor"));
+  // last null, friends two bats id 2 at (5,3) and id 3 at (6,3), each last move (-1,0): v (2,-1), moves (1,-1).
+  const bat = actor.of({ id: 1, kind: "bat", pos: point.of(5, 5), stats: s });
+  const f2 = actor.of({ id: 2, kind: "bat", pos: point.of(5, 3), stats: s, last: { kind: "move", dx: -1, dy: 0, at: 0, reach: 1 } });
+  const f3 = actor.of({ id: 3, kind: "bat", pos: point.of(6, 3), stats: s, last: { kind: "move", dx: -1, dy: 0, at: 0, reach: 1 } });
+  assert.deepEqual(decide(bat, grid, [], [], [], 0, [f2, f3]), intent.move(1, -1));
+  // friends one bat id 2 at (5,4), last null: v (3,1), moves (1,1).
+  const bat2 = actor.of({ id: 1, kind: "bat", pos: point.of(5, 5), stats: s });
+  const f4 = actor.of({ id: 2, kind: "bat", pos: point.of(5, 4), stats: s });
+  assert.deepEqual(decide(bat2, grid, [], [], [], 0, [f4]), intent.move(1, 1));
+});
+
+test("roams: slime odd turn waits, guard waits, blocked grid waits", () => {
+  const grid = tileGrid.of(12, 12, Array(144).fill("floor"));
+  // slime id 1 at (5,5) on turn 1 waits (odd turn rule 2); on turn 0 moves (1,0).
+  const slime = actor.of({ id: 1, kind: "slime", pos: point.of(5, 5), stats: s });
+  assert.deepEqual(decide(slime, grid, [], [], [], 1), intent.wait());
+  assert.deepEqual(decide(slime, grid, [], [], [], 0), intent.move(1, 0));
+  // bat mode guard waits.
+  const batGuard = actor.of({ id: 2, kind: "bat", pos: point.of(5, 5), stats: s, mode: "guard" });
+  assert.deepEqual(decide(batGuard, grid, [], [], [], 0), intent.wait());
+});
+
+test("roams: blocked grid and friends validation", () => {
+  const grid = tileGrid.fromRows(["###", "#.#", "###"]);
+  const bat = actor.of({ id: 1, kind: "bat", pos: point.of(1, 1), stats: s });
+  assert.deepEqual(decide(bat, grid, [], [], [], 0), intent.wait());
+  const bigGrid = tileGrid.of(12, 12, Array(144).fill("floor"));
+  const bat2 = actor.of({ id: 1, kind: "bat", pos: point.of(5, 5), stats: s });
+  assert.throws(() => decide(bat2, bigGrid, [], [], [], 0, "not-an-array"), TypeError);
 });
 
 test("refuses: bad arguments", () => {
