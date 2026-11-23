@@ -289,6 +289,61 @@ test("monsters-act: skeleton moves toward hero", () => {
   assert.equal(wBobFirst.monsters[0].pos.x, 5);
 });
 
+test("attacked-first: hero plain step collected, monster moves there, melee in step 2b", () => {
+  const grid = tileGridShape.fromRows(["#########", "#.......#", "#########"]);
+  const visible = maskShape.empty(9, 3);
+  const explored = maskShape.empty(9, 3);
+  const mkWorld = (heroes, monsters, rng) => worldShape.of({ seed: 1, rng, depth: 1, time: 0, state: "playing", grid, heroes, monsters, items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 1, players: [] }) });
+
+  const annActor = actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 });
+  const ann = heroShape.of({ name: "Ann", actor: annActor, pending: intentShape.move(1, 0), alive: true });
+  const skeleton = actorShape.of({ id: 1, kind: "skeleton", pos: pointShape.of(3, 1), stats: statsShape.of({ hp: 9, maxHp: 9, attack: 4, defense: 2 }), ready: 0 });
+  const w = mkWorld([ann], [skeleton], 1);
+  const w2 = rules.advance(w, 50);
+  const annH = w2.heroes.find((h) => h.name === "Ann");
+  assert.equal(annH.actor.pos.x, 1);
+  assert.equal(annH.actor.pos.y, 1);
+  const skel = w2.monsters.find((m) => m.kind === "skeleton");
+  assert.equal(skel.pos.x, 2);
+  assert.ok(skel.held > 50);
+});
+
+test("attacked-first: hero plain step moves when monster not there", () => {
+  const grid = tileGridShape.fromRows(["#########", "#.......#", "#########"]);
+  const visible = maskShape.empty(9, 3);
+  const explored = maskShape.empty(9, 3);
+  const mkWorld = (heroes, monsters, rng) => worldShape.of({ seed: 1, rng, depth: 1, time: 0, state: "playing", grid, heroes, monsters, items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 1, players: [] }) });
+
+  const annActor = actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 });
+  const ann = heroShape.of({ name: "Ann", actor: annActor, pending: intentShape.move(1, 0), alive: true });
+  const bat = actorShape.of({ id: 1, kind: "bat", pos: pointShape.of(7, 1), stats: statsShape.of({ hp: 3, maxHp: 3, attack: 2, defense: 0 }), ready: 0 });
+  const w = mkWorld([ann], [bat], 1);
+  const w2 = rules.advance(w, 50);
+  const annH = w2.heroes.find((h) => h.name === "Ann");
+  assert.equal(annH.actor.pos.x, 2);
+  assert.equal(annH.actor.pos.y, 1);
+  assert.equal(annH.pending, null);
+});
+
+test("quickest-foe: attack(0,0) turns to adjacent hostile creature with least effective strike", () => {
+  const grid = tileGridShape.fromRows(["#####", "#...#", "#####"]);
+  const visible = maskShape.empty(5, 3);
+  const explored = maskShape.empty(5, 3);
+  const mkWorld = (heroes, monsters, rng) => worldShape.of({ seed: 1, rng, depth: 1, time: 0, state: "playing", grid, heroes, monsters, items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 1, players: [] }) });
+
+  const annActor = actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(2, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1, range: 1 }), ready: 0 });
+  const ann = heroShape.of({ name: "Ann", actor: annActor, pending: intentShape.attack(0, 0), alive: true });
+  const bat = actorShape.of({ id: 1, kind: "bat", pos: pointShape.of(3, 1), stats: statsShape.of({ hp: 3, maxHp: 3, attack: 2, defense: 0 }), ready: 0 });
+  const skeleton = actorShape.of({ id: 2, kind: "skeleton", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 9, maxHp: 9, attack: 4, defense: 2 }), ready: 0 });
+  const w = mkWorld([ann], [bat, skeleton], 1);
+  const w2 = rules.advance(w, 50);
+  const annH = w2.heroes.find((h) => h.name === "Ann");
+  assert.equal(annH.actor.aim.dx, 1);
+  assert.equal(annH.actor.aim.dy, 0);
+  assert.equal(annH.actor.facing, "right");
+  assert.deepEqual(annH.actor.last, { kind: "attack", dx: 1, dy: 0, at: 50, reach: 1 });
+});
+
 test("dies: demon kills hero, intend for dead hero returns same world", () => {
   const grid = tileGridShape.fromRows(["#########", "#.......#", "#########"]);
   const visible = maskShape.empty(9, 3);
@@ -729,4 +784,24 @@ test("blast kills a plain monster and logs it slain", () => {
   assert.ok(wEx.log.includes("The pumpkin explodes!"), "pumpkin explodes line");
   assert.ok(wEx.log.includes("The skeleton is slain."), "skeleton slain line");
   assert.ok(wEx.effects.some((e) => e.kind === "blast" && e.x === 4 && e.y === 1 && e.size === 2), "blast effect present");
+});
+
+test("attacked-first: skeleton attacks Ann same advance, Ann held 350, log shows hit", () => {
+  const grid = tileGridShape.fromRows(["#######", "#.....#", "#######"]);
+  const visible = maskShape.empty(7, 3);
+  const explored = maskShape.empty(7, 3);
+  const heroAnn = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(2, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) }), pending: null, alive: true });
+  const skeleton = actorShape.of({ id: 1, kind: "skeleton", pos: pointShape.of(3, 1), stats: statsShape.of({ hp: 9, maxHp: 9, attack: 4, defense: 2 }), ready: 0 });
+  const w = worldShape.of({ seed: 5, rng: 5, depth: 1, time: 0, state: "playing", grid, heroes: [heroAnn], monsters: [skeleton], items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 5, depth: 1, players: [{ name: "Ann", stats: { hp: 24, maxHp: 24, attack: 4, defense: 1 } }] }) });
+  const wAdv = rules.advance(rules.intend(w, "Ann", intentShape.move(-1, 0)), 50);
+  assert.equal(wAdv.heroes[0].actor.held, 350, "Ann held 350");
+  assert.equal(wAdv.heroes[0].actor.pos.x, 2, "Ann still at (2, 1) after advance");
+  assert.equal(wAdv.heroes[0].pending.kind, "move", "Ann pending move stays");
+  const skel = wAdv.monsters[0];
+  assert.equal(skel.last.kind, "attack", "skeleton last is attack");
+  assert.equal(skel.last.dx, -1, "skeleton attack dx -1");
+  assert.equal(skel.last.dy, 0, "skeleton attack dy 0");
+  assert.equal(skel.last.at, 50, "skeleton last at 50");
+  assert.equal(skel.last.reach, 1, "skeleton last reach 1");
+  assert.ok(wAdv.log.some((l) => l.includes("The skeleton hits Ann for")), "log shows skeleton hit Ann");
 });

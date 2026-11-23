@@ -44,6 +44,50 @@ function pick(rng, list) {
   return { rng: nr, item: list[Math.floor(value * list.length)] };
 }
 
+function maybeSplitSlime(m, currentGrid, monsterMap, heroes, items, newTime, log, rng) {
+  if (m.kind !== "slime" && m.kind !== "blue-slime") return { monsters: null, rng };
+  if (m.stats.maxHp <= 1) return { monsters: null, rng };
+  if (m.mode === "guard") return { monsters: null, rng };
+  const { rng: r1, value: v1 } = mulberryDraw(rng);
+  if (v1 >= 0.5) return { rng: r1, monsters: null };
+  let maxId = 0;
+  for (const mm of monsterMap.values()) if (mm.id > maxId) maxId = mm.id;
+  for (const it of items) if (it.id > maxId) maxId = it.id;
+  const newId1 = maxId + 1, newId2 = maxId + 2;
+  const cells = [];
+  for (let dy2 = -2; dy2 <= 2; dy2++) {
+    for (let dx2 = -2; dx2 <= 2; dx2++) {
+      if (dx2 === 0 && dy2 === 0) continue;
+      if (Math.max(Math.abs(dx2), Math.abs(dy2)) > 2) continue;
+      const cx = m.pos.x + dx2, cy = m.pos.y + dy2;
+      if (!currentGrid.open(cx, cy)) continue;
+      let occ = false;
+      for (const mm of monsterMap.values()) if (mm.id !== m.id && mm.covers(cx, cy)) { occ = true; break; }
+      if (occ) continue;
+      for (const h of heroes) if (h.alive && h.actor.covers(cx, cy)) { occ = true; break; }
+      if (occ) continue;
+      for (const it of items) if ((it.price > 0 || it.kind === "lever") && it.pos.x === cx && it.pos.y === cy) { occ = true; break; }
+      if (occ) continue;
+      cells.push(pointShape.of(cx, cy));
+    }
+  }
+  if (cells.length < 2) return { rng: r1, monsters: null };
+  const { rng: r2, value: v2 } = mulberryDraw(r1);
+  const c1 = cells[Math.floor(v2 * cells.length)];
+  let remaining = cells.slice();
+  remaining.splice(remaining.indexOf(c1), 1);
+  const { rng: r3, value: v3 } = mulberryDraw(r2);
+  const c2 = remaining[Math.floor(v3 * remaining.length)];
+  const mk = m.kind;
+  const mkStats = statsShape.of({ hp: 1, maxHp: 1, attack: m.stats.attack, defense: m.stats.defense, range: m.stats.range, magic: m.stats.magic, magicPower: m.stats.magicPower, magicResist: m.stats.magicResist });
+  const step = bestiary.entry(mk).step;
+  const flung = { x: m.pos.x, y: m.pos.y, at: newTime };
+  const s1 = actorShape.of({ id: newId1, kind: mk, pos: c1, stats: mkStats, ready: newTime + step, flung, slow: 0, held: 0, mode: "roam", size: 1, small: false });
+  const s2 = actorShape.of({ id: newId2, kind: mk, pos: c2, stats: mkStats, ready: newTime + step, flung, slow: 0, held: 0, mode: "roam", size: 1, small: false });
+  log.push(`The ${mk} splits!`);
+  return { monsters: [s1, s2], rng: r3 };
+}
+
 function combatDraw(rng) {
   const { rng: nr1, value: v1 } = mulberryDraw(rng);
   const rollVal = Math.max(1, Math.min(20, 1 + Math.floor(v1 * 20)));
@@ -255,7 +299,7 @@ function makeFloor(seed, depth, rngIn) {
         );
       }
     }
-    return { plan, monsters, items, rng, grid };
+    return { plan, monsters, items, rng, grid, spikes: plan.spikes || [] };
   }
 
   if (isShopDepth(depth)) {
@@ -284,7 +328,7 @@ function makeFloor(seed, depth, rngIn) {
       const price = Math.round(cfg.base * Math.pow(1.25, round - 1)) - spread + Math.floor(value * (2 * spread + 1));
       items.push(itemShape.of({ id: idCounter++, kind, pos: spots[i], amount: 0, price, pulled: false }));
     }
-    return { plan, monsters, items, rng, grid };
+    return { plan, monsters, items, rng, grid, spikes: plan.spikes || [] };
   }
 
   const stage = levelShape.stage(depth);
@@ -406,7 +450,7 @@ function makeFloor(seed, depth, rngIn) {
     items.push(itemShape.of({ id: idCounter++, kind, pos: spots[spotIdx++], amount: 0, price: 0, pulled: false }));
   }
 
-  return { plan, monsters, items, rng, grid };
+  return { plan, monsters, items, rng, grid, spikes: plan.spikes || [] };
 }
 
 function newGame(seed, depth = 1) {
@@ -421,7 +465,7 @@ function newGame(seed, depth = 1) {
   return worldShape.of({
     seed, rng, depth: d, time: 0, state: "playing", grid,
     heroes: [], monsters, items, visible, explored, gold: 0,
-    log: ["Welcome to the dungeon. Find the stairs (>)."], entry,
+    log: ["Welcome to the dungeon. Find the stairs (>)."], entry, spikes: plan.spikes || [],
   });
 }
 
@@ -457,7 +501,7 @@ function fromSave(save) {
   return worldShape.of({
     seed: save.seed, rng, depth: save.depth, time: 0, state: "playing", grid,
     heroes: newHeroes, monsters, items, visible, explored, gold: 0,
-    log, entry: save,
+    log, entry: save, spikes: plan.spikes || [],
   });
 }
 
@@ -520,6 +564,159 @@ function stepCutCorner(grid, actor, dx, dy) {
 
 function gridOpen(grid, x, y) {
   return grid.at(x, y) === "floor";
+}
+
+function findQuickestFoe(world, h, monstersList) {
+  const dirs = [
+    [0, -1], [1, 0], [0, 1], [-1, 0], [1, -1], [1, 1], [-1, 1], [-1, -1]
+  ]; // up, right, down, left, up-right, down-right, down-left, up-left
+  let best = null;
+  for (const [dx, dy] of dirs) {
+    const nx = h.actor.pos.x + dx, ny = h.actor.pos.y + dy;
+    if (!world.grid.open(nx, ny)) continue;
+    if (stepCutCorner(world.grid, h.actor, dx, dy)) continue;
+    let foe = null;
+    for (const m of monstersList) {
+      if (m.air) continue;
+      if (m.covers(nx, ny) && bestiary.hostile(h.actor.kind, m.kind)) { foe = m; break; }
+    }
+    if (!foe) continue;
+    const e = bestiary.entry(foe.kind);
+    let eff = e.strike;
+    if (foe.slow > 0) eff = eff * 2;
+    if (foe.haste > 0) eff = Math.floor(eff / 2);
+    if (!best || eff < best.eff) {
+      best = { dx, dy, foe, eff };
+    }
+  }
+  return best;
+}
+
+function spiderNextToFoe(m, monsterMap, heroes) {
+  const kind = m.kind;
+  const dirs = [[0,-1],[1,0],[0,1],[-1,0],[1,-1],[1,1],[-1,1],[-1,-1]];
+  for (const [dx, dy] of dirs) {
+    const nx = m.pos.x + dx, ny = m.pos.y + dy;
+    for (const h of heroes) {
+      if (h.alive && bestiary.hostile(kind, 'hero') && h.actor.covers(nx, ny)) return true;
+    }
+    for (const mm of monsterMap.values()) {
+      if (mm.air) continue;
+      if (bestiary.hostile(kind, mm.kind) && mm.covers(nx, ny)) return true;
+    }
+  }
+  return false;
+}
+
+function spiderCellClear(m, monsterMap, heroes) {
+  for (const mm of monsterMap.values()) {
+    if (mm.id === m.id) continue;
+    if (mm.air) continue;
+    for (const c of cellsCovered(mm)) { if (c.x === m.pos.x && c.y === m.pos.y) return false; }
+  }
+  for (const h of heroes) {
+    if (h.alive) { for (const c of cellsCovered(h.actor)) { if (c.x === m.pos.x && c.y === m.pos.y) return false; } }
+  }
+  return true;
+}
+
+function spiderFoeWithinReach(m, monsterMap, heroes) {
+  const kind = m.kind;
+  const reach = bestiary.entry(kind).reach;
+  for (const h of heroes) {
+    if (h.alive && bestiary.hostile(kind, 'hero')) {
+      if (distanceLe(m, h.actor) <= reach) return true;
+    }
+  }
+  for (const mm of monsterMap.values()) {
+    if (mm.air) continue;
+    if (bestiary.hostile(kind, mm.kind)) {
+      if (distanceLe(m, mm) <= reach) return true;
+    }
+  }
+  return false;
+}
+
+function handleSpiderLeap(m, newTime, monsterMap, heroes, currentGrid) {
+  if (m.kind !== "spider" && m.kind !== "blue-spider") return { m, acted: false, leapHandled: false, landed: false, aloftMove: false };
+  // Start leap: air null, mode roam, past cooldown, hp*3 > maxHp, foe within reach, none next
+  if (!m.air && m.mode === "roam" && newTime >= (m.cooldown || 0) && m.stats.hp * 3 > m.stats.maxHp) {
+    if (spiderFoeWithinReach(m, monsterMap, heroes)) {
+      let noneNext = true;
+      for (const h of heroes) {
+        if (h.alive && bestiary.hostile(m.kind, 'hero')) {
+          for (const c of cellsCovered(h.actor)) { if (distanceToSquare(m, c) <= 1) { noneNext = false; break; } }
+        }
+        if (!noneNext) break;
+      }
+      if (noneNext) {
+        for (const mm of monsterMap.values()) {
+          if (mm.id === m.id) continue;
+          if (mm.air) continue;
+          if (bestiary.hostile(m.kind, mm.kind)) {
+            for (const c of cellsCovered(mm)) { if (distanceToSquare(m, c) <= 1) { noneNext = false; break; } }
+          }
+          if (!noneNext) break;
+        }
+      }
+      if (noneNext) {
+        return { m: m.with({ air: { phase: 'crouch', at: newTime }, ready: newTime + 250 }), acted: false, leapHandled: true, landed: false, aloftMove: false };
+      }
+    }
+    return { m, acted: false, leapHandled: false, landed: false, aloftMove: false };
+  }
+  const air = m.air;
+  if (!air) return { m, acted: false, leapHandled: false, landed: false, aloftMove: false };
+  let phase = air.phase;
+  const step = bestiary.entry(m.kind).step;
+  if (phase === "crouch") {
+    if (newTime >= air.at + 250) return { m: m.with({ air: { phase: "rise", at: newTime }, ready: newTime + 250 }), acted: false, leapHandled: true, landed: false, aloftMove: false };
+    return { m, acted: false, leapHandled: false, landed: false, aloftMove: false };
+  } else if (phase === "rise") {
+    if (newTime >= air.at + 250) return { m: m.with({ air: { phase: "aloft", at: newTime } }), acted: false, leapHandled: true, landed: false, aloftMove: false };
+    return { m, acted: false, leapHandled: false, landed: false, aloftMove: false };
+  } else if (phase === "drop") {
+    if (newTime >= air.at + 150) {
+      const cooldown = newTime + 10 * step;
+      return { m: m.with({ air: null, cooldown, mode: "roam", ready: newTime }), acted: true, leapHandled: true, landed: true, aloftMove: false };
+    }
+    return { m, acted: false, leapHandled: false, landed: false, aloftMove: false };
+  } else if (phase === "aloft") {
+    const aloftFor = newTime - air.at;
+    let hasCreatureOnCell = !spiderCellClear(m, monsterMap, heroes);
+    const foeWithinReach = spiderFoeWithinReach(m, monsterMap, heroes);
+    let drop = false;
+    if (aloftFor >= 4000 && (!hasCreatureOnCell || !foeWithinReach)) drop = true;
+    else {
+      const poised = spiderNextToFoe(m, monsterMap, heroes) && spiderCellClear(m, monsterMap, heroes);
+      if (poised) {
+        let aloftSpiders = [];
+        for (const mm of monsterMap.values()) {
+          if ((mm.kind === "spider" || mm.kind === "blue-spider") && mm.air && mm.air.phase === "aloft") aloftSpiders.push(mm);
+        }
+        let allPoisedWithin8 = true;
+        for (const other of aloftSpiders) {
+          if (other.id === m.id) continue;
+          const d = Math.max(Math.abs(other.pos.x - m.pos.x), Math.abs(other.pos.y - m.pos.y));
+          if (d <= 8) {
+            const otherPoised = spiderNextToFoe(other, monsterMap, heroes) && spiderCellClear(other, monsterMap, heroes);
+            if (!otherPoised) { allPoisedWithin8 = false; break; }
+          }
+        }
+        if (allPoisedWithin8) drop = true;
+      }
+    }
+    if (drop) {
+      return { m: m.with({ air: { phase: "drop", at: newTime }, ready: newTime + 150 }), acted: false, leapHandled: true, landed: false, aloftMove: false };
+    }
+    const poised = spiderNextToFoe(m, monsterMap, heroes) && spiderCellClear(m, monsterMap, heroes);
+    if (poised) {
+      return { m: m.with({ ready: newTime + 50 }), acted: false, leapHandled: true, landed: false, aloftMove: false };
+    }
+    // move as monsters.decide answers with nothing in blocked
+    return { m: m.with({ ready: newTime + step }), acted: false, leapHandled: true, landed: false, aloftMove: true };
+  }
+  return { m, acted: false, leapHandled: false, landed: false, aloftMove: false };
 }
 
 function heroLatency(actor, type) {
@@ -830,6 +1027,19 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
       log.push(monsterLine);
       return { hero: newHero, gold, items, monstersList: monstersAfter, log: log.slice(-50), grid: undefined, rng };
     }
+    // Web: stepping onto a web's cell tears it and catches
+    let webHit = null;
+    for (const it of items) {
+      if (it.kind === "web" && it.pos.x === nx && it.pos.y === ny) { webHit = it; break; }
+    }
+    if (webHit) {
+      items = items.filter((x) => x.id !== webHit.id);
+      let updatedActor = h.actor.with({ pos: pointShape.of(nx, ny), ready: newTime + heroLatencyFn("step"), aim: { dx, dy }, facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 }, slow: Math.max(1, h.actor.slow || 0) });
+      if (h.actor.haste > 0) { updatedActor = updatedActor.with({ haste: h.actor.haste - 1 }); }
+      log.push(`${h.name} is caught in a web!`);
+      const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
+      return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
+    }
     let picked = null;
     for (const it of items) {
       if (it.pos.x === nx && it.pos.y === ny && !it.pulled && it.price === 0) { picked = it; break; }
@@ -872,16 +1082,30 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
       return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
     }
     let updatedActor = h.actor.with({ pos: pointShape.of(nx, ny), ready: newTime + heroLatencyFn("step"), aim: { dx, dy }, facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 } });
-    if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
+    let webCaught = null;
+    for (const it of items) {
+      if (it.kind === "web" && it.pos.x === nx && it.pos.y === ny) { webCaught = it; break; }
+    }
+    if (webCaught) {
+      items = items.filter((it) => it.id !== webCaught.id);
+      updatedActor = updatedActor.with({ slow: 1 });
+      log.push(`${h.name} is caught in a web!`);
+    } else {
+      if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
+    }
     if (h.actor.haste > 0) { updatedActor = updatedActor.with({ haste: h.actor.haste - 1 }); }
     const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
     return { hero: newHero, gold, items, monstersList, log, grid: undefined, rng };
   } else if (intent.kind === "attack") {
-    const dx = intent.dx, dy = intent.dy;
+    let dx = intent.dx, dy = intent.dy;
+    if (dx === 0 && dy === 0) {
+      const foe = findQuickestFoe(world, h, monstersList);
+      if (foe) { dx = foe.dx; dy = foe.dy; }
+    }
     const dir = (dx === 0 && dy === 0) ? h.actor.aim : { dx, dy };
     const r = h.actor.stats.range || 1;
     let reach = 1, monster = null, mk = 1;
-    let wareHit = null, leverHit = null;
+    let wareHit = null, leverHit = null, webHit = null;
     for (let k = 1; k <= r; k++) {
       const x = h.actor.pos.x + dir.dx * k;
       const y = h.actor.pos.y + dir.dy * k;
@@ -901,10 +1125,25 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
           if (it.kind === "lever" && it.pos.x === x && it.pos.y === y) { leverHit = it; break; }
         }
         if (leverHit) break;
+        for (const it of items) {
+          if (it.kind === "web" && it.pos.x === x && it.pos.y === y) { webHit = it; break; }
+        }
+        if (webHit) break;
       }
       reach = k;
     }
     reach = monster ? mk : 1;
+    if (webHit && !monster) {
+      items = items.filter((it) => it.id !== webHit.id);
+      log.push(`${h.name} tears a web.`);
+      const aimDx = (dx === 0 && dy === 0) ? h.actor.aim.dx : dir.dx;
+      const aimDy = (dx === 0 && dy === 0) ? h.actor.aim.dy : dir.dy;
+      let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("attack"), aim: (dx === 0 && dy === 0) ? h.actor.aim : { dx: aimDx, dy: aimDy }, facing: actorShape.facingFor(aimDx, aimDy) });
+      if (h.actor.haste > 0) { updatedActor = updatedActor.with({ haste: h.actor.haste - 1 }); }
+      updatedActor = updatedActor.with({ last: { kind: "attack", dx: aimDx, dy: aimDy, at: newTime, reach: 1 } });
+      const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
+      return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
+    }
     const aimDx = (dx === 0 && dy === 0) ? h.actor.aim.dx : dir.dx;
     const aimDy = (dx === 0 && dy === 0) ? h.actor.aim.dy : dir.dy;
     let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("attack"), aim: (dx === 0 && dy === 0) ? h.actor.aim : { dx: aimDx, dy: aimDy }, facing: actorShape.facingFor(aimDx, aimDy) });
@@ -1088,9 +1327,10 @@ function advance(world, ms) {
   let currentGrid = world.grid;
   let rng = world.rng;
 
-  // 1. Heroes fire
+  // 1. Heroes fire - collect plain steps for step 2b
   let updatedHeroes = [...heroes];
   let descendFired = false;
+  const plainSteps = []; // {heroIndex, dx, dy}
   for (let hi = 0; hi < updatedHeroes.length; hi++) {
     const h = updatedHeroes[hi];
     if (!h.alive) continue;
@@ -1098,6 +1338,21 @@ function advance(world, ms) {
     if (!h.pending) continue;
     const intent = h.pending;
     if (intent.kind === "descend") descendFired = true;
+    if (intent.kind === "move") {
+      const dx = intent.dx, dy = intent.dy;
+      const nx = h.actor.pos.x + dx, ny = h.actor.pos.y + dy;
+      if (gridOpen(world.grid, nx, ny) && !stepCutCorner(world.grid, h.actor, dx, dy)) {
+        let holdsSomething = false;
+        for (const m of monstersList) { if (m.covers(nx, ny)) { holdsSomething = true; break; } }
+        if (!holdsSomething) {
+          for (const it of items) { if ((it.price > 0 || it.kind === "lever") && it.pos.x === nx && it.pos.y === ny) { holdsSomething = true; break; } }
+        }
+        if (!holdsSomething) {
+          plainSteps.push({ heroIndex: hi, dx, dy });
+          continue;
+        }
+      }
+    }
     if (h.actor.held > newTime) {
       if (intent.kind === "move") {
         const dx = intent.dx, dy = intent.dy;
@@ -1143,6 +1398,19 @@ function advance(world, ms) {
       } else {
         monsterMap.set(entry.id, m.with({ ready: newTime + monsterLatency(m, "step"), mode }));
         continue;
+      }
+    }
+
+    // 4. Spider leap air phases
+    if ((m.kind === "spider" || m.kind === "blue-spider")) {
+      const leap = handleSpiderLeap(m, newTime, monsterMap, heroes, currentGrid);
+      m = leap.m;
+      monsterMap.set(entry.id, m);
+      if (leap.landed) {
+        mode = "roam";
+      } else if (leap.leapHandled) {
+        monsterMap.set(entry.id, m);
+        if (!leap.aloftMove) continue;
       }
     }
 
@@ -1300,7 +1568,12 @@ function advance(world, ms) {
               } else {
                 log.push(`The blast hits the ${mm.kind} for 25.`);
                 const nhp = mm.stats.hp - 25;
-                if (nhp <= 0) { log.push(`The ${mm.kind} is slain.`); monsterMap.delete(mm.id); monstersList = monstersList.filter((x) => x.id !== mm.id); }
+                if (nhp <= 0) {
+                  log.push(`The ${mm.kind} is slain.`);
+                  const split = maybeSplitSlime(mm, currentGrid, monsterMap, heroes, items, newTime, log, rng);
+                  if (split.monsters) { for (const sm of split.monsters) monsterMap.set(sm.id, sm); rng = split.rng; }
+                  monsterMap.delete(mm.id); monstersList = monstersList.filter((x) => x.id !== mm.id);
+                }
                 else { monsterMap.set(mm.id, mm.with({ stats: statsShape.of({ hp: nhp, maxHp: mm.stats.maxHp, attack: mm.stats.attack, defense: mm.stats.defense, range: mm.stats.range, magic: mm.stats.magic, magicPower: mm.stats.magicPower, magicResist: mm.stats.magicResist }) })); }
               }
             }
@@ -1343,28 +1616,102 @@ function advance(world, ms) {
     }
     for (const mm of monsterMap.values()) {
       if (mm.id === m.id) continue;
+      if (mm.air) continue; // off-the-ground creatures: in nobody's foes/threats/blocked
       cellsCovered(mm).forEach((c) => { blockedCells.push(c); blockedSet.add(`${c.x},${c.y}`); });
       if (bestiary.hostile(m.kind, mm.kind)) cellsCovered(mm).forEach((c) => foesCells.push(c));
     }
     for (const mm of monsterMap.values()) {
       if (mm.id === m.id) continue;
+      if (mm.air) continue; // off-the-ground creatures: in nobody's foes/threats/blocked
       if (bestiary.flees(m.kind, mm.kind)) cellsCovered(mm).forEach((c) => threatsCells.push(c));
     }
     for (const it of items) { if (it.price > 0 || it.kind === "lever") { const p = pointShape.of(it.pos.x, it.pos.y); blockedCells.push(p); blockedSet.add(`${p.x},${p.y}`); } }
 
     let decideMonster = m;
     if (m.mode === "dormant") decideMonster = m.with({ mode: "roam" });
-    const decideIntent = monstersNode.decide(decideMonster, currentGrid, foesCells, threatsCells, blockedCells, turn);
+    const friends = [];
+    for (const mm of monsterMap.values()) {
+      if (mm.id === m.id) continue;
+      if (bestiary.hostile(m.kind, mm.kind)) continue;
+      friends.push(mm);
+    }
+    let decideFoes = foesCells, decideThreats = threatsCells, decideBlocked = blockedCells;
+    if (m.air && m.air.phase === "aloft") {
+      decideFoes = []; decideThreats = []; decideBlocked = [];
+    }
+    const decideIntent = monstersNode.decide(decideMonster, currentGrid, decideFoes, decideThreats, decideBlocked, turn, friends);
 
     let acted = false;
     if (decideIntent.kind === "move") {
       const dx = decideIntent.dx, dy = decideIntent.dy;
       const movedCells = [];
+      // Aloft spider: move onto open cells is a step there (share with creatures), else wait t+50
+      if (m.air && m.air.phase === "aloft") {
+        const nx = m.pos.x + dx, ny = m.pos.y + dy;
+        const isDiagA = dx !== 0 && dy !== 0;
+        const diagCornerOpen = currentGrid.open(m.pos.x + dx, m.pos.y) && currentGrid.open(m.pos.x, m.pos.y + dy);
+        if (currentGrid.open(nx, ny) && (!isDiagA || diagCornerOpen)) {
+          let stepLatency = monsterLatency(m, "step");
+          let updatedM = m.with({ mode, pos: pointShape.of(nx, ny), ready: newTime + stepLatency, facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 } });
+          if (m.haste > 0) updatedM = updatedM.with({ haste: m.haste - 1 });
+          monsterMap.set(m.id, updatedM);
+          acted = true; continue;
+        } else {
+          monsterMap.set(m.id, m.with({ ready: newTime + 50 }));
+          acted = true; continue;
+        }
+      }
       const size = m.size || 1;
       let free = true;
       for (let i = 0; i < size; i++) for (let j = 0; j < size; j++) { const c = pointShape.of(m.pos.x + dx + i, m.pos.y + dy + j); movedCells.push(c); if (blockedSet.has(`${c.x},${c.y}`) || !currentGrid.open(c.x, c.y)) free = false; }
       const isDiag = dx !== 0 && dy !== 0;
       if (isDiag && (!currentGrid.open(m.pos.x + dx, m.pos.y) || !currentGrid.open(m.pos.x, m.pos.y + dy))) free = false;
+      let lunge = false;
+      let lungeDx = 0, lungeDy = 0;
+      if ((m.kind === "snake" || m.kind === "blue-snake") && m.mode === "roam" && newTime >= (m.cooldown || 0)) {
+        const dirs = [[0,-1],[1,0],[0,1],[-1,0],[1,-1],[1,1],[-1,1],[-1,-1]];
+        for (const [ldx, ldy] of dirs) {
+          const fx = m.pos.x + ldx * 3, fy = m.pos.y + ldy * 3;
+          let foe3 = false;
+          for (const h of heroes) {
+            if (h.alive && bestiary.hostile(m.kind, 'hero') && h.actor.covers(fx, fy)) { foe3 = true; break; }
+          }
+          if (!foe3) {
+            for (const mm of monsterMap.values()) {
+              if (mm.air) continue;
+              if (mm.id === m.id) continue;
+              if (bestiary.hostile(m.kind, mm.kind) && mm.covers(fx, fy)) { foe3 = true; break; }
+            }
+          }
+          if (!foe3) continue;
+          let clear = true;
+          const isDiagL = ldx !== 0 && ldy !== 0;
+          for (let k = 1; k <= 2; k++) {
+            const cx = m.pos.x + ldx * k, cy = m.pos.y + ldy * k;
+            if (!currentGrid.open(cx, cy)) { clear = false; break; }
+            for (const h of heroes) { if (h.alive && h.actor.covers(cx, cy)) { clear = false; break; } }
+            for (const mm of monsterMap.values()) { if (mm.id !== m.id && !mm.air && mm.covers(cx, cy)) { clear = false; break; } }
+            for (const it of items) { if ((it.price > 0 || it.kind === "lever") && it.pos.x === cx && it.pos.y === cy) { clear = false; break; } }
+            if (!clear) break;
+          }
+          if (clear && isDiagL) {
+            for (let k = 1; k <= 3; k++) {
+              const corner1x = m.pos.x + k * ldx, corner1y = m.pos.y + (k - 1) * ldy;
+              const corner2x = m.pos.x + (k - 1) * ldx, corner2y = m.pos.y + k * ldy;
+              if (!currentGrid.open(corner1x, corner1y) || !currentGrid.open(corner2x, corner2y)) { clear = false; break; }
+            }
+          }
+          if (clear) { lunge = true; lungeDx = ldx; lungeDy = ldy; break; }
+        }
+      }
+      if (lunge) {
+        const dx = lungeDx, dy = lungeDy;
+        let updatedM = m.with({ mode, pos: pointShape.of(m.pos.x + dx * 2, m.pos.y + dy * 2), ready: newTime + 150, cooldown: newTime + 5 * monsterLatency(m, "step"), aim: {dx, dy}, facing: actorShape.facingFor(dx, dy), last: { kind: "lunge", dx, dy, at: newTime, reach: 2 } });
+        if (m.slow > 0) updatedM = updatedM.with({ slow: m.slow - 1 });
+        if (m.haste > 0) updatedM = updatedM.with({ haste: m.haste - 1 });
+        monsterMap.set(m.id, updatedM);
+        acted = true; continue;
+      }
       let meleeTarget = null;
       for (const h of heroes) {
         if (!h.alive) continue;
@@ -1487,6 +1834,8 @@ function advance(world, ms) {
               const nhp = tm.stats.hp - s.damage;
               if (nhp <= 0) {
                 monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${tm.kind} for ${s.damage}.` : `The ${m.kind} hits the ${tm.kind} for ${s.damage}.`;
+                const split = maybeSplitSlime(tm, currentGrid, monsterMap, heroes, items, newTime, log, rng);
+                if (split.monsters) { for (const sm of split.monsters) monsterMap.set(sm.id, sm); rng = split.rng; }
                 monsterMap.delete(tm.id);
               } else {
                 monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${tm.kind} for ${s.damage}.` : `The ${m.kind} hits the ${tm.kind} for ${s.damage}.`;
@@ -1554,6 +1903,8 @@ function advance(world, ms) {
               const nhp = target.stats.hp - s.damage;
               if (nhp <= 0) {
                 monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${target.kind} for ${s.damage}.` : `The ${m.kind} hits the ${target.kind} for ${s.damage}.`;
+                const split = maybeSplitSlime(target, currentGrid, monsterMap, heroes, items, newTime, log, rng);
+                if (split.monsters) { for (const sm of split.monsters) monsterMap.set(sm.id, sm); rng = split.rng; }
                 monsterMap.delete(target.id);
               } else {
                 monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${target.kind} for ${s.damage}.` : `The ${m.kind} hits the ${target.kind} for ${s.damage}.`;
@@ -1573,7 +1924,21 @@ function advance(world, ms) {
         }
       }
       if (!free) { monsterMap.set(m.id, m); acted = true; continue; }
-      let updatedM = m.with({ mode, pos: pointShape.of(m.pos.x + dx, m.pos.y + dy), ready: newTime + monsterLatency(m, "step"), facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 } });
+      let stepLatency = monsterLatency(m, "step");
+      let leaveWebs = false;
+      if ((m.kind === "spider" || m.kind === "blue-spider") && m.stats.hp * 3 <= m.stats.maxHp) {
+        leaveWebs = true;
+        stepLatency = Math.floor(monsterLatency(m, "step") / 3);
+      }
+      let updatedM = m.with({ mode, pos: pointShape.of(m.pos.x + dx, m.pos.y + dy), ready: newTime + stepLatency, facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 } });
+      if (leaveWebs) {
+        let maxId = 0;
+        for (const mm of monsterMap.values()) if (mm.id > maxId) maxId = mm.id;
+        for (const it of items) if (it.id > maxId) maxId = it.id;
+        const webId = maxId + 1;
+        const web = itemShape.of({ id: webId, kind: "web", pos: pointShape.of(m.pos.x, m.pos.y), amount: 0, price: 0, pulled: false });
+        items = [...items, web];
+      }
       if (m.haste > 0) updatedM = updatedM.with({ haste: m.haste - 1 });
       monsterMap.set(m.id, updatedM);
       acted = true; continue;
@@ -1650,6 +2015,8 @@ function advance(world, ms) {
           const nhp = tm.stats.hp - s.damage;
           if (nhp <= 0) {
             monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${tm.kind} for ${s.damage}.` : `The ${m.kind} hits the ${tm.kind} for ${s.damage}.`;
+            const split = maybeSplitSlime(tm, currentGrid, monsterMap, heroes, items, newTime, log, rng);
+            if (split.monsters) { for (const sm of split.monsters) monsterMap.set(sm.id, sm); rng = split.rng; }
             monsterMap.delete(tm.id);
           } else {
             monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${tm.kind} for ${s.damage}.` : `The ${m.kind} hits the ${tm.kind} for ${s.damage}.`;
@@ -1674,6 +2041,91 @@ function advance(world, ms) {
     if (!acted) monsterMap.set(m.id, m);
   }
   monstersList = [...monsterMap.values()];
+
+  // 2b. Fire collected plain steps
+  updatedHeroes = [...heroes];
+  for (const ps of plainSteps) {
+    const h = updatedHeroes[ps.heroIndex];
+    if (!h || !h.alive) continue;
+    if (h.actor.held > newTime) {
+      // held now: stays pending
+      continue;
+    }
+    const latFn = (type) => heroLatency(h.actor, type);
+    const res = heroFiredAction(world, h, newTime, latFn, { gold, items, monstersList, log: log.slice(-50), rng });
+    updatedHeroes[ps.heroIndex] = res.hero;
+    gold = res.gold; items = res.items; monstersList = res.monstersList; log = res.log;
+    if (res.rng !== undefined) rng = res.rng;
+    if (res.grid) currentGrid = res.grid;
+  }
+  heroes = updatedHeroes;
+
+  // 2c. Spikes
+  const oldTime = world.time;
+  const tier = levelShape.tier(world.depth);
+  const dmgBase = [4, 8, 16, 32, 32][tier] || 4;
+  const raisedSpikesAtNew = [];
+  for (const s of (world.spikes || [])) {
+    let mmStart = Math.floor(oldTime / 400) * 400;
+    if (mmStart <= oldTime) mmStart += 400;
+    for (let mm = mmStart; mm <= newTime; mm += 400) {
+      if (((mm / 400) + s.shift) % 6 === 5) {
+        // spike raised at mm: strike every creature on ground covering it
+        for (const h of heroes) {
+          if (!h.alive) continue;
+          if (h.actor.covers(s.x, s.y)) {
+            const dmg = Math.max(1, dmgBase - h.actor.stats.defense);
+            const nhp = h.actor.stats.hp - dmg;
+            log.push(`The spikes hit ${h.name} for ${dmg}.`);
+            if (nhp <= 0) {
+              log.push(`${h.name} falls.`);
+              heroes = heroes.map((hh) => hh.actor.id === h.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: statsShape.of({ hp: 0, maxHp: hh.actor.stats.maxHp, attack: hh.actor.stats.attack, defense: hh.actor.stats.defense, range: hh.actor.stats.range, magic: hh.actor.stats.magic, magicPower: hh.actor.stats.magicPower, magicResist: hh.actor.stats.magicResist }) }), pending: hh.pending, alive: false, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+            } else {
+              const nstats = statsShape.of({ hp: nhp, maxHp: h.actor.stats.maxHp, attack: h.actor.stats.attack, defense: h.actor.stats.defense, range: h.actor.stats.range, magic: h.actor.stats.magic, magicPower: h.actor.stats.magicPower, magicResist: h.actor.stats.magicResist });
+              heroes = heroes.map((hh) => hh.actor.id === h.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+            }
+          }
+        }
+        for (const [id, mm] of monsterMap.entries()) {
+          if (mm.air) continue;
+          if (mm.covers(s.x, s.y)) {
+            const dmg = Math.max(1, dmgBase - mm.stats.defense);
+            const nhp = mm.stats.hp - dmg;
+            log.push(`The spikes hit the ${mm.kind} for ${dmg}.`);
+            if (nhp <= 0) {
+              log.push(`The ${mm.kind} is slain.`);
+              const split = maybeSplitSlime(mm, currentGrid, monsterMap, heroes, items, newTime, log, rng);
+              if (split.monsters) { for (const sm of split.monsters) monsterMap.set(sm.id, sm); rng = split.rng; }
+              monsterMap.delete(id);
+            } else {
+              const nstats = statsShape.of({ hp: nhp, maxHp: mm.stats.maxHp, attack: mm.stats.attack, defense: mm.stats.defense, range: mm.stats.range, magic: mm.stats.magic, magicPower: mm.stats.magicPower, magicResist: mm.stats.magicResist });
+              monsterMap.set(id, mm.with({ stats: nstats }));
+            }
+          }
+        }
+      }
+    }
+    const idx = ((((Math.floor(newTime / 400)) + s.shift) % 6) + 6) % 6;
+    if ([0, 1, 0, 1, 0, 2][idx] === 2) raisedSpikesAtNew.push({ x: s.x, y: s.y });
+  }
+  // creatures whose step brought them onto a raised spike are struck at once
+  for (const h of heroes) {
+    if (!h.alive) continue;
+    for (const rs of raisedSpikesAtNew) {
+      if (h.actor.covers(rs.x, rs.y)) {
+        const dmg = Math.max(1, dmgBase - h.actor.stats.defense);
+        const nhp = h.actor.stats.hp - dmg;
+        log.push(`The spikes hit ${h.name} for ${dmg}.`);
+        if (nhp <= 0) {
+          log.push(`${h.name} falls.`);
+          heroes = heroes.map((hh) => hh.actor.id === h.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: statsShape.of({ hp: 0, maxHp: hh.actor.stats.maxHp, attack: hh.actor.stats.attack, defense: hh.actor.stats.defense, range: hh.actor.stats.range, magic: hh.actor.stats.magic, magicPower: hh.actor.stats.magicPower, magicResist: hh.actor.stats.magicResist }) }), pending: hh.pending, alive: false, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+        } else {
+          const nstats = statsShape.of({ hp: nhp, maxHp: h.actor.stats.maxHp, attack: h.actor.stats.attack, defense: h.actor.stats.defense, range: h.actor.stats.range, magic: h.actor.stats.magic, magicPower: h.actor.stats.magicPower, magicResist: h.actor.stats.magicResist });
+          heroes = heroes.map((hh) => hh.actor.id === h.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+        }
+      }
+    }
+  }
 
   // 3. Wipe
   const aliveHeroes = heroes.filter((h) => h.alive);
@@ -1706,7 +2158,7 @@ function advance(world, ms) {
       return worldShape.of({ ...world, time: newTime, heroes, monsters: monstersList, items, visible: fv, explored: fe, state: "won", log: log.slice(-50), gold, grid: currentGrid, rng, effects: eff });
     }
     const newDepth = world.depth + 1;
-    const { plan, monsters: newMonsters, items: newItems, rng: newRng, grid: newGrid } = makeFloor(world.seed, newDepth, rng);
+    const { plan, monsters: newMonsters, items: newItems, rng: newRng, grid: newGrid, spikes: newSpikes } = makeFloor(world.seed, newDepth, rng);
     const startList = startCells(plan);
     const newHeroes = [];
     for (const h of heroes) {
@@ -1740,7 +2192,7 @@ function advance(world, ms) {
       seed: world.seed, rng: newRng, depth: newDepth, time: newTime, state: "playing", grid: newGrid,
       heroes: newHeroes, monsters: newMonsters, items: newItems, visible: finalVisible, explored: finalExplored, gold,
       log: log.slice(-50), entry: saveShape.of({ seed: world.seed, depth: newDepth, players: newHeroes.map((nh) => ({ name: nh.name, stats: { hp: nh.actor.stats.hp, maxHp: nh.actor.stats.maxHp, attack: nh.actor.stats.attack, defense: nh.actor.stats.defense, range: nh.actor.stats.range, magic: nh.actor.stats.magic, magicPower: nh.actor.stats.magicPower, magicResist: nh.actor.stats.magicResist } })) }),
-      effects: eff,
+      effects: eff, spikes: newSpikes,
     });
   } else if (descendFired) {
     log.push("All party members must be within 5 units of the exit!");
