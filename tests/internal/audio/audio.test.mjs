@@ -103,39 +103,34 @@ test("create: context null makes no mixer, load and resume resolve", async () =>
 });
 
 test("create: context left out uses instance when AudioContext exists", () => {
+  class StubGainNode {
+    constructor() {
+      this.value = 1;
+      this.connectedTo = null;
+    }
+    connect(node) { this.connectedTo = node; }
+    disconnect() { this.connectedTo = null; }
+    linearRampToValueAtTime(v, t) {}
+    setValueAtTime(v, t) {}
+  }
+  class StubBufferSource {
+    constructor() {
+      this.buffer = null;
+      this.loop = false;
+    }
+    start(t) {}
+    stop(t) {}
+  }
   class StubAudioContext {
     static instantiated = false;
     constructor() {
       StubAudioContext.instantiated = true;
-      this.destination = { connect() {}, disconnect() {} };
-      this._currentTime = 0;
+      this.destination = new StubGainNode();
+      this.currentTime = 0;
       this.state = "running";
     }
-    get currentTime() { return this._currentTime; }
-    set currentTime(v) { this._currentTime = v; }
-    createGain() {
-      let v = 1;
-      return {
-        get value() { return v; },
-        set value(x) { v = x; },
-        connect() {},
-        disconnect() {},
-        linearRampToValueAtTime() {},
-        setValueAtTime() {}
-      };
-    }
-    createBufferSource() {
-      let buf = null;
-      let loopVal = false;
-      return {
-        get buffer() { return buf; },
-        set buffer(x) { buf = x; },
-        get loop() { return loopVal; },
-        set loop(x) { loopVal = x; },
-        start() {},
-        stop() {}
-      };
-    }
+    createGain() { return new StubGainNode(); }
+    createBufferSource() { return new StubBufferSource(); }
     decodeAudioData() { return Promise.resolve({}); }
     resume() { return Promise.resolve(); }
   }
