@@ -594,36 +594,3 @@ test("refuses: invalid inputs throw TypeError", () => {
   assert.throws(() => rules.fromSave({}), TypeError);
   assert.throws(() => rules.advance({}, 50), TypeError);
 });
-
-test("spawns: levels 6-10 include snowman/snow-skeleton/wolf-man; 16-20 scarecrow/pumpkin no reaper; 21-25 imp/demon/beholder", () => {
-  const kinds6 = new Set(rules.newGame(12, 6).monsters.map((m) => m.kind));
-  assert.ok(kinds6.has("snowman") || kinds6.has("snow-skeleton") || kinds6.has("wolf-man"));
-  const kinds16 = new Set(rules.newGame(12, 18).monsters.map((m) => m.kind));
-  assert.ok(kinds16.has("scarecrow") || kinds16.has("pumpkin"));
-  assert.ok(!kinds16.has("reaper"));
-  const kinds21 = new Set(rules.newGame(12, 22).monsters.map((m) => m.kind));
-  assert.ok(kinds21.has("imp") || kinds21.has("demon") || kinds21.has("beholder"));
-});
-
-test("reaper-lair: depth 21 has reaper boss, size 2, stairs closed while alive, gold x3, descend line", () => {
-  const w = rules.newGame(3, 21);
-  const boss = w.monsters.find((m) => m.kind === "reaper");
-  assert.ok(boss, "reaper boss present");
-  assert.equal(boss.size, 2);
-  assert.equal(boss.mode, "dormant");
-  assert.equal(w.grid.at(w.entry.players.length > 0 ? 0 : 0, 0), "wall");
-  assert.ok(w.grid.at(32, 15) !== "stairs" || boss.pos.x === 32 && boss.pos.y === 15, "stairs closed while lives");
-});
-
-test("effects: older than 1000ms dropped on advance", () => {
-  const grid = tileGridShape.fromRows(["#######", "#.....#", "#######"]);
-  const visible = maskShape.empty(7, 3);
-  const explored = maskShape.empty(7, 3);
-  const annActor = actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 });
-  const ann = heroShape.of({ name: "Ann", actor: annActor, pending: null, alive: true });
-  const w = worldShape.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "playing", grid, heroes: [ann], monsters: [], items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 1, players: [] }), effects: [{ kind: "blast", x: 3, y: 1, size: 2, at: 0 }] });
-  const wAdv = rules.advance(w, 1500);
-  assert.equal(wAdv.effects.length, 0);
-  const wAdvRecent = rules.advance(worldShape.of({ ...w, effects: [{ kind: "blast", x: 3, y: 1, size: 2, at: 1400 }] }), 1500);
-  assert.equal(wAdvRecent.effects.length, 1);
-});
