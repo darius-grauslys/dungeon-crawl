@@ -35,11 +35,17 @@ function setCell(grid, x, y, kind) {
   }
 }
 
+function setCellTemple(grid, x, y) {
+  if (x >= 1 && x <= 46 && y >= 1 && y <= 30) {
+    grid[y * WIDTH + x] = "floor";
+  }
+}
+
 function centre(r) {
   return { cx: r.x + Math.floor(r.w / 2), cy: r.y + Math.floor(r.h / 2) };
 }
 
-function tryCarve(gen) {
+function tryCarve(gen, temple) {
   // Step 1: start with all 48 by 32 cells wall (handled by grid init).
   // Step 2: place rooms: up to 80 tries, rectangle width 4 to 10, height 4 to 7,
   // cells from column 1 to 46 and row 1 to 30. Keep only if it overlaps no kept room
@@ -91,17 +97,45 @@ function tryCarve(gen) {
     if (gen.bool()) {
       const startX = c1.cx, endX = c2.cx, y = c1.cy;
       const minX = Math.min(startX, endX), maxX = Math.max(startX, endX);
-      for (let x = minX; x <= maxX; x++) setCell(grid, x, y, "floor");
+      for (let x = minX; x <= maxX; x++) {
+        setCell(grid, x, y, "floor");
+        if (temple) {
+          setCellTemple(grid, x + 1, y);
+          setCellTemple(grid, x, y + 1);
+          setCellTemple(grid, x + 1, y + 1);
+        }
+      }
       const startY = c1.cy, endY = c2.cy;
       const minY = Math.min(startY, endY), maxY = Math.max(startY, endY);
-      for (let yy = minY; yy <= maxY; yy++) setCell(grid, c2.cx, yy, "floor");
+      for (let yy = minY; yy <= maxY; yy++) {
+        setCell(grid, c2.cx, yy, "floor");
+        if (temple) {
+          setCellTemple(grid, c2.cx + 1, yy);
+          setCellTemple(grid, c2.cx, yy + 1);
+          setCellTemple(grid, c2.cx + 1, yy + 1);
+        }
+      }
     } else {
       const startY = c1.cy, endY = c2.cy, x = c1.cx;
       const minY = Math.min(startY, endY), maxY = Math.max(startY, endY);
-      for (let yy = minY; yy <= maxY; yy++) setCell(grid, x, yy, "floor");
+      for (let yy = minY; yy <= maxY; yy++) {
+        setCell(grid, x, yy, "floor");
+        if (temple) {
+          setCellTemple(grid, x + 1, yy);
+          setCellTemple(grid, x, yy + 1);
+          setCellTemple(grid, x + 1, yy + 1);
+        }
+      }
       const startX = c1.cx, endX = c2.cx;
       const minX = Math.min(startX, endX), maxX = Math.max(startX, endX);
-      for (let x = minX; x <= maxX; x++) setCell(grid, x, c2.cy, "floor");
+      for (let x = minX; x <= maxX; x++) {
+        setCell(grid, x, c2.cy, "floor");
+        if (temple) {
+          setCellTemple(grid, x + 1, c2.cy);
+          setCellTemple(grid, x, c2.cy + 1);
+          setCellTemple(grid, x + 1, c2.cy + 1);
+        }
+      }
     }
   }
 
@@ -174,8 +208,9 @@ export function generate(seed, depth) {
   }
 
   let gen = makeGenerator(seed, depth);
+  const temple = level.theme(depth) === 'temple';
   while (true) {
-    const plan = tryCarve(gen);
+    const plan = tryCarve(gen, temple);
     if (plan) return plan;
   }
 }
@@ -225,7 +260,7 @@ function buildLairPlan(round) {
         }
       }
     }
-  } else if (round === 2) {
+  } else if (round === 2 || round === 3) {
     bossPt = point.of(32, 15);
   }
 
