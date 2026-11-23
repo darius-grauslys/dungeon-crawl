@@ -266,6 +266,30 @@ test('world: intrinsic data - fromData(data()) round trip passes deepStrictEqual
   const w = worldOf(fields);
   const round = worldFromData(JSON.parse(JSON.stringify(w.data())));
   assert.deepStrictEqual(round, w);
+  assert.deepStrictEqual(w.data().effects, []);
+
+  const wWithEffects = worldOf({
+    ...fields,
+    effects: [{ kind: 'blast', x: 1, y: 1, size: 2, at: 40 }],
+    monsters: [
+      actorShape.of({
+        id: 1,
+        kind: 'slime',
+        pos: pointShape.of(2, 0),
+        stats: statsShape.of({ hp: 5, maxHp: 10, attack: 2, defense: 1 }),
+        last: { kind: 'move', dx: 0, dy: 1, at: 20 },
+        curse: 0,
+        haste: 2,
+        chant: { kind: 'haste', at: 10, until: 1210 },
+        cooldown: 900,
+        fuse: { at: 30 }
+      }),
+      golem,
+      archer
+    ]
+  });
+  const roundWithEffects = worldFromData(JSON.parse(JSON.stringify(wWithEffects.data())));
+  assert.deepStrictEqual(roundWithEffects, wWithEffects);
 
   for (const pendingIntent of [
     intentShape.move(1, 1),
@@ -435,6 +459,57 @@ test('world: data - hero gesture survives data()/fromData() round trip', () => {
   const round = worldFromData(JSON.parse(JSON.stringify(w.data())));
   assert.deepStrictEqual(round, w);
   assert.deepStrictEqual(round.heroes[0].actor.gesture, { kind: 'power', at: 50 });
+});
+
+test('world: intrinsic valid - effects left out defaults to []', () => {
+  const { world } = makeWorld();
+  assert.deepStrictEqual(world.effects, []);
+});
+
+test('world: intrinsic valid - effects with blast holds frozen', () => {
+  const { fields } = makeWorld();
+  const w = worldOf({ ...fields, effects: [{ kind: 'blast', x: 1, y: 1, size: 2, at: 40 }] });
+  assert.deepStrictEqual(w.effects, [{ kind: 'blast', x: 1, y: 1, size: 2, at: 40 }]);
+  assert.ok(Object.isFrozen(w.effects));
+  assert.ok(Object.isFrozen(w.effects[0]));
+});
+
+test('world: intrinsic valid - effects with boom throws TypeError', () => {
+  const { fields } = makeWorld();
+  assert.throws(() => worldOf({ ...fields, effects: [{ kind: 'boom', x: 1, y: 1, size: 2, at: 40 }] }), TypeError);
+});
+
+test('world: intrinsic valid - effects with size 4 throws TypeError', () => {
+  const { fields } = makeWorld();
+  assert.throws(() => worldOf({ ...fields, effects: [{ kind: 'blast', x: 1, y: 1, size: 4, at: 40 }] }), TypeError);
+});
+
+test('world: intrinsic data - older data without effects loads with []', () => {
+  const { grid, item, visible, explored, entry } = makeValidComponents();
+  const heroActor = actorShape.of({
+    id: 0,
+    kind: 'hero',
+    pos: pointShape.of(1, 1),
+    stats: statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 })
+  });
+  const hero = heroShape.of({ name: 'Ann', actor: heroActor });
+  const monster = actorShape.of({
+    id: 1,
+    kind: 'slime',
+    pos: pointShape.of(2, 0),
+    stats: statsShape.of({ hp: 5, maxHp: 10, attack: 2, defense: 1 })
+  });
+  const fields = {
+    seed: 123, rng: 456, depth: 2, time: 0, state: 'playing',
+    grid, heroes: [hero], monsters: [monster], items: [item],
+    visible, explored, gold: 7, log: ['start'], entry
+  };
+  const w = worldOf(fields);
+  const d = w.data();
+  delete d.effects;
+  const round = worldFromData(JSON.parse(JSON.stringify(d)));
+  assert.deepStrictEqual(round.effects, []);
+  assert.deepStrictEqual(round, w);
 });
 
 test('world: intrinsic data - fromData with invalid hero gesture throws TypeError', () => {

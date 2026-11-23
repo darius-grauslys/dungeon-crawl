@@ -19,11 +19,15 @@ url: handle.url, close}`; `close` clears the interval, then awaits
    - `list()`: send `lobby(table.ids().map(id => ({session: id,
      players: table.members(id).map(m => m.name), depth:
      worlds.get(id).depth})))`. Touches nothing.
-   - `create(save)`: `id = table.create(now)`; `null` is
-     `refused('full')`; else `worlds.set(id, save ?
-     rules.fromSave(save) : rules.newGame(seed))`, `seed` a random integer
-     from 0 to 4294967295 (`crypto.getRandomValues` or `Math.random`), and
-     send `created(id)`.
+   - `create(save)`: first make the world, `w = save ?
+     rules.fromSave(save) : rules.newGame(seed)`, `seed` a random integer
+     from 0 to 4294967295 (`crypto.getRandomValues` or `Math.random`); if
+     that throws, log it (`console.error`) and send `refused('malformed')`:
+     no session is made. Only then `id = table.create(now)`; `null` is
+     `refused('full')`; else `worlds.set(id, w)` and send `created(id)`.
+     A session never exists without a world: every step that reads
+     `worlds.get(id)` may rely on it (and the advance step skips, and the
+     table forgets, any id without a world, should one ever appear).
    - `join(session, name)`: `reason = table.join(connection,
      session, name, now)`; a reason is `refused(reason)`. Else
      `next = rules.join(worlds.get(session), name)`; `null` means

@@ -44,7 +44,8 @@ function makeFakeContext() {
   const context = {
     createGain,
     createBufferSource,
-    decodeAudioData(ab) { return Promise.resolve({ from: ab.url }); },
+    decodeAudioDataCount: 0,
+    decodeAudioData(ab) { this.decodeAudioDataCount++; return Promise.resolve({ from: ab.url }); },
     get destination() { return this._destination; },
     set destination(d) { this._destination = d; },
     _destination: null,
@@ -85,7 +86,7 @@ function masterOf(context) {
 async function settle() { await Promise.resolve(); await Promise.resolve(); }
 
 // Intrinsic - loads
-test("mixer: loads fetches and decodes twelve sound files", async () => {
+test("mixer: loads fetches and decodes fourteen sound files", async () => {
   const context = makeFakeContext();
   const records = [];
   const fetch = makeFetch(records);
@@ -95,9 +96,11 @@ test("mixer: loads fetches and decodes twelve sound files", async () => {
     "/assets/sfx/step-1.mp3", "/assets/sfx/step-2.mp3", "/assets/sfx/step-3.mp3", "/assets/sfx/step-4.mp3",
     "/assets/sfx/swing.mp3", "/assets/sfx/shot.mp3", "/assets/sfx/hit.mp3", "/assets/sfx/death.mp3",
     "/assets/sfx/coin.mp3", "/assets/sfx/powerup.mp3", "/assets/sfx/use.mp3", "/assets/sfx/stairs.mp3",
+    "/assets/sfx/hiss.mp3", "/assets/sfx/boom.mp3",
   ];
   assert.deepEqual(records, expected);
   assert.equal(context.gains.length, 3);
+  assert.equal(context.decodeAudioDataCount, 14);
 });
 
 test("mixer: loads respects base", async () => {
@@ -106,7 +109,7 @@ test("mixer: loads respects base", async () => {
   const fetch = makeFetch(records);
   const mixer = create({ context, fetch, base: "/x/" });
   await load(mixer);
-  assert.equal(records.length, 12);
+  assert.equal(records.length, 14);
   assert.ok(records[0].startsWith("/x/sfx/step-1.mp3"));
   assert.ok(records.every((r) => r.startsWith("/x/sfx/")));
 });
@@ -344,7 +347,7 @@ test("mixer: resumes does not call when running", async () => {
 
 // Intrinsic - cue/valid
 test("cue/valid builds and refuses", () => {
-  assert.deepEqual(cueNames, ["step", "swing", "shot", "hit", "death", "coin", "powerup", "use", "stairs"]);
+  assert.deepEqual(cueNames, ["step", "swing", "shot", "hit", "death", "coin", "powerup", "use", "stairs", "hiss", "boom"]);
   const c = cueOf({ name: "step", gain: 0.5 });
   assert.equal(c.name, "step");
   assert.equal(c.gain, 0.5);
@@ -353,7 +356,7 @@ test("cue/valid builds and refuses", () => {
   const stairCue = cueOf({ name: "stairs", gain: 1 });
   assert.equal(stairCue.name, "stairs");
   assert.equal(stairCue.gain, 1);
-  assert.throws(() => cueOf({ name: "boom", gain: 1 }), TypeError);
+  assert.throws(() => cueOf({ name: "bang", gain: 1 }), TypeError);
   assert.throws(() => cueOf({ name: "step", gain: 0 }), TypeError);
   assert.throws(() => cueOf({ name: "step", gain: 1.5 }), TypeError);
   assert.throws(() => cueOf({ name: "step", gain: "1" }), TypeError);
