@@ -933,7 +933,17 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
       return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
     }
     let updatedActor = h.actor.with({ pos: pointShape.of(nx, ny), ready: newTime + heroLatencyFn("step"), aim: { dx, dy }, facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 } });
-    if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
+    let webCaught = null;
+    for (const it of items) {
+      if (it.kind === "web" && it.pos.x === nx && it.pos.y === ny) { webCaught = it; break; }
+    }
+    if (webCaught) {
+      items = items.filter((it) => it.id !== webCaught.id);
+      updatedActor = updatedActor.with({ slow: 1 });
+      log.push(`${h.name} is caught in a web!`);
+    } else {
+      if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
+    }
     if (h.actor.haste > 0) { updatedActor = updatedActor.with({ haste: h.actor.haste - 1 }); }
     const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
     return { hero: newHero, gold, items, monstersList, log, grid: undefined, rng };
@@ -946,7 +956,7 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
     const dir = (dx === 0 && dy === 0) ? h.actor.aim : { dx, dy };
     const r = h.actor.stats.range || 1;
     let reach = 1, monster = null, mk = 1;
-    let wareHit = null, leverHit = null;
+    let wareHit = null, leverHit = null, webHit = null;
     for (let k = 1; k <= r; k++) {
       const x = h.actor.pos.x + dir.dx * k;
       const y = h.actor.pos.y + dir.dy * k;
@@ -966,10 +976,25 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
           if (it.kind === "lever" && it.pos.x === x && it.pos.y === y) { leverHit = it; break; }
         }
         if (leverHit) break;
+        for (const it of items) {
+          if (it.kind === "web" && it.pos.x === x && it.pos.y === y) { webHit = it; break; }
+        }
+        if (webHit) break;
       }
       reach = k;
     }
     reach = monster ? mk : 1;
+    if (webHit && !monster) {
+      items = items.filter((it) => it.id !== webHit.id);
+      log.push(`${h.name} tears a web.`);
+      const aimDx = (dx === 0 && dy === 0) ? h.actor.aim.dx : dir.dx;
+      const aimDy = (dx === 0 && dy === 0) ? h.actor.aim.dy : dir.dy;
+      let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("attack"), aim: (dx === 0 && dy === 0) ? h.actor.aim : { dx: aimDx, dy: aimDy }, facing: actorShape.facingFor(aimDx, aimDy) });
+      if (h.actor.haste > 0) { updatedActor = updatedActor.with({ haste: h.actor.haste - 1 }); }
+      updatedActor = updatedActor.with({ last: { kind: "attack", dx: aimDx, dy: aimDy, at: newTime, reach: 1 } });
+      const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
+      return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
+    }
     const aimDx = (dx === 0 && dy === 0) ? h.actor.aim.dx : dir.dx;
     const aimDy = (dx === 0 && dy === 0) ? h.actor.aim.dy : dir.dy;
     let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("attack"), aim: (dx === 0 && dy === 0) ? h.actor.aim : { dx: aimDx, dy: aimDy }, facing: actorShape.facingFor(aimDx, aimDy) });
@@ -1675,7 +1700,21 @@ function advance(world, ms) {
         }
       }
       if (!free) { monsterMap.set(m.id, m); acted = true; continue; }
-      let updatedM = m.with({ mode, pos: pointShape.of(m.pos.x + dx, m.pos.y + dy), ready: newTime + monsterLatency(m, "step"), facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 } });
+      let stepLatency = monsterLatency(m, "step");
+      let leaveWebs = false;
+      if ((m.kind === "spider" || m.kind === "blue-spider") && m.stats.hp * 3 <= m.stats.maxHp) {
+        leaveWebs = true;
+        stepLatency = Math.floor(monsterLatency(m, "step") / 3);
+      }
+      let updatedM = m.with({ mode, pos: pointShape.of(m.pos.x + dx, m.pos.y + dy), ready: newTime + stepLatency, facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 } });
+      if (leaveWebs) {
+        let maxId = 0;
+        for (const mm of monsterMap.values()) if (mm.id > maxId) maxId = mm.id;
+        for (const it of items) if (it.id > maxId) maxId = it.id;
+        const webId = maxId + 1;
+        const web = itemShape.of({ id: webId, kind: "web", pos: pointShape.of(m.pos.x, m.pos.y), amount: 1, price: 0, pulled: false, flung: false });
+        items = [...items, web];
+      }
       if (m.haste > 0) updatedM = updatedM.with({ haste: m.haste - 1 });
       monsterMap.set(m.id, updatedM);
       acted = true; continue;
