@@ -1160,7 +1160,7 @@ function advance(world, ms) {
         const updatedM = m.with({ chant: null, ready: newTime + step, haste: 3 });
         monsterMap.set(m.id, updatedM);
         log.push("The cultist's chant quickens the monsters!");
-        acted = true; continue;
+        continue;
       }
       if (!m.chant) {
         const allMonsters = [...monsterMap.values()];
@@ -1184,7 +1184,7 @@ function advance(world, ms) {
           const updatedM = m.with({ chant: { kind: 'haste', at: newTime, until }, ready: until });
           monsterMap.set(m.id, updatedM);
           log.push("The cultist begins to chant.");
-          acted = true; continue;
+          continue;
         }
       }
     } else if (m.kind === "scarecrow") {
@@ -1193,7 +1193,7 @@ function advance(world, ms) {
         const swarmsWithin5 = [...monsterMap.values()].filter((mm) => mm.kind === "swarm" && distanceLe(m, mm) <= 5).length;
         if (swarmsWithin5 >= 3) {
           monsterMap.set(m.id, m.with({ ready: newTime + step }));
-          acted = true; continue;
+          continue;
         }
         const swarmsPlaced = [...monsterMap.values()].filter((mm) => mm.kind === "swarm").length;
         const freeCells = [];
@@ -1223,7 +1223,7 @@ function advance(world, ms) {
         const updatedM = m.with({ chant: null, cooldown: newTime + 8 * step, ready: newTime + step });
         monsterMap.set(m.id, updatedM);
         log.push("The scarecrow calls a swarm!");
-        acted = true; continue;
+        continue;
       }
       if (!m.chant) {
         const cooldown = m.cooldown || 0;
@@ -1239,11 +1239,11 @@ function advance(world, ms) {
           const updatedM = m.with({ chant: { kind: 'summon', at: newTime, until }, ready: until });
           monsterMap.set(m.id, updatedM);
           log.push("The scarecrow begins to chant.");
-          acted = true; continue;
+          continue;
         }
       }
       monsterMap.set(m.id, m.with({ ready: newTime + step }));
-      acted = true; continue;
+      continue;
     } else if (m.kind === "pumpkin") {
       const step = bestiary.entry(m.kind).step;
       if (m.fuse) {
@@ -1284,7 +1284,7 @@ function advance(world, ms) {
             }
           }
           monsterMap.delete(m.id);
-          acted = true; continue;
+          continue;
         }
       } else {
         let foeWithin2 = false;
@@ -1478,7 +1478,7 @@ function advance(world, ms) {
           if (m.slow > 0) updatedM = updatedM.with({ slow: m.slow - 1 });
           if (m.haste > 0) updatedM = updatedM.with({ haste: m.haste - 1 });
           monsterMap.set(m.id, updatedM);
-          acted = true; continue;
+          continue;
         } else {
           const target = meleeTarget.type === 'hero' ? meleeTarget.hero.actor : meleeTarget.monster;
           const { rng: nrr, roll, ward } = combatDraw(rng);
@@ -1532,7 +1532,7 @@ function advance(world, ms) {
           if (m.slow > 0) updatedM = updatedM.with({ slow: m.slow - 1 });
           if (m.haste > 0) updatedM = updatedM.with({ haste: m.haste - 1 });
           monsterMap.set(m.id, updatedM);
-          acted = true; continue;
+          continue;
         }
       }
       if (!free) { monsterMap.set(m.id, m); acted = true; continue; }
