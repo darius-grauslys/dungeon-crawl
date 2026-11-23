@@ -142,19 +142,17 @@ test("picks-up: gold, potion, sword, armor", () => {
   const potionItem = itemShape.of({ id: 2, kind: "potion", pos: pointShape.of(2, 1), amount: 0 });
   const hero10 = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 10, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, alive: true });
   const wPotion = rules.advance(rules.intend(mkWorld(hero10, [potionItem], 0), "Ann", intentShape.move(1, 0)), 50);
-  assert.equal(wPotion.heroes[0].actor.stats.hp, 15);
-  assert.equal(wPotion.heroes[0].actor.stats.maxHp, 29);
+  assert.equal(wPotion.heroes[0].actor.stats.hp, 18);
   assert.deepEqual(wPotion.heroes[0].actor.gesture, { kind: "power", at: 50 });
 
   const hero20 = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 20, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, alive: true });
   const wPotion20 = rules.advance(rules.intend(mkWorld(hero20, [potionItem], 0), "Ann", intentShape.move(1, 0)), 50);
-  assert.equal(wPotion20.heroes[0].actor.stats.hp, 25);
-  assert.equal(wPotion20.heroes[0].actor.stats.maxHp, 29);
+  assert.equal(wPotion20.heroes[0].actor.stats.hp, 24);
 
   const swordItem = itemShape.of({ id: 3, kind: "sword", pos: pointShape.of(2, 1), amount: 0 });
   const heroSword = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, alive: true });
   const wSword = rules.advance(rules.intend(mkWorld(heroSword, [swordItem], 0), "Ann", intentShape.move(1, 0)), 50);
-  assert.equal(wSword.heroes[0].actor.stats.attack, 5);
+  assert.equal(wSword.heroes[0].actor.stats.attack, 6);
   assert.deepEqual(wSword.heroes[0].actor.gesture, { kind: "power", at: 50 });
 
   const armorItem = itemShape.of({ id: 4, kind: "armor", pos: pointShape.of(2, 1), amount: 0 });
@@ -432,15 +430,13 @@ test("shop floors: no monsters, six wares with prices, every cell visible and ex
   const wShop = rules.fromSave(saveShape.of({ seed: 5, depth: 6, players: [{ name: "Ann", stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) }] }));
   assert.equal(wShop.monsters.length, 0);
   assert.equal(wShop.items.length, 6);
-  const foodKinds = ["cheese", "bread", "meat"];
-  const poolKinds = ["potion", "sword", "sword-2", "armor", "armor-2", "ring", "necklace"];
   for (const it of wShop.items) {
-    assert.ok(poolKinds.includes(it.kind) || foodKinds.includes(it.kind));
+    assert.ok(["potion", "sword", "armor", "ring", "necklace"].includes(it.kind));
     assert.equal(it.price > 0, true);
     assert.ok(wShop.grid.open(it.pos.x, it.pos.y));
   }
   const kinds = wShop.items.map((it) => it.kind);
-  assert.ok(foodKinds.includes(kinds[0]) && foodKinds.includes(kinds[1]));
+  assert.deepEqual(kinds, ["potion", "sword", "armor", "ring", "necklace", "potion"]);
   assert.equal(wShop.visible.count(), 48 * 32);
   assert.equal(wShop.explored.count(), 48 * 32);
 });

@@ -62,37 +62,11 @@ function isLairDepth(depth) {
 
 function wareLabel(kind) {
   if (kind === "potion") return "a potion";
+  if (kind === "sword") return "a sword";
+  if (kind === "armor") return "armor";
   if (kind === "ring") return "a ring";
   if (kind === "necklace") return "a cross necklace";
-  return itemGradeName(kind);
-}
-
-function wareTooHigh(stats, kind) {
-  if (kind.startsWith("sword")) {
-    const limit = kind === "sword" ? 8 : kind === "sword-2" ? 12 : kind === "sword-3" ? 16 : 24;
-    return stats.attack >= limit;
-  }
-  if (kind.startsWith("armor")) {
-    const limit = kind === "armor" ? 4 : kind === "armor-2" ? 8 : kind === "armor-3" ? 12 : 24;
-    return stats.defense >= limit;
-  }
-  return false;
-}
-
-function itemGradeName(kind) {
-  if (kind === "sword") return "a sword";
-  if (kind === "sword-2") return "a fine sword";
-  if (kind === "sword-3") return "an axe";
-  if (kind === "sword-4") return "a great axe";
-  if (kind === "armor") return "armor";
-  if (kind === "armor-2") return "chainmail";
-  if (kind === "armor-3") return "bronze mail";
-  if (kind === "armor-4") return "jade mail";
   return kind;
-}
-
-function isBoss(kind) {
-  return kind === "golem" || kind === "serpent";
 }
 
 function cellsCovered(actor) {
@@ -194,15 +168,13 @@ function makeFloor(seed, depth, rngIn) {
       });
       grid = tileGridShape.of(plan.grid.width, plan.grid.height, newTiles);
 
-      const round = levelShape.round(depth);
-      const bossKind = round === 2 ? "serpent" : "golem";
-      const bossEntry = bestiary.entry(bossKind);
+      const golemEntry = bestiary.entry("golem");
       monsters.push(
         actorShape.of({
           id: 10,
-          kind: bossKind,
+          kind: "golem",
           pos: plan.boss,
-          stats: statsShape.of({ hp: bossEntry.hp, maxHp: bossEntry.hp, attack: bossEntry.attack, defense: bossEntry.defense, range: bossEntry.range, magic: bossEntry.magic, magicPower: bossEntry.magicPower, magicResist: 0 }),
+          stats: statsShape.of({ hp: golemEntry.hp, maxHp: golemEntry.hp, attack: golemEntry.attack, defense: golemEntry.defense, range: golemEntry.range, magic: golemEntry.magic, magicPower: golemEntry.magicPower, magicResist: 0 }),
           ready: 0,
           mode: "dormant",
           size: 3,
@@ -232,25 +204,11 @@ function makeFloor(seed, depth, rngIn) {
   }
 
   if (isShopDepth(depth)) {
+    const kinds = ["potion", "sword", "armor", "ring", "necklace", "potion"];
     const round = levelShape.round(depth);
-    const nWares = round === 1 ? 6 : round === 2 ? 9 : round === 3 ? 12 : 18;
-    const foodKinds = ["cheese", "bread", "meat"];
-    const poolKinds = ["potion", "sword", "sword-2", "armor", "armor-2", "ring", "necklace"];
-    const kinds = [];
-    for (let i = 0; i < nWares; i++) {
-      if (i < 2) {
-        const { rng: nr, value } = mulberryDraw(rng);
-        rng = nr;
-        kinds.push(foodKinds[Math.floor(value * 3)]);
-      } else {
-        const { rng: nr, value } = mulberryDraw(rng);
-        rng = nr;
-        kinds.push(poolKinds[Math.floor(value * poolKinds.length)]);
-      }
-    }
-    for (let i = 0; i < nWares; i++) {
+    for (let i = 0; i < 6; i++) {
       const kind = kinds[i];
-      const cfg = kind === "potion" ? { base: 30, spread: 6 } : kind.startsWith("cheese") ? { base: 6, spread: 2 } : kind.startsWith("bread") ? { base: 10, spread: 3 } : kind.startsWith("meat") ? { base: 16, spread: 4 } : kind.startsWith("sword") ? { base: 30, spread: 6 } : kind.startsWith("armor") ? { base: 40, spread: 6 } : { base: 35, spread: 6 };
+      const cfg = kind === "potion" ? { base: 20, spread: 12 } : kind === "sword" ? { base: 30, spread: 6 } : kind === "armor" ? { base: 40, spread: 6 } : { base: 35, spread: 6 };
       const { rng: nr, value } = mulberryDraw(rng);
       rng = nr;
       const spread = cfg.spread;
@@ -262,47 +220,25 @@ function makeFloor(seed, depth, rngIn) {
 
   const stage = levelShape.stage(depth);
   const tier = levelShape.tier(depth);
-  const level = levelShape.number(depth);
   const numMonsters = 2 + 2 * stage;
 
   let kindsList;
-  if (level === 1 || level === 2) {
-    kindsList = ["bat", "slime", "snake"];
-  } else if (level === 3) {
-    kindsList = ["bat", "slime", "snake"];
-  } else if (level === 4) {
-    kindsList = ["bat", "slime", "snake", "skeleton"];
-  } else if (level === 5) {
-    kindsList = ["bat", "slime", "blue-spider", "skeleton"];
-  } else if (level >= 6 && level <= 10) {
-    kindsList = ["blue-slime", "blue-spider", "archer", "swordsman"];
-  } else if (level >= 11 && level <= 15) {
-    kindsList = ["beetle", "mummy", "cultist"];
-  } else if (level >= 16 && level <= 20) {
-    kindsList = ["spider", "ghost", "reaper"];
-  } else if (level >= 21 && level <= 25) {
-    kindsList = ["worm", "fire-slime", "imp", "demon"];
-  }
+  let archerRare = false;
+  if (tier === 0) {
+    if (stage <= 3) kindsList = ["bat", "slime", "snake"];
+    else { kindsList = ["bat", "slime", "snake", "skeleton"]; archerRare = true; }
+  } else if (tier === 1) kindsList = ["blue-slime", "blue-snake", "skeleton"];
+  else if (tier === 2) kindsList = ["beetle", "mummy", "cultist"];
+  else if (tier === 3) kindsList = ["spider", "ghost", "reaper"];
+  else if (tier === 4) kindsList = ["worm", "fire-slime", "imp", "demon"];
 
   for (let i = 0; i < numMonsters; i++) {
     let kind;
-    if (level === 3) {
+    if (archerRare) {
       const { rng: nr, value } = mulberryDraw(rng);
       rng = nr;
-      if (value < 0.08) kind = "swordsman";
-      else { const { rng: nr2, item: k } = pick(rng, kindsList); rng = nr2; kind = k; }
-    } else if (level === 4 || level === 5) {
-      const { rng: nr, value } = mulberryDraw(rng);
-      rng = nr;
-      if (value < 0.10) kind = "archer";
-      else if (value < 0.16) kind = "swordsman";
-      else if (value < 0.22) kind = "mage";
-      else { const { rng: nr2, item: k } = pick(rng, kindsList); rng = nr2; kind = k; }
-    } else if (level >= 6 && level <= 10) {
-      const { rng: nr, value } = mulberryDraw(rng);
-      rng = nr;
-      if (value < 0.25) kind = "mage";
-      else { const { rng: nr2, item: k } = pick(rng, kindsList); rng = nr2; kind = k; }
+      if (value < 0.1) kind = "archer";
+      else { const { rng: nr2, value: v2 } = mulberryDraw(rng); rng = nr2; kind = kindsList[Math.floor(v2 * kindsList.length)]; }
     } else {
       const { rng: nr, item: k } = pick(rng, kindsList);
       rng = nr;
@@ -325,21 +261,9 @@ function makeFloor(seed, depth, rngIn) {
 
   const hasSword = stage === 2 || stage === 4;
   const hasArmor = stage === 3 || stage === 5;
-  const band = Math.min(4, tier + 1);
   let spotIdx = numMonsters;
-  const foodKinds = ["cheese", "cheese", "bread", "meat"];
   for (let i = 0; i < 2; i++) {
-    const { rng: nr, value } = mulberryDraw(rng);
-    rng = nr;
-    const kind = foodKinds[Math.floor(value * foodKinds.length)];
-    items.push(itemShape.of({ id: idCounter++, kind, pos: spots[spotIdx++], amount: 0, price: 0, pulled: false }));
-  }
-  {
-    const { rng: nr, value } = mulberryDraw(rng);
-    rng = nr;
-    if (value < 0.25) {
-      items.push(itemShape.of({ id: idCounter++, kind: "potion", pos: spots[spotIdx++], amount: 0, price: 0, pulled: false }));
-    }
+    items.push(itemShape.of({ id: idCounter++, kind: "potion", pos: spots[spotIdx++], amount: 0, price: 0, pulled: false }));
   }
   for (let i = 0; i < 2; i++) {
     const { rng: nr, value } = mulberryDraw(rng);
@@ -347,20 +271,8 @@ function makeFloor(seed, depth, rngIn) {
     const d = Math.floor(value * 8);
     items.push(itemShape.of({ id: idCounter++, kind: "gold", pos: spots[spotIdx++], amount: levelShape.number(depth) * (3 + d), price: 0, pulled: false }));
   }
-  if (hasSword) {
-    const { rng: nr, value } = mulberryDraw(rng);
-    rng = nr;
-    const grade = 1 + Math.floor(value * band);
-    const kind = grade === 1 ? "sword" : `sword-${grade}`;
-    items.push(itemShape.of({ id: idCounter++, kind, pos: spots[spotIdx++], amount: 0, price: 0, pulled: false }));
-  }
-  if (hasArmor) {
-    const { rng: nr, value } = mulberryDraw(rng);
-    rng = nr;
-    const grade = 1 + Math.floor(value * band);
-    const kind = grade === 1 ? "armor" : `armor-${grade}`;
-    items.push(itemShape.of({ id: idCounter++, kind, pos: spots[spotIdx++], amount: 0, price: 0, pulled: false }));
-  }
+  if (hasSword) items.push(itemShape.of({ id: idCounter++, kind: "sword", pos: spots[spotIdx++], amount: 0, price: 0, pulled: false }));
+  if (hasArmor) items.push(itemShape.of({ id: idCounter++, kind: "armor", pos: spots[spotIdx++], amount: 0, price: 0, pulled: false }));
 
   return { plan, monsters, items, rng, grid };
 }
@@ -488,12 +400,11 @@ function heroLatency(actor, type) {
 
 function bumpStats(actor, kind) {
   if (kind === "potion") {
-    const nmaxHp = actor.stats.maxHp + 5;
-    const nhp = actor.stats.hp + 5;
-    return actor.with({ stats: statsShape.of({ hp: nhp, maxHp: nmaxHp, attack: actor.stats.attack, defense: actor.stats.defense, range: actor.stats.range, magic: actor.stats.magic, magicPower: actor.stats.magicPower, magicResist: actor.stats.magicResist }) });
+    const nhp = Math.min(actor.stats.maxHp, actor.stats.hp + 8);
+    return actor.with({ stats: statsShape.of({ hp: nhp, maxHp: actor.stats.maxHp, attack: actor.stats.attack, defense: actor.stats.defense, range: actor.stats.range, magic: actor.stats.magic, magicPower: actor.stats.magicPower, magicResist: actor.stats.magicResist }) });
   }
   if (kind === "sword") {
-    return actor.with({ stats: statsShape.of({ hp: actor.stats.hp, maxHp: actor.stats.maxHp, attack: actor.stats.attack + 1, defense: actor.stats.defense, range: actor.stats.range, magic: actor.stats.magic, magicPower: actor.stats.magicPower, magicResist: actor.stats.magicResist }) });
+    return actor.with({ stats: statsShape.of({ hp: actor.stats.hp, maxHp: actor.stats.maxHp, attack: actor.stats.attack + 2, defense: actor.stats.defense, range: actor.stats.range, magic: actor.stats.magic, magicPower: actor.stats.magicPower, magicResist: actor.stats.magicResist }) });
   }
   if (kind === "armor") {
     return actor.with({ stats: statsShape.of({ hp: actor.stats.hp, maxHp: actor.stats.maxHp, attack: actor.stats.attack, defense: actor.stats.defense + 1, range: actor.stats.range, magic: actor.stats.magic, magicPower: actor.stats.magicPower, magicResist: actor.stats.magicResist }) });
@@ -512,31 +423,29 @@ function isSlowingMonster(kind) {
   return e ? e.slows : false;
 }
 
-function golemDeath(world, monstersList, boss, newTime, gold, log, rng) {
+function golemDeath(world, monstersList, golem, newTime, gold, log, rng) {
   const plan = dungeon.generate(world.seed, world.depth);
-  const hasGuards = monstersList.some((mm) => mm.mode === "guard");
-  log.push(`The ${boss.kind} is slain.`);
-  if (hasGuards) log.push("The guardians crumble.");
+  log.push("The golem is slain.");
+  log.push("The guardians crumble.");
   log.push("The way down opens!");
-  log.push(`Gold spills from the ${boss.kind}!`);
+  log.push("Gold spills from the golem!");
 
-  let newMonsters = monstersList.filter((mm) => mm.kind !== boss.kind && mm.mode !== "guard");
+  let newMonsters = monstersList.filter((mm) => mm.kind !== "golem" && mm.mode !== "guard");
 
   let newItems = [...world.items];
 
-  const round = levelShape.round(world.depth);
   const { rng: nr1, value: v1 } = mulberryDraw(rng);
   rng = nr1;
-  const total = (25 + Math.floor(v1 * 51)) * round;
+  const total = 25 + Math.floor(v1 * 51);
   const { rng: nr2, value: v2 } = mulberryDraw(rng);
   rng = nr2;
   let n = 1 + Math.floor(v2 * 5);
 
-  const size = boss.size || 1;
-  const small = boss.small || false;
+  const size = golem.size || 1;
+  const small = golem.small || false;
   const sSize = small ? 1 : size;
-  const sqX = boss.pos.x;
-  const sqY = boss.pos.y;
+  const sqX = golem.pos.x;
+  const sqY = golem.pos.y;
   const candidates = [];
   for (let y = 0; y < world.grid.height; y++) {
     for (let x = 0; x < world.grid.width; x++) {
@@ -605,15 +514,6 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
       if (it.price > 0 && it.pos.x === nx && it.pos.y === ny) {
         let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("attack"), aim: { dx, dy }, facing: actorShape.facingFor(dx, dy) });
         if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
-        const tooHigh = wareTooHigh(h.actor.stats, it.kind);
-        if (tooHigh) {
-          const statName = it.kind.startsWith("sword") ? "attack" : "defense";
-          offer = null;
-          updatedActor = updatedActor.with({ gesture: { kind: "use", at: newTime } });
-          log.push(`${h.name}: your ${statName} is too high for ${wareLabel(it.kind)}.`);
-          const newHero = h.with({ actor: updatedActor, pending: null, offer });
-          return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
-        }
         if (offer === it.id) {
           if (gold >= it.price) {
             gold -= it.price;
@@ -700,7 +600,7 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
         if (nhp <= 0) {
           monsterLine = `The ${monsterHit.kind} is slain.`;
           monstersAfter = monstersAfter.filter((mm) => mm.id !== monsterHit.id);
-          if (isBoss(monsterHit.kind)) {
+          if (monsterHit.kind === "golem") {
             const gd = golemDeath(world, monstersAfter, monsterHit, newTime, gold, log, rng);
             monstersAfter = gd.monsters;
             items = gd.items;
@@ -721,39 +621,18 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
       if (it.pos.x === nx && it.pos.y === ny && !it.pulled && it.price === 0) { picked = it; break; }
     }
     if (picked) {
-      if ((picked.kind.startsWith("sword") || picked.kind.startsWith("armor")) && wareTooHigh(h.actor.stats, picked.kind)) {
-        const statName = picked.kind.startsWith("sword") ? "attack" : "defense";
-        let updatedActor = h.actor.with({ pos: pointShape.of(nx, ny), ready: newTime + heroLatencyFn("step"), aim: { dx, dy }, facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 } });
-        if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
-        log.push(`${h.name}: your ${statName} is too high for ${itemGradeName(picked.kind)}. Use it (e) to trade it for gold.`);
-        const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
-        return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
-      }
       let updatedActor = h.actor;
       let msg = "";
+      let healed = 0;
       if (picked.kind === "gold") { gold += picked.amount; items = items.filter((x) => x.id !== picked.id); msg = `${h.name} picks up ${picked.amount} gold.`; }
       else if (picked.kind === "potion") {
+        healed = Math.min(8, h.actor.stats.maxHp - h.actor.stats.hp);
         updatedActor = bumpStats(updatedActor, "potion");
         items = items.filter((x) => x.id !== picked.id);
-        msg = `${h.name} drinks a potion (+5 max HP).`;
+        msg = `${h.name} drinks a potion (+${healed} HP).`;
       }
-      else if (picked.kind === "cheese" || picked.kind === "bread" || picked.kind === "meat") {
-        const f = picked.kind === "cheese" ? 0.10 : picked.kind === "bread" ? 0.25 : 0.50;
-        const healedAmt = Math.min(h.actor.stats.maxHp, Math.max(1, Math.floor(h.actor.stats.maxHp * f)));
-        const nhp = Math.min(h.actor.stats.maxHp, h.actor.stats.hp + healedAmt);
-        updatedActor = updatedActor.with({ stats: statsShape.of({ hp: nhp, maxHp: h.actor.stats.maxHp, attack: h.actor.stats.attack, defense: h.actor.stats.defense, range: h.actor.stats.range, magic: h.actor.stats.magic, magicPower: h.actor.stats.magicPower, magicResist: h.actor.stats.magicResist }) });
-        items = items.filter((x) => x.id !== picked.id);
-        const label = picked.kind === "cheese" ? "some cheese" : picked.kind;
-        msg = `${h.name} eats ${label} (+${nhp - h.actor.stats.hp} HP).`;
-      }
-      else if (picked.kind === "sword") { updatedActor = bumpStats(updatedActor, "sword"); items = items.filter((x) => x.id !== picked.id); msg = `${h.name} picks up a sword (+1 attack).`; }
-      else if (picked.kind === "sword-2") { updatedActor = bumpStats(updatedActor, "sword-2"); items = items.filter((x) => x.id !== picked.id); msg = `${h.name} picks up a fine sword (+1 attack).`; }
-      else if (picked.kind === "sword-3") { updatedActor = bumpStats(updatedActor, "sword-3"); items = items.filter((x) => x.id !== picked.id); msg = `${h.name} picks up an axe (+1 attack).`; }
-      else if (picked.kind === "sword-4") { updatedActor = bumpStats(updatedActor, "sword-4"); items = items.filter((x) => x.id !== picked.id); msg = `${h.name} picks up a great axe (+1 attack).`; }
+      else if (picked.kind === "sword") { updatedActor = bumpStats(updatedActor, "sword"); items = items.filter((x) => x.id !== picked.id); msg = `${h.name} picks up a sword (+2 attack).`; }
       else if (picked.kind === "armor") { updatedActor = bumpStats(updatedActor, "armor"); items = items.filter((x) => x.id !== picked.id); msg = `${h.name} puts on armor (+1 defense).`; }
-      else if (picked.kind === "armor-2") { updatedActor = bumpStats(updatedActor, "armor-2"); items = items.filter((x) => x.id !== picked.id); msg = `${h.name} puts on chainmail (+1 defense).`; }
-      else if (picked.kind === "armor-3") { updatedActor = bumpStats(updatedActor, "armor-3"); items = items.filter((x) => x.id !== picked.id); msg = `${h.name} puts on bronze mail (+1 defense).`; }
-      else if (picked.kind === "armor-4") { updatedActor = bumpStats(updatedActor, "armor-4"); items = items.filter((x) => x.id !== picked.id); msg = `${h.name} puts on jade mail (+1 defense).`; }
       else if (picked.kind === "ring") { updatedActor = bumpStats(updatedActor, "ring"); items = items.filter((x) => x.id !== picked.id); msg = `${h.name} puts on a ring (+1 magic power).`; }
       else if (picked.kind === "necklace") { updatedActor = bumpStats(updatedActor, "necklace"); items = items.filter((x) => x.id !== picked.id); msg = `${h.name} puts on a cross necklace (+1 magic resist).`; }
       const powerGesture = picked.kind === "gold" ? null : { kind: "power", at: newTime };
@@ -801,15 +680,6 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
     let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("attack"), aim: (dx === 0 && dy === 0) ? h.actor.aim : { dx: aimDx, dy: aimDy }, facing: actorShape.facingFor(aimDx, aimDy) });
     if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
     if (wareHit) {
-      const tooHigh = wareTooHigh(h.actor.stats, wareHit.kind);
-      if (tooHigh) {
-        const statName = wareHit.kind.startsWith("sword") ? "attack" : "defense";
-        offer = null;
-        updatedActor = updatedActor.with({ gesture: { kind: "use", at: newTime } });
-        log.push(`${h.name}: your ${statName} is too high for ${wareLabel(wareHit.kind)}.`);
-        const newHero = h.with({ actor: updatedActor, pending: null, offer });
-        return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
-      }
       if (offer === wareHit.id) {
         if (gold >= wareHit.price) {
           gold -= wareHit.price;
@@ -880,7 +750,7 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
         if (nhp <= 0) {
           monsterLine = `The ${monster.kind} is slain.`;
           monstersAfter = monstersAfter.filter((mm) => mm.id !== monster.id);
-          if (isBoss(monster.kind)) {
+          if (monster.kind === "golem") {
             const gd = golemDeath(world, monstersAfter, monster, newTime, gold, log, rng);
             monstersAfter = gd.monsters;
             items = gd.items;
@@ -900,21 +770,8 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
     return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
   } else if (intent.kind === "use") {
     let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("use"), gesture: { kind: "use", at: newTime } });
-    let traded = false;
-    for (const it of items) {
-      if (it.pos.x === h.actor.pos.x && it.pos.y === h.actor.pos.y && !it.pulled && it.price === 0 && (it.kind.startsWith("sword") || it.kind.startsWith("armor")) && wareTooHigh(h.actor.stats, it.kind)) {
-        const { rng: nri, value: vi } = mulberryDraw(rng);
-        rng = nri;
-        const g = 1 + Math.floor(vi * 10);
-        gold += g;
-        items = items.filter((x) => x.id !== it.id);
-        log.push(`${h.name} trades ${itemGradeName(it.kind)} for ${g} gold.`);
-        traded = true;
-        break;
-      }
-    }
     const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
-    return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
+    return { hero: newHero, gold, items, monstersList, log, grid: undefined, rng };
   } else if (intent.kind === "wait" || intent.kind === "descend") {
     let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("wait") });
     const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
@@ -1040,7 +897,7 @@ function advance(world, ms) {
         }
       }
       if (meleeTarget) {
-        if (isBoss(m.kind)) {
+        if (m.kind === "golem") {
           const size = m.size || 1;
           const small = m.small || false;
           const sSize = small ? 1 : size;
@@ -1345,12 +1202,7 @@ function advance(world, ms) {
     const explored = isShopDepth(newDepth) ? visible : maskShape.empty(newGrid.width, newGrid.height);
     const k = levelShape.kind(newDepth);
     if (k === "interior") { log.push("The party descends to a shop."); log.push("A shop! Bump a ware twice to buy it."); }
-    else if (k === "boss") {
-      log.push("The party descends into a lair.");
-      const round = levelShape.round(newDepth);
-      if (round === 2) log.push("A great serpent guards the way down!");
-      else log.push("A golem guards the way down. Pull the levers to weaken it!");
-    }
+    else if (k === "boss") { log.push("The party descends into a lair."); const gp = dungeon.generate(world.seed, newDepth); if (gp.boss) log.push("A golem guards the way down. Pull the levers to weaken it!"); }
     else { log.push(`The party descends to level ${levelShape.number(newDepth)}.`); }
     const finalVisible = computeVisible(newGrid, newDepth, newHeroes);
     const finalExplored = isShopDepth(newDepth) ? finalVisible : maskShape.union(explored, finalVisible);
