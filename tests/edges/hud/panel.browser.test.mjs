@@ -109,6 +109,62 @@ test("bar", async () => {
   assert.deepEqual([img[0], img[1], img[2]], [40, 26, 34]);
 });
 
+test("minimap", async () => {
+  const canvas = document.querySelector("canvas");
+  const ctx = canvas.getContext("2d");
+  const grd = ctx.createImageData(800, 600);
+  for (let i = 0; i < grd.data.length; i += 4) {
+    grd.data[i] = 0;
+    grd.data[i + 1] = 255;
+    grd.data[i + 2] = 0;
+    grd.data[i + 3] = 255;
+  }
+  ctx.putImageData(grd, 0, 0);
+
+  const rows = [];
+  for (let y = 0; y < 32; y++) {
+    let row = '';
+    for (let x = 0; x < 48; x++) {
+      row += (y === 0 || y === 31 || x === 0 || x === 47) ? '#' : '.';
+    }
+    rows.push(row);
+  }
+  const grid = tileGrid.fromRows(rows);
+  const annActor = actor.of({ id: 0, kind: 'hero', pos: point.of(5, 5), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }), curse: 3 });
+  const annHero = hero.of({ name: 'Ann', actor: annActor, alive: true });
+  const entry = save.of({ seed: 1, depth: 1, players: [] });
+  const visible = mask.empty(48, 32);
+  const exploredFull = mask.of(48, 32, new Array(48 * 32).fill(true));
+
+  const w = world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid, heroes: [annHero], monsters: [], items: [], visible, explored: exploredFull, gold: 7, log: [], entry });
+  draw(ctx, 0, 480, 800, 120, w, 'Ann');
+
+  let img = ctx.getImageData(717, 549, 1, 1).data;
+  assert.deepEqual([img[0], img[1], img[2]], [95, 87, 94]);
+  img = ctx.getImageData(706, 538, 1, 1).data;
+  assert.deepEqual([img[0], img[1], img[2]], [255, 255, 255]);
+  img = ctx.getImageData(696, 528, 1, 1).data;
+  assert.deepEqual([img[0], img[1], img[2]], [47, 43, 47]);
+
+  const exploredEmpty = mask.empty(48, 32);
+  const wNoExplore = world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: 'playing', grid, heroes: [annHero], monsters: [], items: [], visible, explored: exploredEmpty, gold: 7, log: [], entry });
+  draw(ctx, 0, 480, 800, 120, wNoExplore, 'Ann');
+  img = ctx.getImageData(717, 549, 1, 1).data;
+  assert.deepEqual([img[0], img[1], img[2]], [22, 13, 19]);
+
+  const wDepth8 = world.of({ seed: 1, rng: 1, depth: 8, time: 0, state: 'playing', grid, heroes: [annHero], monsters: [], items: [], visible, explored: exploredFull, gold: 7, log: [], entry });
+  draw(ctx, 0, 480, 800, 120, wDepth8, 'Ann');
+  img = ctx.getImageData(717, 549, 1, 1).data;
+  assert.deepEqual([img[0], img[1], img[2]], [77, 102, 96]);
+
+  const wDepth22 = world.of({ seed: 1, rng: 1, depth: 22, time: 0, state: 'playing', grid, heroes: [annHero], monsters: [], items: [], visible, explored: exploredFull, gold: 7, log: [], entry });
+  draw(ctx, 0, 480, 800, 120, wDepth22, 'Ann');
+  img = ctx.getImageData(717, 549, 1, 1).data;
+  assert.deepEqual([img[0], img[1], img[2]], [173, 64, 48]);
+
+  assert(lines(w, 'Ann')[0].endsWith('   Cursed 3'));
+});
+
 test("refuses", () => {
   const w = makeWorld();
   const canvas = document.querySelector("canvas");
