@@ -857,8 +857,8 @@ export function draw(world, me, paused, nowIn, aiming = false) {
             const e = 1 - (1 - p) * (1 - p);
             const reach = m.last.reach || 1;
             const offset = -(1 - e) * reach * 48;
-            const px = (m.pos.x - cam.x) * 48 + offset * m.last.dx;
-            const py = (m.pos.y - cam.y) * 48 + offset * m.last.dy;
+            const px = (m.pos.x - cam.x) * 48 + 24 + offset * m.last.dx;
+            const py = (m.pos.y - cam.y) * 48 + 24 + offset * m.last.dy;
             if (loaded_) {
               drawCreaturePose({ anim: "idle", frame: (Math.floor(now / 250) + m.id) % 3 }, m.kind, m.facing, px, py, 0, 0, 1, m.size, m.small);
             } else {
