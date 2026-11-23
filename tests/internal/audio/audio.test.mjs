@@ -125,7 +125,7 @@ test("create: context left out uses instance when AudioContext exists", () => {
     static instantiated = false;
     constructor() {
       StubAudioContext.instantiated = true;
-      this.destination = new StubGainNode();
+      this.destination = this.createGain();
       this.currentTime = 0;
       this.state = "running";
     }
