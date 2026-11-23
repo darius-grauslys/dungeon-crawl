@@ -41,6 +41,10 @@ This Node's edge:
 - [asset:music/dungeon-3.mp3](../../../../../assets/music/dungeon-3.mp3)
 - [asset:music/dungeon-4.mp3](../../../../../assets/music/dungeon-4.mp3)
 - [asset:music/dungeon-5.mp3](../../../../../assets/music/dungeon-5.mp3)
+- [asset:music/dark-comical.mp3](../../../../../assets/music/dark-comical.mp3)
+- [asset:music/desert-dungeon.mp3](../../../../../assets/music/desert-dungeon.mp3)
+- [asset:music/shop.mp3](../../../../../assets/music/shop.mp3)
+- [asset:music/boss.mp3](../../../../../assets/music/boss.mp3)
 
 # Inbound Side-Effects:
 The sound and music files, fetched from the asset area.

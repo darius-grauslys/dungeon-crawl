@@ -25,7 +25,9 @@ Fourteen files in all. A sound of several files plays one of them, picked
 each time: file `Math.floor(random() * n)` of its `n`.
 
 **The music.** Tracks 1 to 5 are `music/dungeon-1.mp3` to
-`music/dungeon-5.mp3`; track 0 is silence. One track loops at a time.
+`music/dungeon-5.mp3`; track 6 `music/dark-comical.mp3`, 7
+`music/desert-dungeon.mp3`, 8 `music/shop.mp3`, 9 `music/boss.mp3`;
+track 0 is silence. One track loops at a time.
 
 **The graph.** Every sound plays through its own gain node (its cue's
 `gain`) into the **effects bus** (a gain of 1); the music through its own
@@ -48,7 +50,7 @@ context's `destination`. The buses and the master are made once, by
 `mixer.play(cue)`. `cue` a `cue` (anything else throws a `TypeError`). Muted, or its files not decoded: nothing. Otherwise a buffer source of one of its files (above), through a new gain node of value `cue.gain` into the effects bus, started at once (`start()`).
 
 ## Function - music:
-`mixer.music(track)`. `track` an integer from 0 to 5 (anything else throws a `TypeError`). The track playing already: nothing. Otherwise the track playing (if any) fades out: its gain ramps linearly to 0 over 1.5 seconds from `currentTime` (`linearRampToValueAtTime(0, currentTime + 1.5)`) and its source is stopped then (`stop(currentTime + 1.5)`). Then, for a track above 0: its file is fetched and decoded (once: a track played before is kept decoded), and a source of it, `loop` true, starts through a new gain node that ramps linearly from 0 to 1 over 1.5 seconds (`setValueAtTime(0, currentTime)`, then `linearRampToValueAtTime(1, currentTime + 1.5)`), into the music bus; if the track asked for has changed again before its file is decoded, it does not start. A track that fails to load is logged (`console.error`) and the music stays silent. Muting does not stop the music: the master is silent.
+`mixer.music(track)`. `track` an integer from 0 to 9 (anything else throws a `TypeError`). The track playing already: nothing. Otherwise the track playing (if any) fades out: its gain ramps linearly to 0 over 1.5 seconds from `currentTime` (`linearRampToValueAtTime(0, currentTime + 1.5)`) and its source is stopped then (`stop(currentTime + 1.5)`). Then, for a track above 0: its file is fetched and decoded (once: a track played before is kept decoded), and a source of it, `loop` true, starts through a new gain node that ramps linearly from 0 to 1 over 1.5 seconds (`setValueAtTime(0, currentTime)`, then `linearRampToValueAtTime(1, currentTime + 1.5)`), into the music bus; if the track asked for has changed again before its file is decoded, it does not start. A track that fails to load is logged (`console.error`) and the music stays silent. Muting does not stop the music: the master is silent.
 
 ## Function - volume:
 `mixer.setVolume(v)`: `v` a number from 0 to 1 (anything else throws a `TypeError`): the volume; the master's gain becomes `v` unless muted. `mixer.volume()`: the volume.
@@ -70,7 +72,7 @@ After `load()`, with `random` answering 0.6: `play(cue.of({name: 'step', gain: 0
 After `load()`: the master's gain is 0.7; `setMuted(true)`: it is 0, `muted()` is true, and `play` of any cue starts nothing; `setMuted(false)`: 0.7 again. `setVolume(0.3)`: 0.3, `volume()` 0.3; while muted, `setVolume(0.5)` leaves the master at 0, and unmuting makes it 0.5. `setVolume(1.5)`, `setVolume('1')` and `setMuted(1)` throw a `TypeError`.
 
 ## Intrinsic - music:
-With the fake context's `currentTime` 10: `music(2)` fetches `/assets/music/dungeon-2.mp3` and, once it is decoded, starts a source with `loop` true whose gain node got `setValueAtTime(0, 10)` and `linearRampToValueAtTime(1, 11.5)`. `music(2)` again: no fetch, no new source. `music(3)`: the track 2 gain node gets `linearRampToValueAtTime(0, 11.5)`, its source `stop(11.5)`, and a track 3 source starts. `music(2)` once more: no new fetch (track 2 is kept decoded). `music(0)`: the playing track fades out and nothing starts. `music(6)` and `music(1.5)` throw a `TypeError`.
+With the fake context's `currentTime` 10: `music(2)` fetches `/assets/music/dungeon-2.mp3` and, once it is decoded, starts a source with `loop` true whose gain node got `setValueAtTime(0, 10)` and `linearRampToValueAtTime(1, 11.5)`. `music(2)` again: no fetch, no new source. `music(3)`: the track 2 gain node gets `linearRampToValueAtTime(0, 11.5)`, its source `stop(11.5)`, and a track 3 source starts. `music(2)` once more: no new fetch (track 2 is kept decoded). `music(0)`: the playing track fades out and nothing starts. `music(9)` fetches `/assets/music/boss.mp3`, `music(8)` `/assets/music/shop.mp3`, `music(6)` `/assets/music/dark-comical.mp3`, `music(7)` `/assets/music/desert-dungeon.mp3`. `music(10)`, `music(-1)` and `music(1.5)` throw a `TypeError`.
 
 ## Intrinsic - resumes:
 With the fake context's `state` `'suspended'`, `resume()` calls `context.resume()` once; with `'running'`, not at all.
