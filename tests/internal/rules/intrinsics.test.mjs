@@ -289,6 +289,42 @@ test("monsters-act: skeleton moves toward hero", () => {
   assert.equal(wBobFirst.monsters[0].pos.x, 5);
 });
 
+test("attacked-first: hero plain step collected, monster moves there, melee in step 2b", () => {
+  const grid = tileGridShape.fromRows(["#########", "#.......#", "#########"]);
+  const visible = maskShape.empty(9, 3);
+  const explored = maskShape.empty(9, 3);
+  const mkWorld = (heroes, monsters, rng) => worldShape.of({ seed: 1, rng, depth: 1, time: 0, state: "playing", grid, heroes, monsters, items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 1, players: [] }) });
+
+  const annActor = actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 });
+  const ann = heroShape.of({ name: "Ann", actor: annActor, pending: intentShape.move(1, 0), alive: true });
+  const skeleton = actorShape.of({ id: 1, kind: "skeleton", pos: pointShape.of(3, 1), stats: statsShape.of({ hp: 9, maxHp: 9, attack: 4, defense: 2 }), ready: 0 });
+  const w = mkWorld([ann], [skeleton], 1);
+  const w2 = rules.advance(w, 50);
+  const annH = w2.heroes.find((h) => h.name === "Ann");
+  assert.equal(annH.actor.pos.x, 1);
+  assert.equal(annH.actor.pos.y, 1);
+  const skel = w2.monsters.find((m) => m.kind === "skeleton");
+  assert.equal(skel.pos.x, 2);
+  assert.ok(skel.held > 50);
+});
+
+test("attacked-first: hero plain step moves when monster not there", () => {
+  const grid = tileGridShape.fromRows(["#########", "#.......#", "#########"]);
+  const visible = maskShape.empty(9, 3);
+  const explored = maskShape.empty(9, 3);
+  const mkWorld = (heroes, monsters, rng) => worldShape.of({ seed: 1, rng, depth: 1, time: 0, state: "playing", grid, heroes, monsters, items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 1, players: [] }) });
+
+  const annActor = actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 });
+  const ann = heroShape.of({ name: "Ann", actor: annActor, pending: intentShape.move(1, 0), alive: true });
+  const bat = actorShape.of({ id: 1, kind: "bat", pos: pointShape.of(7, 1), stats: statsShape.of({ hp: 3, maxHp: 3, attack: 2, defense: 0 }), ready: 0 });
+  const w = mkWorld([ann], [bat], 1);
+  const w2 = rules.advance(w, 50);
+  const annH = w2.heroes.find((h) => h.name === "Ann");
+  assert.equal(annH.actor.pos.x, 2);
+  assert.equal(annH.actor.pos.y, 1);
+  assert.equal(annH.pending, null);
+});
+
 test("dies: demon kills hero, intend for dead hero returns same world", () => {
   const grid = tileGridShape.fromRows(["#########", "#.......#", "#########"]);
   const visible = maskShape.empty(9, 3);

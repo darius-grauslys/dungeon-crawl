@@ -1088,9 +1088,10 @@ function advance(world, ms) {
   let currentGrid = world.grid;
   let rng = world.rng;
 
-  // 1. Heroes fire
+  // 1. Heroes fire - collect plain steps for step 2b
   let updatedHeroes = [...heroes];
   let descendFired = false;
+  const plainSteps = []; // {heroIndex, dx, dy}
   for (let hi = 0; hi < updatedHeroes.length; hi++) {
     const h = updatedHeroes[hi];
     if (!h.alive) continue;
@@ -1098,6 +1099,21 @@ function advance(world, ms) {
     if (!h.pending) continue;
     const intent = h.pending;
     if (intent.kind === "descend") descendFired = true;
+    if (intent.kind === "move") {
+      const dx = intent.dx, dy = intent.dy;
+      const nx = h.actor.pos.x + dx, ny = h.actor.pos.y + dy;
+      if (gridOpen(world.grid, nx, ny) && !stepCutCorner(world.grid, h.actor, dx, dy)) {
+        let holdsSomething = false;
+        for (const m of monstersList) { if (m.covers(nx, ny)) { holdsSomething = true; break; } }
+        if (!holdsSomething) {
+          for (const it of items) { if ((it.price > 0 || it.kind === "lever") && it.pos.x === nx && it.pos.y === ny) { holdsSomething = true; break; } }
+        }
+        if (!holdsSomething) {
+          plainSteps.push({ heroIndex: hi, dx, dy });
+          continue;
+        }
+      }
+    }
     if (h.actor.held > newTime) {
       if (intent.kind === "move") {
         const dx = intent.dx, dy = intent.dy;
@@ -1674,6 +1690,24 @@ function advance(world, ms) {
     if (!acted) monsterMap.set(m.id, m);
   }
   monstersList = [...monsterMap.values()];
+
+  // 2b. Fire collected plain steps
+  for (const ps of plainSteps) {
+    const h = updatedHeroes[ps.heroIndex];
+    if (!h || !h.alive) continue;
+    if (h.actor.held > newTime) {
+      // held now: stays pending
+      continue;
+    }
+    const intent = intentShape.move(ps.dx, ps.dy);
+    const latFn = (type) => heroLatency(h.actor, type);
+    const res = heroFiredAction(world, { ...h, pending: intent }, newTime, latFn, { gold, items, monstersList, log: log.slice(-50), rng });
+    updatedHeroes[ps.heroIndex] = res.hero;
+    gold = res.gold; items = res.items; monstersList = res.monstersList; log = res.log;
+    if (res.rng !== undefined) rng = res.rng;
+    if (res.grid) currentGrid = res.grid;
+  }
+  heroes = updatedHeroes;
 
   // 3. Wipe
   const aliveHeroes = heroes.filter((h) => h.alive);
