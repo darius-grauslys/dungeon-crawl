@@ -12,6 +12,8 @@ const SOUNDS = {
   powerup: ['sfx/powerup.mp3'],
   use: ['sfx/use.mp3'],
   stairs: ['sfx/stairs.mp3'],
+  hiss: ['sfx/hiss.mp3'],
+  boom: ['sfx/boom.mp3'],
 };
 
 const SOUND_PATHS = Object.values(SOUNDS).flat();
