@@ -24,8 +24,10 @@ frozen world, with `fields` an object of these keys:
 | `gold` | integer of 0 or more: the party's |
 | `log` | an array of strings, the oldest first, at most 50 |
 | `entry` | a `save`: the party as it entered this floor (a wipe starts the floor again from it) |
+| `effects` | **optional** (left out: `[]`): an array of passing effects for the screen, each `{kind, x, y, size, at}`: `kind` `'blast'` (an explosion), `(x, y)` the top-left cell of the `size` by `size` square it burst from (`size` 1 to 3), `at` the world time, all integers of 0 or more |
 
-Arrays are copied and answered frozen. Any key missing, of the wrong type,
+Arrays are copied and answered frozen (each effect a frozen copy with
+those five keys). Any key missing (but `effects`), of the wrong type,
 or a mask of another size than the grid, is refused with a `TypeError`.
 
 It also exports `fromData(data)`: the world whose `data()` is `data`,
@@ -44,9 +46,10 @@ the constructors of the shapes it holds.
 | `monsters` | `[actor]` |
 | `items` | `[{id, kind, pos: {x, y}, amount, price, pulled, flung}]`: `flung` `null` or `{x, y, at}` |
 | `entry` | the save's `data()` |
+| `effects` | `[{kind, x, y, size, at}]`, always present (`[]` with none) |
 
-An actor's data is `{id, kind, pos: {x, y}, stats: {hp, maxHp, attack, defense, range, magic, magicPower, magicResist}, ready, held, facing, last, aim: {dx, dy}, slow, mode, size, small, gesture}`,
-`last` `null` or `{kind, dx, dy, at, reach}`, `gesture` `null` or `{kind, at}`.
+An actor's data is `{id, kind, pos: {x, y}, stats: {hp, maxHp, attack, defense, range, magic, magicPower, magicResist}, ready, held, facing, last, aim: {dx, dy}, slow, mode, size, small, gesture, curse, haste, chant, cooldown, fuse}`,
+`last` `null` or `{kind, dx, dy, at, reach}`, `gesture` `null` or `{kind, at}`, `chant` `null` or `{kind, at, until}`, `fuse` `null` or `{at}`.
 
 # Fields:
 ## Field - seed:
@@ -91,6 +94,9 @@ Property `log`, a frozen array of strings.
 ## Field - entry:
 Property `entry`, a `save`.
 
+## Field - effects:
+Property `effects`, a frozen array of frozen `{kind, x, y, size, at}`.
+
 ## Field - with:
 `with(changes)` answers a new world: this one with the keys of `changes`
 put in, checked as `of` checks them; this one is unchanged. `with` is a
@@ -112,7 +118,10 @@ has every value it was given, is frozen, and its `heroes`, `monsters`,
 `visible: empty(4, 3)`, a monster of kind `hero`, five heroes, two heroes
 named `Ann`, a `log` of 51 strings, a missing `gold` and a missing
 `entry` each throw a `TypeError`. `w.with({time: 9}).time` is 9 and
-`w.time` is unchanged. Two worlds made by `of` from the same fields pass
+`w.time` is unchanged. Its `effects` is `[]` (left out); with `effects:
+[{kind: 'blast', x: 1, y: 1, size: 2, at: 40}]` it holds that, frozen;
+`effects` of `[{kind: 'boom', x: 1, y: 1, size: 2, at: 40}]` or
+`[{kind: 'blast', x: 1, y: 1, size: 4, at: 40}]` throws a `TypeError`. Two worlds made by `of` from the same fields pass
 `assert.deepStrictEqual`; neither `with` nor `data` is an own property.
 
 ## Intrinsic - data:
@@ -126,7 +135,10 @@ third, a `lever` `pulled` at (2, 1), a fourth, a `gold` of amount 5
 stats of `range` 1, an `archer` third monster whose `last` is `{kind:
 'attack', dx: 1, dy: 1, at: 30, reach: 3}` and stats of `range` 4, and
 a `visible` true at (1, 1) alone): `fromData(JSON.parse(JSON.stringify(w.data())))`
-passes `assert.deepStrictEqual` with `w`; `w.data().grid` is
+passes `assert.deepStrictEqual` with `w`; so does it with `w` given
+`effects` `[{kind: 'blast', x: 1, y: 1, size: 2, at: 40}]` and its slime
+given `curse` 0, `haste` 2, `chant` `{kind: 'haste', at: 10, until: 1210}`,
+`cooldown` 900 and `fuse` `{at: 30}`; `w.data().effects` is `[]`; `w.data().grid` is
 `['#####', '#...#', '#####']` for `fromRows` of those rows, and
 `w.data().visible[1]` is `'01000'`. `w.data().items[1].price` is 30 and
 `w.data().heroes[0].offer` 12; `w.data().items[2].pulled` is true and

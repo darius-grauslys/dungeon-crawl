@@ -22,7 +22,9 @@ it centred on the origin (`drawImage(..., -24 s, -24 s, 48 s, 48 s)`, or
 the flat square from `-24 s + 8` to `24 s - 8`), the outline likewise,
 `ctx.restore()`. Then the projectiles, the aim dot (`ctx.arc`, `fill`)
 and the prices. `cellAt` works out the same layout and camera as `draw` (keep one
-helper for both, so a click lands on the cell drawn under it). Work out a cell's join mask
+helper for both, so a click lands on the cell drawn under it). Work out the floors' tile index per cell once per grid (cache it by the
+grid object, the seed and the depth: it depends on nothing else), the
+EED's four steps. Work out a cell's join mask
 with a small helper (`stands(grid, x, y)`, then the four orthogonal
 bits). Then `hud.draw(ctx, 0, rows * 48, W, H - rows * 48, world, me)`,
 then the paused band.

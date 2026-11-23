@@ -18,8 +18,10 @@ browser.
 | `powerup` | `sfx/powerup.mp3` |
 | `use` | `sfx/use.mp3` |
 | `stairs` | `sfx/stairs.mp3` |
+| `hiss` | `sfx/hiss.mp3` |
+| `boom` | `sfx/boom.mp3` |
 
-Twelve files in all. A sound of several files plays one of them, picked
+Fourteen files in all. A sound of several files plays one of them, picked
 each time: file `Math.floor(random() * n)` of its `n`.
 
 **The music.** Tracks 1 to 5 are `music/dungeon-1.mp3` to
@@ -40,7 +42,7 @@ context's `destination`. The buses and the master are made once, by
 `create(options) -> mixer`. `options`: `context`, an `AudioContext` (or anything with the same methods: `createGain()`, `createBufferSource()`, `decodeAudioData(arrayBuffer)` answering a promise, `destination`, `currentTime`, `state`, `resume()`); `fetch` (left out: the global `fetch`); `base`, a URL prefix ending in `/` (left out: `'/assets/'`); `random` (left out: `Math.random`). A missing `context` throws a `TypeError`. Answers a mixer, with the functions below; its volume 0.7, not muted, no music.
 
 ## Function - load:
-`mixer.load() -> promise`. Fetches the twelve sound files (`base` plus each path), and decodes each (`response.arrayBuffer()`, then `context.decodeAudioData`). Resolves, with nothing, once all twelve are decoded; rejects, with an `Error` whose message holds the file's path, as soon as one fails (a response not `ok` fails). A sound plays only once its files are decoded.
+`mixer.load() -> promise`. Fetches the fourteen sound files (`base` plus each path), and decodes each (`response.arrayBuffer()`, then `context.decodeAudioData`). Resolves, with nothing, once all fourteen are decoded; rejects, with an `Error` whose message holds the file's path, as soon as one fails (a response not `ok` fails). A sound plays only once its files are decoded.
 
 ## Function - play:
 `mixer.play(cue)`. `cue` a `cue` (anything else throws a `TypeError`). Muted, or its files not decoded: nothing. Otherwise a buffer source of one of its files (above), through a new gain node of value `cue.gain` into the effects bus, started at once (`start()`).
@@ -59,7 +61,7 @@ context's `destination`. The buses and the master are made once, by
 
 # Intrinsics:
 ## Intrinsic - loads:
-With a fake context and a fake `fetch` (answering `{ok: true, arrayBuffer()}` and recording the URLs): `create({context, fetch}).load()` resolves after `fetch` was called with each of the twelve URLs `'/assets/sfx/...'` of the table, and `decodeAudioData` 12 times. With `base` `'/x/'`, the URLs begin `/x/sfx/`. A `fetch` answering `{ok: false}` for `sfx/coin.mp3`: `load()` rejects with an `Error` whose message contains `sfx/coin.mp3`. `create({})` throws a `TypeError`.
+With a fake context and a fake `fetch` (answering `{ok: true, arrayBuffer()}` and recording the URLs): `create({context, fetch}).load()` resolves after `fetch` was called with each of the fourteen URLs `'/assets/sfx/...'` of the table, and `decodeAudioData` 14 times. With `base` `'/x/'`, the URLs begin `/x/sfx/`. A `fetch` answering `{ok: false}` for `sfx/coin.mp3`: `load()` rejects with an `Error` whose message contains `sfx/coin.mp3`. `create({})` throws a `TypeError`.
 
 ## Intrinsic - plays:
 After `load()`, with `random` answering 0.6: `play(cue.of({name: 'step', gain: 0.5}))` creates one buffer source whose `buffer` is the decoded `sfx/step-3.mp3`, connected to a gain node of value 0.5, and calls its `start` once. `play` of `swing` uses `sfx/swing.mp3`. Before `load()` resolves, `play` starts nothing. `play({name: 'step', gain: 1})` (a plain object) throws a `TypeError`.

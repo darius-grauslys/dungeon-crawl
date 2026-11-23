@@ -43,10 +43,10 @@ between them is open (creatures in between don't stop a shot).
 # Functions:
 ## Function - decide:
 `decide(monster, grid, foes, threats, blocked, turn) -> intent`. `monster` an `actor` not of kind `hero`; `grid` a `tile-grid`; `foes` an array of `point`s, the cells of the creatures it fights (every cell each covers), in the caller's order of preference; `threats` an array of `point`s, the cells of the creatures it flees; `blocked` an array of `point`s, the cells it may not step onto (other creatures, wares, levers); `turn` an integer of 0 or more. Anything else throws a `TypeError`. With its `reach` from `bestiary.entry(monster.kind)`, in order, the first that applies:
-1. A `dormant` monster waits.
+1. A `dormant` monster waits; so does one whose `bestiary` `ability` is `summon` (a scarecrow never moves nor attacks: `rules` makes it chant).
 2. A slime (`bestiary`'s `SLIMES`) on an odd `turn` waits.
 3. **Keeping its distance.** A monster whose `mode` is `roam` and whose `stats.range` is above 1, with the nearest foe's cell at a distance below its `range` (a foe has come close): **if its `last` is a `move`** (its last action was a step) **and a foe's cell is in line** (the first such in `foes`), it shoots between steps: an `attack` toward that cell. Otherwise, among its free steps, the one that leaves it farthest from the nearest foe's cell (the first in the order of preference on a tie), if that is farther than it is now: it backs off, one step at a time, until the foe is at its full range. With no step that takes it farther (it is cornered), go on to the next rules (it fights where it stands).
-4. If it is next to a foe's cell (the first such in `foes`): a `move` toward that cell (an attack).
+4. If it is next to a foe's cell (the first such in `foes`): a `move` toward that cell (an attack); but a monster whose `ability` is `fuse` (a pumpkin) never attacks: next to a foe, it waits.
 5. A `guard` waits.
 6. If a threat's cell is within 5 of it: it flees: among its free steps, the one that leaves it farthest from the nearest threat's cell (the first in the order of preference on a tie), if that is farther than it is now; else it waits.
 7. If its `stats.range` is above 1 and a foe's cell is in line (the first such in `foes`): an `attack` toward it (the direction from the monster to the cell).
@@ -80,6 +80,9 @@ In an all-`floor` 9 by 9 grid, an `archer` with `stats.range` 4 at (1, 1): with 
 
 ## Intrinsic - kites:
 In an all-`floor` 12 by 12 grid, an `archer` with `stats.range` 4 at (5, 5): with a foe at (5, 3) (2 away) it steps `(0, 1)` (down, to 3 away: the first of the farthest steps); with the foe at (5, 4) (next to it), `(0, 1)` too; with the foe at (8, 5) (3 away), `(-1, 0)`; with the foe at (5, 1) (4 away, its full range, in line) it answers `attack(0, -1)`. With the archer's `last` `{kind: 'move', dx: 0, dy: 1, at: 0, reach: 1}` (it just stepped) and the foe at (5, 3) (in line), it answers `attack(0, -1)` (it shoots between steps); with that `last` and the foe at (6, 3) (2 away, not in line), it steps `(0, 1)` (to 3 away: it backs off); with `last` `{kind: 'attack', dx: 0, dy: -1, at: 0, reach: 2}` (it just shot) and the foe at (5, 3), it steps `(0, 1)` again. The same archer of `mode` `guard` with the foe at (5, 3) does not step: it waits. A `skeleton` (range 1) at (5, 5) with the foe at (5, 3) steps `(0, -1)` toward it. In the grid `['#######', '#.....#', '#######']`, the archer at (5, 1) with a foe at (4, 1) (next to it; its only step away, `(1, 0)` to (6, 1), is a wall) answers `move(-1, 0)` (a melee attack); with the foe at (3, 1) (2 away, cornered) `attack(-1, 0)`.
+
+## Intrinsic - abilities:
+In an all-`floor` 9 by 9 grid, a `scarecrow` at (4, 4) waits with a foe at (4, 3) (next to it) and with the foe at (4, 1). A `pumpkin` of `size` 2 at (2, 2) with a foe at (4, 2) (next to its square) waits; with the foe at (7, 2), it steps `(1, 0)` toward it. A `swarm` at (4, 4) with the foe at (4, 3) moves `(0, -1)` (an attack).
 
 ## Intrinsic - no-path:
 In the grid `['#######', '#..#..#', '#######']`, a `skeleton` at (1, 1) with a foe at (4, 1) waits.

@@ -17,30 +17,38 @@ The `skeleton` is the plain one, the `archer` the one with a bow, the
 The `blue-spider` replaces the snakes on levels 5 to 10; the `serpent` is
 the second lair's boss, a giant blue snake.
 
-| kind | group | hp | attack | defense | magic | magicPower | range | slows | reach | step | strike | size |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `bat` | `vermin` | 3 | 2 | 0 | 0 | 1 | 1 | no | 9 | 133 | 200 | 1 |
-| `slime` | `vermin` | 6 | 2 | 1 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
-| `snake` | `vermin` | 5 | 3 | 0 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
-| `skeleton` | `undead` | 9 | 4 | 2 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
-| `archer` | `undead` | 7 | 3 | 1 | 0 | 1 | 4 | no | 7 | 400 | 700 | 1 |
-| `mage` | `undead` | 8 | 2 | 1 | 4 | 1 | 4 | no | 7 | 400 | 700 | 1 |
-| `swordsman` | `undead` | 11 | 5 | 2 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
-| `blue-slime` | `vermin` | 6 | 2 | 1 | 0 | 1 | 1 | yes | 6 | 400 | 600 | 1 |
-| `blue-snake` | `vermin` | 5 | 3 | 0 | 0 | 1 | 1 | yes | 6 | 400 | 600 | 1 |
-| `blue-spider` | `vermin` | 7 | 3 | 1 | 0 | 1 | 1 | yes | 7 | 300 | 600 | 1 |
-| `beetle` | `vermin` | 8 | 4 | 3 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
-| `mummy` | `undead` | 12 | 5 | 2 | 0 | 1 | 1 | no | 6 | 600 | 600 | 1 |
-| `cultist` | `human` | 7 | 5 | 1 | 8 | 1 | 4 | no | 7 | 400 | 700 | 1 |
-| `spider` | `vermin` | 9 | 5 | 1 | 0 | 1 | 1 | no | 8 | 300 | 600 | 1 |
-| `ghost` | `undead` | 10 | 6 | 3 | 0 | 1 | 1 | no | 7 | 400 | 600 | 1 |
-| `reaper` | `undead` | 14 | 7 | 3 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
-| `worm` | `vermin` | 9 | 5 | 2 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
-| `fire-slime` | `vermin` | 10 | 5 | 3 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
-| `imp` | `demon` | 12 | 6 | 3 | 0 | 1 | 1 | no | 7 | 300 | 600 | 1 |
-| `demon` | `demon` | 16 | 7 | 4 | 0 | 1 | 1 | no | 7 | 400 | 600 | 1 |
-| `golem` | `construct` | 40 | 12 | 12 | 6 | 2 | 1 | no | 30 | 1600 | 1000 | 3 |
-| `serpent` | `vermin` | 60 | 10 | 6 | 0 | 1 | 1 | yes | 30 | 1200 | 900 | 3 |
+| kind | group | hp | attack | defense | magic | magicPower | range | slows | reach | step | strike | size | ability |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `bat` | `vermin` | 3 | 2 | 0 | 0 | 1 | 1 | no | 9 | 133 | 200 | 1 | `none` |
+| `slime` | `vermin` | 6 | 2 | 1 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 | `none` |
+| `snake` | `vermin` | 5 | 3 | 0 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 | `none` |
+| `skeleton` | `undead` | 9 | 4 | 2 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 | `none` |
+| `archer` | `undead` | 7 | 3 | 1 | 0 | 1 | 4 | no | 7 | 400 | 700 | 1 | `none` |
+| `mage` | `undead` | 8 | 2 | 1 | 4 | 1 | 4 | no | 7 | 400 | 700 | 1 | `none` |
+| `swordsman` | `undead` | 11 | 5 | 2 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 | `none` |
+| `blue-slime` | `vermin` | 6 | 2 | 1 | 0 | 1 | 1 | yes | 6 | 400 | 600 | 1 | `none` |
+| `blue-snake` | `vermin` | 5 | 3 | 0 | 0 | 1 | 1 | yes | 6 | 400 | 600 | 1 | `none` |
+| `blue-spider` | `vermin` | 7 | 3 | 1 | 0 | 1 | 1 | yes | 7 | 300 | 600 | 1 | `none` |
+| `beetle` | `vermin` | 8 | 4 | 8 | 0 | 1 | 1 | no | 6 | 400 | 1200 | 1 | `push` |
+| `mummy` | `undead` | 12 | 5 | 2 | 0 | 1 | 1 | no | 6 | 600 | 600 | 1 | `curse` |
+| `cultist` | `human` | 7 | 5 | 1 | 8 | 1 | 4 | no | 7 | 400 | 700 | 1 | `chant` |
+| `spider` | `vermin` | 9 | 5 | 1 | 0 | 1 | 1 | no | 8 | 300 | 600 | 1 | `none` |
+| `ghost` | `undead` | 10 | 6 | 3 | 0 | 1 | 1 | no | 7 | 400 | 600 | 1 | `none` |
+| `reaper` | `undead` | 90 | 14 | 8 | 4 | 2 | 1 | no | 30 | 1000 | 800 | 2 | `none` |
+| `worm` | `vermin` | 9 | 5 | 2 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 | `none` |
+| `fire-slime` | `vermin` | 10 | 5 | 3 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 | `none` |
+| `imp` | `demon` | 12 | 6 | 3 | 0 | 1 | 1 | no | 7 | 300 | 600 | 1 | `none` |
+| `demon` | `demon` | 16 | 7 | 4 | 0 | 1 | 1 | no | 7 | 400 | 600 | 1 | `none` |
+| `golem` | `construct` | 40 | 12 | 12 | 6 | 2 | 1 | no | 30 | 1600 | 1000 | 3 | `none` |
+| `serpent` | `vermin` | 60 | 10 | 6 | 0 | 1 | 1 | yes | 30 | 1200 | 900 | 3 | `none` |
+| `snowman` | `vermin` | 5 | 0 | 0 | 1 | 1 | 4 | yes | 7 | 133 | 200 | 1 | `none` |
+| `snow-skeleton` | `undead` | 11 | 5 | 2 | 0 | 1 | 1 | yes | 6 | 400 | 600 | 1 | `none` |
+| `wolf-man` | `vermin` | 14 | 5 | 2 | 0 | 1 | 1 | no | 7 | 400 | 600 | 1 | `enrage` |
+| `enraged-wolf-man` | `vermin` | 14 | 5 | 2 | 0 | 1 | 1 | no | 7 | 200 | 300 | 1 | `none` |
+| `scarecrow` | `vermin` | 10 | 0 | 2 | 0 | 1 | 1 | no | 7 | 400 | 600 | 1 | `summon` |
+| `swarm` | `vermin` | 3 | 4 | 0 | 2 | 1 | 1 | no | 9 | 80 | 300 | 1 | `split` |
+| `pumpkin` | `vermin` | 12 | 0 | 1 | 0 | 1 | 1 | no | 7 | 800 | 600 | 2 | `fuse` |
+| `beholder` | `demon` | 20 | 6 | 4 | 6 | 2 | 5 | no | 8 | 400 | 800 | 1 | `none` |
 
 - `hp`, `attack`, `defense`: the base stats (`hp` is also `maxHp`),
   before `rules` adds the floor's tier.
@@ -55,20 +63,27 @@ the second lair's boss, a giant blue snake.
 - `step` and `strike`: its latency in milliseconds after a step and
   after an attack (a wait takes `step`).
 - `size`: how many cells square it stands on, before anything shrinks it.
+- `ability`: what it does besides moving and attacking (`rules` says
+  how): `none`; `push` (a creature it damages is pushed back a cell);
+  `curse` (a hero it damages is cursed); `chant` (it chants a spell that
+  hastens the monsters near it); `enrage` (badly hurt, it becomes an
+  `enraged-wolf-man`); `summon` (it never moves nor attacks: it chants
+  up swarms); `split` (damage splits it in two); `fuse` (it never
+  attacks: near a foe it lights a fuse and explodes).
 
 The **slimes** are `slime`, `blue-slime` and `fire-slime` (they act on
 every other turn only, `monsters` says).
 
 The module (`shapes/bestiary/index.mjs`) exports:
 
-- `KINDS`: the twenty-two kinds, in the table's order (a frozen array).
+- `KINDS`: the thirty kinds, in the table's order (a frozen array).
 - `GROUPS`: `['human', 'undead', 'vermin', 'demon', 'construct']` (a
   frozen array).
 - `SLIMES`: `['slime', 'blue-slime', 'fire-slime']` (a frozen array).
 - `entry(kind)`: the table's row for a kind, a frozen `{kind, group, hp,
   attack, defense, magic, magicPower, range, slows, reach, step, strike,
-  size}` (`slows` a
-  boolean); a kind not in the table throws a `TypeError`.
+  size, ability}` (`slows` a
+  boolean, `ability` a string); a kind not in the table throws a `TypeError`.
 - `group(kind)`: the kind's group, and `'human'` for `'hero'`; anything
   else throws a `TypeError`.
 - `hostile(a, b)`: whether creatures of the kinds `a` and `b` (each a
@@ -101,18 +116,28 @@ The function `flees(a, b)`.
 
 # Intrinsics:
 ## Intrinsic - valid:
-`KINDS` has 22 kinds, the first `bat` and the last `serpent` (right
-after `golem`), `mage` and `swordsman` right after `archer`,
+`KINDS` has 30 kinds, the first `bat`, `serpent` right after `golem`,
+the last eight `snowman`, `snow-skeleton`, `wolf-man`,
+`enraged-wolf-man`, `scarecrow`, `swarm`, `pumpkin` and `beholder` in
+that order, `mage` and `swordsman` right after `archer`,
 `blue-spider` right after `blue-snake`, and is frozen. `entry('serpent')`
 has `group` `'vermin'`, `hp` 60, `attack` 10, `defense` 6, `slows` true
 and `size` 3; `entry('blue-spider').slows` is true. `entry('bat')` has
 `step` 133 and `strike` 200 (bats are three times as fast as most);
 `entry('mage')` is `{kind: 'mage', group: 'undead', hp: 8, attack: 2,
 defense: 1, magic: 4, magicPower: 1, range: 4, slows: false, reach: 7,
-step: 400, strike: 700, size: 1}`; `entry('swordsman')` has `group`
+step: 400, strike: 700, size: 1, ability: 'none'}`; `entry('beetle')`
+has `defense` 8, `strike` 1200 and `ability` `'push'`; `entry('mummy').ability`
+is `'curse'`, `entry('cultist').ability` `'chant'`; `entry('snowman')`
+has `attack` 0, `magic` 1, `range` 4, `slows` true, `step` 133;
+`entry('enraged-wolf-man')` has `step` 200 and `strike` 300;
+`entry('swarm')` has `hp` 3, `step` 80, `strike` 300, `ability`
+`'split'`; `entry('pumpkin')` `size` 2, `step` 800, `ability` `'fuse'`;
+`entry('reaper')` `size` 2 and `hp` 90; `group('beholder')` is
+`'demon'`; `entry('swordsman')` has `group`
 `'undead'`, `hp` 11, `attack` 5, `defense` 2 and `range` 1. `entry('archer')` is `{kind: 'archer', group: 'undead', hp: 7,
 attack: 3, defense: 1, magic: 0, magicPower: 1, range: 4, slows: false,
-reach: 7, step: 400, strike: 700, size: 1}` and frozen;
+reach: 7, step: 400, strike: 700, size: 1, ability: 'none'}` and frozen;
 `entry('blue-snake').slows` is true; `entry('golem')` has `size` 3,
 `step` 1600, `attack` 12, `defense` 12, `magic` 6 and `magicPower` 2;
 `entry('cultist').range` is 4 and its `magic` 8 (`magicPower` 1). `group('hero')` is `'human'`,

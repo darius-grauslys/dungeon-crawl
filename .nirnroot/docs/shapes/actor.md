@@ -17,7 +17,7 @@ both 0.
 The module (`shapes/actor/index.mjs`) exports:
 
 - `of({id, kind, pos, stats, ready, held, facing, last, aim, slow,
-  mode, size, small, gesture})`:
+  mode, size, small, gesture, curse, haste, chant, cooldown, fuse})`:
   - `id` an integer of 0 or more; `kind` `'hero'` or one of
     `bestiary`'s `KINDS`; `pos` a `point`; `stats` a `stats`;
   - `ready` an integer of 0 or more, the world time (in milliseconds)
@@ -48,9 +48,24 @@ The module (`shapes/actor/index.mjs`) exports:
     necklace), and `at` an integer of 0 or more, the world time it
     happened; the actor keeps a frozen copy with those two keys alone.
     The screen plays its animation from `at`.
+  - `curse` an integer from 0 to 3 (left out: 0): how many more of its
+    actions hurt it (a mummy's curse, `rules`);
+  - `haste` an integer from 0 to 3 (left out: 0): how many more of its
+    actions take half their time (a cultist's chant);
+  - `chant` the spell it is chanting, or `null` (left out: `null`): an
+    object `{kind, at, until}`, `kind` `'haste'` or `'summon'`, `at` and
+    `until` integers of 0 or more, `until` at least `at`: it began at
+    `at` and ends at `until`; the actor keeps a frozen copy with those
+    three keys alone;
+  - `cooldown` an integer of 0 or more (left out: 0): the world time
+    before which it may not chant again;
+  - `fuse` the time its fuse was lit, or `null` (left out: `null`): an
+    object `{at}`, `at` an integer of 0 or more; a frozen copy.
+    Only monsters chant or burn a fuse: a hero's `chant` and `fuse`
+    are always `null`, its `haste` 0 and `cooldown` 0.
   Any other input is refused with a `TypeError`.
 - `KINDS`: `'hero'` and then `bestiary`'s `KINDS`, in order (a frozen
-  array of 19).
+  array of 31).
 - `facingFor(dx, dy)`: the way a creature looks after a move, attack or
   face toward a direction (anything else a `TypeError`): `'left'` when
   `dx` is -1, `'right'` when `dx` is 1; with `dx` 0, `'left'` for down
@@ -99,6 +114,21 @@ Property `small`.
 ## Field - gesture:
 Property `gesture`: a frozen `{kind, at}`, or `null`.
 
+## Field - curse:
+Property `curse`.
+
+## Field - haste:
+Property `haste`.
+
+## Field - chant:
+Property `chant`: a frozen `{kind, at, until}`, or `null`.
+
+## Field - cooldown:
+Property `cooldown`.
+
+## Field - fuse:
+Property `fuse`: a frozen `{at}`, or `null`.
+
 ## Field - covers:
 `covers(x, y)`: whether the actor covers the cell `(x, y)`. A method on
 the prototype, never an own property.
@@ -110,12 +140,14 @@ the prototype, never an own property.
 ## Field - with:
 `with(changes)` answers a new actor, this one with the properties of
 `changes` (any of `pos`, `stats`, `ready`, `held`, `facing`, `last`,
-`aim`, `slow`, `mode`, `size`, `small`, `gesture`) put in, checked as
+`aim`, `slow`, `mode`, `size`, `small`, `gesture`, `curse`, `haste`,
+`chant`, `cooldown`, `fuse`, and `kind`, for a monster becoming another
+monster kind) put in, checked as
 `of` checks them; this one is unchanged. `with` is a method every actor shares (on
 its prototype, as a class method is), never an own property: an actor's
 own properties are `id`, `kind`, `pos`, `stats`, `ready`, `held`,
-`facing`, `last`, `aim`, `slow`, `mode`, `size`, `small` and `gesture`
-alone, so
+`facing`, `last`, `aim`, `slow`, `mode`, `size`, `small`, `gesture`,
+`curse`, `haste`, `chant`, `cooldown` and `fuse` alone, so
 two actors of equal fields are deep equal (`assert.deepStrictEqual`).
 
 # Intrinsics:
@@ -123,7 +155,8 @@ two actors of equal fields are deep equal (`assert.deepStrictEqual`).
 `of({id: 0, kind: 'hero', pos: point.of(1, 2), stats: s})` has those
 values, `ready` 0, `held` 0, `facing` `'right'`, `last` `null`, `aim`
 `{dx: 1, dy: 0}`, `slow` 0, `mode` `'roam'`, `size` 1, `small` false,
-`gesture` `null`, and is frozen; with `ready: 250` it has `ready` 250. A `golem` of `size`
+`gesture` `null`, `curse` 0, `haste` 0, `chant` `null`, `cooldown` 0,
+`fuse` `null`, and is frozen; with `ready: 250` it has `ready` 250. A `golem` of `size`
 3, `mode` `'dormant'`, and an `archer` of `aim` `{dx: -1, dy: 1}` and
 `slow` 2, are accepted. `kind: 'dragon'`, `id: -1`, `pos: {x: 1, y: 2}`
 (a plain object, not a `point`), a missing `stats`, `ready: -1` or
@@ -142,8 +175,16 @@ frozen and deep equal to `{kind: 'power', at: 50}`, and `gesture` of
 `{kind: 'wave', at: 0}`, `{kind: 'use', at: -1}` or `{kind: 'use'}`
 throws a `TypeError`. Two actors made by `of` from the same fields pass
 `assert.deepStrictEqual`, and `with` is not an own property
-(`Object.hasOwn(a, 'with')` false). `KINDS` has 19 kinds, the first
-`'hero'`, then `'bat'`, the last `'golem'`.
+(`Object.hasOwn(a, 'with')` false). `KINDS` has 31 kinds, the first
+`'hero'`, then `'bat'`, the last `'beholder'`. A `cultist` with `chant`
+`{kind: 'haste', at: 100, until: 1300}`, `cooldown` 500 and `haste` 3, a
+`pumpkin` of `size` 2 with `fuse` `{at: 40}`, and a hero with `curse`
+3 are accepted, the `chant` and `fuse` frozen and deep equal to what
+was given; `curse: 4`, `haste: -1`, `chant` of `{kind: 'sing', at: 0,
+until: 1}` or `{kind: 'haste', at: 5, until: 1}`, `cooldown: 1.5`,
+`fuse: {at: -1}`, and a hero with `haste` 1 or a `fuse` each throw a
+`TypeError`. A `wolf-man` actor `a`: `a.with({kind: 'enraged-wolf-man'}).kind`
+is `'enraged-wolf-man'`; `a.with({kind: 'hero'})` throws a `TypeError`.
 
 ## Intrinsic - covers:
 A `golem` of `size` 3 at (4, 5): `covers(4, 5)`, `covers(6, 7)` and

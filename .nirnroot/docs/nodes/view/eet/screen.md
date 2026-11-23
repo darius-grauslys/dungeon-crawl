@@ -10,8 +10,8 @@ around an `actor` of kind `hero`, `{hp: 24, maxHp: 24, attack: 4,
 defense: 1}`, or 0 hit points and `alive: false` for one not alive; a
 monster a `slime` of any stats, unless the intrinsic says another kind;
 actors' `held` 0, `facing` and `last` left out unless said). Read pixels back with `getImageData`.
-Write the `flat-colours`, `fog`, `paused`, `walls`, `animates`, `aim`, `sizes` and `flies` tests before the `sprites`
-one, in the same file or in files whose names sort before it: once
+Write the `flat-colours`, `fog`, `paused`, `walls`, `animates`, `aim`, `sizes`, `flies` and `effects` tests before the `sprites`
+one (and the `floors` one), in the same file or in files whose names sort before them: once
 loaded, the sprites are used for good.
 
 The edge under test:
@@ -31,6 +31,12 @@ The edge under test:
 - [shape:level](../../../shapes/level.md)
 
 # Intrinsics:
+## Intrinsic - floors:
+As the EED states: draw each candidate `floors` sprite onto a scratch canvas filled with rgb(22, 13, 19), 48 by 48 with smoothing off, and compare its pixels with the cell's.
+
+## Intrinsic - effects:
+As the EED states: set the actors' `fuse` and `chant`, and the world's `effects`, with the shapes.
+
 ## Intrinsic - camera:
 As the EED states.
 

@@ -132,6 +132,33 @@ As the EED states.
 ## Intrinsic - floor-items:
 As the EED states: `fromSave` of a save of one player at each depth, for each seed; a food item is one of kind `cheese`, `bread` or `meat`.
 
+## Intrinsic - pushes:
+As the EED states.
+
+## Intrinsic - curses:
+As the EED states.
+
+## Intrinsic - enrages:
+As the EED states.
+
+## Intrinsic - hastes:
+As the EED states.
+
+## Intrinsic - chants:
+As the EED states.
+
+## Intrinsic - summons:
+As the EED states.
+
+## Intrinsic - splits:
+As the EED states.
+
+## Intrinsic - explodes:
+As the EED states.
+
+## Intrinsic - reaper-dies:
+As the EED states.
+
 ## Intrinsic - saves:
 As the EED states.
 

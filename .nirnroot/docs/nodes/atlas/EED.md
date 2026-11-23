@@ -1,6 +1,6 @@
 # atlas
 
-The game's pictures: it loads the twenty sprite sheets and answers where
+The game's pictures: it loads the twenty-one sprite sheets and answers where
 each named picture is, and each theme's terrain tiles. Runs in a browser.
 
 The sheets are 16-pixel pixel art on an opaque background colour,
@@ -43,6 +43,17 @@ transparent, so a sprite drawn over the floor shows the floor around it.
 | `swordsman` | `sheets/monsters.png` | 64 | 16 |
 | `blue-spider` | `sheets/monsters.png` | 64 | 96 |
 | `serpent` | `sheets/frozen-monsters.png` | 0 | 16 |
+| `snowman` | `sheets/frozen-cavern-monsters.png` | 0 | 0 |
+| `snow-skeleton` | `sheets/frozen-cavern-monsters.png` | 0 | 48 |
+| `wolf-man` | `sheets/frozen-cavern-monsters.png` | 64 | 16 |
+| `enraged-wolf-man` | `sheets/frozen-cavern-monsters.png` | 0 | 32 |
+| `scarecrow` | `sheets/temple-monsters.png` | 64 | 16 |
+| `swarm` | `sheets/temple-monsters.png` | 128 | 0 |
+| `pumpkin` | `sheets/temple-monsters.png` | 0 | 32 |
+| `beholder` | `sheets/monsters.png` | 0 | 32 |
+| `sparkle-0` | `sheets/items.png` | 0 | 208 |
+| `sparkle-1` | `sheets/items.png` | 16 | 208 |
+| `sparkle-2` | `sheets/items.png` | 32 | 208 |
 | `bread` | `sheets/items.png` | 0 | 144 |
 | `meat` | `sheets/items.png` | 16 | 144 |
 | `cheese` | `sheets/items.png` | 32 | 144 |
@@ -93,11 +104,27 @@ this table says:
 | `interior` | `sheets/interior.png` | `sheets/interior-floor.png` 224, 112 | `sheets/dungeon.png` 32, 96 |
 
 So the `dungeon` theme's tiles are the table's `floor`, `stairs` and
-`wall-<m>`. The twenty sheets are the ten of the first table and the ten
+`wall-<m>`. The twenty-one sheets are the eleven of the first table and the ten
 of this one (`dungeon.png` and `floor.png` in both); each is loaded
 once, and keyed as above.
 
 Every sprite is 16 by 16.
+
+**Floors.** Each theme's floor sheet (the themes' table's `floor`
+sheet) holds, down its first column (`sx` 0), floor patterns of more or
+less **energy** (how busy the pattern is: the mean squared difference in
+brightness between neighbouring pixels of the tile). The screen lays the
+calm ones in the middle of rooms and the busy ones by the walls. Each
+theme's patterns, calmest first, by their `sy` (all at `sx` 0, 16 by 16):
+
+| theme | `sy`, calmest to busiest |
+|---|---|
+| `dungeon` | 304, 336, 0, 320, 352, 368, 16, 32, 144, 160, 48, 176, 224, 64, 80, 208, 96, 112, 128, 240, 288, 272, 256 |
+| `frozen` | 80, 64, 32, 16, 112, 0, 48, 208, 240, 176, 144, 160, 128, 224, 256, 192 |
+| `arid` | 0, 16, 32, 80, 64, 192, 48, 304, 272, 288, 176, 320, 160, 144, 208, 128, 112, 96, 240, 224 |
+| `temple` | 160, 176, 144, 192, 128, 112, 80, 64, 48, 0, 16, 32 |
+| `magma` | 176, 160, 288, 80, 128, 272, 96, 240, 256, 64, 48, 112, 304, 0, 16, 32, 224, 192, 208 |
+| `interior` | its one `floor` (224, 112) |
 
 **Animations.** A creature is drawn as a frame of one of its
 animations (`pose`). An animation is a list of frames, each a 16 by 16
@@ -105,7 +132,7 @@ rectangle; frame `f` of an animation of `n` frames is its `f`-th.
 
 *Monsters.* Each monster's only animation is `idle`: 3 frames side by
 side, at its table's `sx`, `sx + 16` and `sx + 32`, all at its table's
-`sy`, on its sheet. The monsters are the twenty-two of `bestiary`'s
+`sy`, on its sheet. The monsters are the thirty of `bestiary`'s
 `KINDS` (every name of the table that is one).
 
 *Heroes.* `sheets/heroes.png` holds four **colour** variations of the
@@ -134,7 +161,7 @@ not used.)
 
 # Functions:
 ## Function - load:
-`load(base) -> promise`. `base` a URL prefix ending in `/` (the page's is `/assets/`); each sheet is fetched from `base` plus its path in the table. Resolves, with nothing, once all twenty are loaded and keyed; rejects, with an `Error` whose message contains the sheet's path, as soon as one fails to load. A later `load` replaces what an earlier one loaded once it resolves.
+`load(base) -> promise`. `base` a URL prefix ending in `/` (the page's is `/assets/`); each sheet is fetched from `base` plus its path in the table. Resolves, with nothing, once all twenty-one are loaded and keyed; rejects, with an `Error` whose message contains the sheet's path, as soon as one fails to load. A later `load` replaces what an earlier one loaded once it resolves.
 
 ## Function - sprite:
 `sprite(name) -> sprite`. The `sprite` for a name of the table: its `image` the keyed sheet (a canvas), its rectangle the table's, 16 by 16. Before a `load` has resolved, answers `null`. A name not in the table throws a `TypeError`, loaded or not.
@@ -148,12 +175,18 @@ not used.)
 ## Function - frames:
 `frames(name, anim) -> integer`. How many frames the animation has (a monster's `idle` 3; the hero's as the table says). A name or an animation not of those throws a `TypeError`.
 
+## Function - floors:
+`floors(theme) -> array of sprite`. The theme's floor patterns, calmest first, as **Floors** says: a fresh array of `sprite`s on the theme's floor sheet (23 for `dungeon`, 16 `frozen`, 20 `arid`, 12 `temple`, 19 `magma`, 1 `interior`). Before a `load` has resolved, answers `null`. A theme not of the six throws a `TypeError`.
+
 ## Function - names:
-`names() -> array`. The fifty-nine names, in the table's order, a fresh array each call.
+`names() -> array`. The seventy names, in the table's order, a fresh array each call.
 
 # Intrinsics:
 ## Intrinsic - table:
-`names()` is the table's names in order. Before any `load`, `sprite('hero')` is `null`; `sprite('dragon')` throws a `TypeError`. After `load('/assets/')` resolves, each name's sprite has the table's `sx`, `sy`, `sw` 16 and `sh` 16. `names()` has 59 names, `wall-0` to `wall-15` the last sixteen in order, `armor-4` just before `wall-0`, `mage` just after `necklace`, `ring` before `necklace`, `lever-pulled` before `ring`; `sprite('mage')` has `sx` 0 and `sy` 16, `sprite('swordsman')` `sx` 64 and `sy` 16, `sprite('cheese')` `sx` 32 and `sy` 144, `sprite('armor-3')` `sx` 16 and `sy` 48, `sprite('sword-2')` `sx` 80 and `sy` 16, each the same `image` as `sprite('skeleton')` (the monsters) or `sprite('potion')` (the items); `pose('mage', 'idle', 2)` has `sx` 32 and `sy` 16; `sprite('blue-spider')` has `sx` 64 and `sy` 96; `sprite('serpent')` has the same `image`, `sx` and `sy` as `sprite('blue-snake')` (the serpent is drawn 3 cells square, `view` scales it); `sprite('ring')` has `sx` 0 and `sy` 64, `sprite('necklace')` `sx` 128 and `sy` 64; `sprite('golem')` has `sx` 64 and `sy` 112, `sprite('slime')` `sx` 64 and `sy` 48, and `sprite('blue-snake')` an `image` other than `sprite('snake')`'s; `sprite('wall-6')` has `sx` 32 and `sy` 0, `sprite('wall-9')` `sx` 48 and `sy` 16; `sprite('wall-16')` throws a `TypeError`.
+`names()` is the table's names in order. Before any `load`, `sprite('hero')` is `null`; `sprite('dragon')` throws a `TypeError`. After `load('/assets/')` resolves, each name's sprite has the table's `sx`, `sy`, `sw` 16 and `sh` 16. `names()` has 70 names, `wall-0` to `wall-15` the last sixteen in order, `armor-4` just before `wall-0`, the eleven from `snowman` to `sparkle-2` right after `serpent` and before `bread`, `mage` just after `necklace`, `ring` before `necklace`, `lever-pulled` before `ring`; `sprite('mage')` has `sx` 0 and `sy` 16, `sprite('swordsman')` `sx` 64 and `sy` 16, `sprite('cheese')` `sx` 32 and `sy` 144, `sprite('armor-3')` `sx` 16 and `sy` 48, `sprite('sword-2')` `sx` 80 and `sy` 16, each the same `image` as `sprite('skeleton')` (the monsters) or `sprite('potion')` (the items); `pose('mage', 'idle', 2)` has `sx` 32 and `sy` 16; `sprite('blue-spider')` has `sx` 64 and `sy` 96; `sprite('serpent')` has the same `image`, `sx` and `sy` as `sprite('blue-snake')` (the serpent is drawn 3 cells square, `view` scales it); `sprite('ring')` has `sx` 0 and `sy` 64, `sprite('necklace')` `sx` 128 and `sy` 64; `sprite('golem')` has `sx` 64 and `sy` 112, `sprite('slime')` `sx` 64 and `sy` 48, and `sprite('blue-snake')` an `image` other than `sprite('snake')`'s; `sprite('wall-6')` has `sx` 32 and `sy` 0, `sprite('wall-9')` `sx` 48 and `sy` 16; `sprite('wall-16')` throws a `TypeError`.
+
+## Intrinsic - floors:
+Before any `load`, `floors('dungeon')` is `null`; `floors('lava')` throws a `TypeError`. After `load('/assets/')` resolves: `floors('dungeon')` has 23 sprites, the first with `sx` 0 and `sy` 304, the last `sy` 256, each with the same `image` as `tile('dungeon', 'floor')`; `floors('temple')` has 12, the first `sy` 160; `floors('magma')` 19, the last `sy` 208; `floors('interior')` one, with the `sx`, `sy` and `image` of `tile('interior', 'floor')`; each is 16 by 16. `sprite('snowman')` has `sx` 0 and `sy` 0 and an `image` other than `sprite('serpent')`'s; `sprite('wolf-man')` `sx` 64, `sy` 16 and the same `image` as `sprite('snowman')`; `sprite('pumpkin')` `sx` 0, `sy` 32 and the same `image` as `sprite('spider')`; `sprite('sparkle-1')` `sx` 16 and `sy` 208; `pose('swarm', 'idle', 2)` has `sx` 160 and `sy` 0.
 
 ## Intrinsic - poses:
 `frames('hero', 'idle')` is 3, `frames('hero', 'sleep')` 4, `frames('hero', 'debuff')` 4, `frames('hero', 'power_up')` 6, `frames('hero', 'stun')` 5, `frames('golem', 'idle')` 3; `frames('golem', 'stun')`, `frames('dragon', 'idle')` and `frames('wall-0', 'idle')` throw a `TypeError`. Before any `load`, `pose('hero', 'idle', 0)` is `null`; `pose('hero', 'idle', 3)`, `pose('hero', 'walk', 0)`, `pose('bat', 'sleep', 0)` and `pose('hero', 'idle', 0, {colour: 4, group: 0})` throw a `TypeError`. After `load('/assets/')` resolves: `pose('hero', 'idle', 0)` has the same `image`, `sx` and `sy` as `sprite('hero')`; `pose('hero', 'idle', 2)` `sx` 32, `sy` 0; `pose('hero', 'idle', 1, {colour: 3, group: 0})` `sx` 208, `sy` 0; `pose('hero', 'sleep', 2)` `sx` 0, `sy` 48; `pose('hero', 'debuff', 1, {colour: 1, group: 0})` `sx` 80, `sy` 80; `pose('hero', 'power_up', 3, {colour: 1, group: 0})` `sx` 64, `sy` 144; `pose('hero', 'power_up', 5)` `sx` 32, `sy` 144; `pose('hero', 'stun', 4, {colour: 2, group: 0})` `sx` 160, `sy` 192; `pose('hero', 'idle', 0, {colour: 0, group: 2})` `sx` 0, `sy` 480; `pose('golem', 'idle', 2)` `sx` 96, `sy` 112 and the same `image` as `sprite('golem')`; `pose('blue-snake', 'idle', 1)` `sx` 16, `sy` 16; every pose is 16 by 16.

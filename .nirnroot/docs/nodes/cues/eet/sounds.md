@@ -45,6 +45,9 @@ As the EED states.
 ## Intrinsic - dies:
 As the EED states.
 
+## Intrinsic - fuses:
+As the EED states.
+
 ## Intrinsic - refuses:
 As the EED states.
 

@@ -22,7 +22,11 @@ is a uint32, each draw adds 0x6D2B79F5 to it and mixes it) started at
    kept, to the next one: an L-shaped corridor, one cell wide, from the
    first room's centre (its left plus half its width, rounded down; the
    same for its top) to the second's, going horizontally first or
-   vertically first at random.
+   vertically first at random. On the temple's floors (depths 22 to 26, `level.theme(depth)` `temple`)
+   the corridors are **two cells wide**: every corridor cell `(x, y)`
+   carved also carves `(x + 1, y)`, `(x, y + 1)` and `(x + 1, y + 1)`,
+   each only if it lies from column 1 to 46 and row 1 to 30 (never the
+   border). No draw changes: the same seed lays the same rooms.
 5. `start` is the first room's centre. `stairs` is the centre of the kept
    room whose centre is farthest from `start` (Manhattan; the first such
    in kept order on a tie); that cell becomes `stairs`. If it is closer

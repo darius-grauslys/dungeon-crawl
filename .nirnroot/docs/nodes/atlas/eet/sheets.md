@@ -1,7 +1,7 @@
 # atlas: edge test `sheets`
 
 Browser tests (`*.browser.test.mjs`): the page serves the project's
-asset area under `/assets/`, and the twenty sheets listed below are there.
+asset area under `/assets/`, and the twenty-one sheets listed below are there.
 Use the page's canvas, or a fresh `document.createElement('canvas')`,
 for drawing, with image smoothing off.
 
@@ -33,10 +33,14 @@ The edge under test:
 - [asset:sheets/arid-monsters.png](../../../../../assets/sheets/arid-monsters.png)
 - [asset:sheets/temple-monsters.png](../../../../../assets/sheets/temple-monsters.png)
 - [asset:sheets/magma-monsters.png](../../../../../assets/sheets/magma-monsters.png)
+- [asset:sheets/frozen-cavern-monsters.png](../../../../../assets/sheets/frozen-cavern-monsters.png)
 
 # Intrinsics:
 ## Intrinsic - table:
 As the EED states. Check `sprite('hero')` is `null` first, in a test of its own that runs before any `load` (tests run in the order written).
+
+## Intrinsic - floors:
+As the EED states.
 
 ## Intrinsic - poses:
 As the EED states.
