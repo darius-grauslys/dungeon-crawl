@@ -206,7 +206,7 @@ test("intentFor: diagonal and numpad keys", () => {
   assert.strictEqual(intentFor("6").dx, 1);
 });
 
-test("commandFor: Escape->menu, P->pause, m/M->mute, -/_->quieter, =/+->louder, w->null", () => {
+test("commandFor: Escape->menu, P->pause, m/M->mute, -/_->quieter, =/+->louder, z/Z->explore, w->null", () => {
   assert.strictEqual(commandFor("Escape"), "menu");
   assert.strictEqual(commandFor("p"), "pause");
   assert.strictEqual(commandFor("P"), "pause");
@@ -216,6 +216,8 @@ test("commandFor: Escape->menu, P->pause, m/M->mute, -/_->quieter, =/+->louder, 
   assert.strictEqual(commandFor("_"), "quieter");
   assert.strictEqual(commandFor("="), "louder");
   assert.strictEqual(commandFor("+"), "louder");
+  assert.strictEqual(commandFor("z"), "explore");
+  assert.strictEqual(commandFor("Z"), "explore");
   assert.strictEqual(commandFor("w"), null);
   assert.strictEqual(commandFor("x"), null);
   assert.strictEqual(commandFor(""), null);
@@ -288,6 +290,23 @@ test("listen: keydown with mute/quieter/louder commands calls g and prevents def
     t.dispatch(ev);
     assert.strictEqual(gCalled, 1, `command called for ${key}`);
     assert.strictEqual(lastCommand, cmd, `command for ${key}`);
+    assert.strictEqual(ev.defaultPrevented, true, `default prevented for ${key}`);
+    stop();
+  }
+});
+
+test("listen: keydown with explore (z/Z) command calls g once and prevents default", () => {
+  const t = new MockTarget();
+  const f = () => {};
+  for (const key of ["z", "Z"]) {
+    let gCalled = 0;
+    let lastCommand = null;
+    const g = (c) => { gCalled++; lastCommand = c; };
+    const stop = listen(t, { intent: f, command: g });
+    const ev = new MockEvent("keydown", { key });
+    t.dispatch(ev);
+    assert.strictEqual(gCalled, 1, `command called for ${key}`);
+    assert.strictEqual(lastCommand, "explore", `command for ${key}`);
     assert.strictEqual(ev.defaultPrevented, true, `default prevented for ${key}`);
     stop();
   }

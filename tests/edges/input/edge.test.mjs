@@ -101,10 +101,12 @@ test("keys: intentFor answers the table's intent for each key, null otherwise", 
   for (const k of [".", "x", "Escape", "", null, 5]) {
     assert.equal(intentFor(k), null);
   }
-  // 'm', 'M', '-', '_', '=', '+' answer null for intentFor (they are commands)
-  for (const k of ["m", "M", "-", "_", "=", "+"]) {
+  // 'm', 'M', '-', '_', '=', '+', 'z', 'Z' answer null for intentFor (they are commands)
+  for (const k of ["m", "M", "-", "_", "=", "+", "z", "Z"]) {
     assert.equal(intentFor(k), null);
   }
+  // intentFor('z', false) is null (z is a command, not an intent)
+  assert.equal(intentFor("z", false), null);
 
   // commandFor
   assert.equal(commandFor("Escape"), "menu");
@@ -115,6 +117,8 @@ test("keys: intentFor answers the table's intent for each key, null otherwise", 
   assert.equal(commandFor("_"), "quieter");
   assert.equal(commandFor("="), "louder");
   assert.equal(commandFor("+"), "louder");
+  assert.equal(commandFor("z"), "explore");
+  assert.equal(commandFor("Z"), "explore");
   assert.equal(commandFor("w"), null);
 });
 
@@ -189,12 +193,20 @@ test("listens: listen turns keypresses into intents, stops when stopped", async 
   assert.equal(commandReceived, "mute");
   assert.equal(evMute.defaultPrevented, true);
 
+  // keydown with key 'z' calls g once with 'explore', prevented
+  const evExplore = new Event("keydown", { cancelable: true });
+  Object.defineProperty(evExplore, "key", { value: "z" });
+  t.dispatchEvent(evExplore);
+  assert.equal(commandCalled, 3);
+  assert.equal(commandReceived, "explore");
+  assert.equal(evExplore.defaultPrevented, true);
+
   // keydown with key 'x' calls neither and isn't prevented
   const ev4 = new Event("keydown", { cancelable: true });
   Object.defineProperty(ev4, "key", { value: "x" });
   t.dispatchEvent(ev4);
   assert.equal(intentCalled, 4);
-  assert.equal(commandCalled, 2);
+  assert.equal(commandCalled, 3);
   assert.equal(ev4.defaultPrevented, false);
 
   // keydown with key 'w' and ctrlKey true calls neither
@@ -203,14 +215,14 @@ test("listens: listen turns keypresses into intents, stops when stopped", async 
   Object.defineProperty(ev5, "ctrlKey", { value: true });
   t.dispatchEvent(ev5);
   assert.equal(intentCalled, 4);
-  assert.equal(commandCalled, 2);
+  assert.equal(commandCalled, 3);
 
   // keyup with key 'w' calls neither
   const ev6 = new Event("keyup", { cancelable: true });
   Object.defineProperty(ev6, "key", { value: "w" });
   t.dispatchEvent(ev6);
   assert.equal(intentCalled, 4);
-  assert.equal(commandCalled, 2);
+  assert.equal(commandCalled, 3);
 
   // after stop(), keydown with key 'w' calls neither
   stop();
@@ -218,7 +230,7 @@ test("listens: listen turns keypresses into intents, stops when stopped", async 
   Object.defineProperty(ev7, "key", { value: "w" });
   t.dispatchEvent(ev7);
   assert.equal(intentCalled, 4);
-  assert.equal(commandCalled, 2);
+  assert.equal(commandCalled, 3);
 
   // stop() again doesn't throw
   assert.doesNotThrow(() => stop());
