@@ -78,6 +78,11 @@ test("before load, pose('hero','idle',0) is null; bad args throw", () => {
   assert.throws(() => pose("hero", "idle", 0, { colour: 4, group: 0 }), TypeError);
 });
 
+test("before load, floors('dungeon') is null; floors('lava') throws TypeError", () => {
+  assert.strictEqual(floors("dungeon"), null);
+  assert.throws(() => floors("lava"), TypeError);
+});
+
 test("after load, wall-6 and wall-9 have correct rects", async () => {
   await load("/assets/");
   const w6 = sprite("wall-6");
@@ -218,11 +223,6 @@ test("after load, hero pose rects and monster poses", async () => {
     assert.strictEqual(p.sw, 16);
     assert.strictEqual(p.sh, 16);
   }
-});
-
-test("before load, floors('dungeon') is null; floors('lava') throws TypeError", () => {
-  assert.strictEqual(floors("dungeon"), null);
-  assert.throws(() => floors("lava"), TypeError);
 });
 
 test("after load, floors counts and rects", async () => {
