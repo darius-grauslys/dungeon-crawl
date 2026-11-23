@@ -423,7 +423,7 @@ function isSlowingMonster(kind) {
   return e ? e.slows : false;
 }
 
-function golemDeath(world, monstersList, newTime, gold, log, rng) {
+function golemDeath(world, monstersList, golem, newTime, gold, log, rng) {
   const plan = dungeon.generate(world.seed, world.depth);
   log.push("The golem is slain.");
   log.push("The guardians crumble.");
@@ -441,13 +441,18 @@ function golemDeath(world, monstersList, newTime, gold, log, rng) {
   rng = nr2;
   let n = 1 + Math.floor(v2 * 5);
 
-  const golemSquare = plan.boss;
+  const size = golem.size || 1;
+  const small = golem.small || false;
+  const sSize = small ? 1 : size;
+  const sqX = golem.pos.x;
+  const sqY = golem.pos.y;
   const candidates = [];
   for (let y = 0; y < world.grid.height; y++) {
     for (let x = 0; x < world.grid.width; x++) {
-      const dx = Math.abs(x - (golemSquare.x + 1));
-      const dy = Math.abs(y - (golemSquare.y + 1));
-      if (dx >= 1 && dx <= 2 && dy >= 1 && dy <= 2) {
+      const cx = Math.max(sqX, Math.min(x, sqX + sSize - 1));
+      const cy = Math.max(sqY, Math.min(y, sqY + sSize - 1));
+      const dist = Math.max(Math.abs(x - cx), Math.abs(y - cy));
+      if (dist >= 1 && dist <= 2) {
         if (world.grid.at(x, y) === "floor") {
           let occupied = false;
           for (const it of world.items) { if (it.pos.x === x && it.pos.y === y) occupied = true; }
@@ -469,13 +474,16 @@ function golemDeath(world, monstersList, newTime, gold, log, rng) {
   for (const mm of monstersList) if (mm.id > maxId) maxId = mm.id;
   for (const it of world.items) if (it.id > maxId) maxId = it.id;
 
+  const flungX = sqX + Math.floor(sSize / 2);
+  const flungY = sqY + Math.floor(sSize / 2);
+
   for (let i = 0; i < n; i++) {
     const { rng: nri, value: vi } = mulberryDraw(rng);
     rng = nri;
     const idx = Math.floor(vi * candidates.length);
     const cell = candidates[idx];
     candidates.splice(idx, 1);
-    newItems.push(itemShape.of({ id: ++maxId, kind: "gold", pos: cell, amount: amounts[i], price: 0, pulled: false, flung: { x: golemSquare.x + 1, y: golemSquare.y + 1, at: newTime } }));
+    newItems.push(itemShape.of({ id: ++maxId, kind: "gold", pos: cell, amount: amounts[i], price: 0, pulled: false, flung: { x: flungX, y: flungY, at: newTime } }));
   }
 
   const tiles = world.grid.tiles();
@@ -593,7 +601,7 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
           monsterLine = `The ${monsterHit.kind} is slain.`;
           monstersAfter = monstersAfter.filter((mm) => mm.id !== monsterHit.id);
           if (monsterHit.kind === "golem") {
-            const gd = golemDeath(world, monstersAfter, newTime, gold, log, rng);
+            const gd = golemDeath(world, monstersAfter, monsterHit, newTime, gold, log, rng);
             monstersAfter = gd.monsters;
             items = gd.items;
             return { hero: newHero, gold, items, monstersList: monstersAfter, log: log.slice(-50), grid: gd.grid, rng: gd.rng };
@@ -743,7 +751,7 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
           monsterLine = `The ${monster.kind} is slain.`;
           monstersAfter = monstersAfter.filter((mm) => mm.id !== monster.id);
           if (monster.kind === "golem") {
-            const gd = golemDeath(world, monstersAfter, newTime, gold, log, rng);
+            const gd = golemDeath(world, monstersAfter, monster, newTime, gold, log, rng);
             monstersAfter = gd.monsters;
             items = gd.items;
             return { hero: newHero, gold, items, monstersList: monstersAfter, log: log.slice(-50), grid: gd.grid, rng: gd.rng };
@@ -844,8 +852,6 @@ function advance(world, ms) {
         continue;
       }
     }
-    if (mode === "guard") { monsterMap.set(entry.id, m); continue; }
-
     const foesCells = [];
     const threatsCells = [];
     const blockedCells = [];
@@ -891,58 +897,170 @@ function advance(world, ms) {
         }
       }
       if (meleeTarget) {
-        const target = meleeTarget.type === 'hero' ? meleeTarget.hero.actor : meleeTarget.monster;
-        const { rng: nrr, roll, ward } = combatDraw(rng);
-        rng = nrr;
-        const s = combat.resolve(m.stats, target.stats, roll, ward);
-        let monsterLine = "";
-        let isSlowed = false;
-        if (meleeTarget.type === 'hero') {
-          isSlowed = s.hit && s.damage > 0 && isSlowingMonster(m.kind);
-          const newHeld = Math.max(target.held || 0, newTime + 300);
-          if (!s.hit) {
-            monsterLine = `The ${m.kind} misses ${meleeTarget.hero.name}.`;
-            heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+        if (m.kind === "golem") {
+          const size = m.size || 1;
+          const small = m.small || false;
+          const sSize = small ? 1 : size;
+          const depth = sSize === 3 ? 2 : 1;
+          const blockCells = [];
+          const isDiag = dx !== 0 && dy !== 0;
+          if (isDiag) {
+            for (let k = 1; k <= depth; k++) {
+              for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                  const cx = m.pos.x + i + k * dx;
+                  const cy = m.pos.y + j + k * dy;
+                  if (cx >= m.pos.x && cx <= m.pos.x + size - 1 && cy >= m.pos.y && cy <= m.pos.y + size - 1) continue;
+                  blockCells.push(pointShape.of(cx, cy));
+                }
+              }
+            }
           } else {
-            const nhp = target.stats.hp - s.damage;
-            if (nhp <= 0) {
-              monsterLine = `${meleeTarget.hero.name} falls.`;
-              heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: statsShape.of({ hp: 0, maxHp: hh.actor.stats.maxHp, attack: hh.actor.stats.attack, defense: hh.actor.stats.defense, range: hh.actor.stats.range, magic: hh.actor.stats.magic, magicPower: hh.actor.stats.magicPower, magicResist: hh.actor.stats.magicResist }), held: newHeld }), pending: hh.pending, alive: false, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
-            } else {
-              monsterLine = s.critical ? `Critical! The ${m.kind} hits ${meleeTarget.hero.name} for ${s.damage}.` : `The ${m.kind} hits ${meleeTarget.hero.name} for ${s.damage}.`;
-              const nstats = statsShape.of({ hp: nhp, maxHp: target.stats.maxHp, attack: target.stats.attack, defense: target.stats.defense, range: target.stats.range, magic: target.stats.magic, magicPower: target.stats.magicPower, magicResist: target.stats.magicResist });
-              if (isSlowed) {
-                heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld, slow: 3 }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
-              } else {
-                heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+            if (dx === 1) {
+              for (let c = m.pos.x + size; c <= m.pos.x + size + depth - 1; c++) {
+                for (let r = m.pos.y; r <= m.pos.y + size - 1; r++) blockCells.push(pointShape.of(c, r));
+              }
+            } else if (dx === -1) {
+              for (let c = m.pos.x - depth; c <= m.pos.x - 1; c++) {
+                for (let r = m.pos.y; r <= m.pos.y + size - 1; r++) blockCells.push(pointShape.of(c, r));
+              }
+            } else if (dy === 1) {
+              for (let r = m.pos.y + size; r <= m.pos.y + size + depth - 1; r++) {
+                for (let c = m.pos.x; c <= m.pos.x + size - 1; c++) blockCells.push(pointShape.of(c, r));
+              }
+            } else if (dy === -1) {
+              for (let r = m.pos.y - depth; r <= m.pos.y - 1; r++) {
+                for (let c = m.pos.x; c <= m.pos.x + size - 1; c++) blockCells.push(pointShape.of(c, r));
               }
             }
           }
-        } else {
-          const newHeld = Math.max(target.held || 0, newTime + 300);
-          if (!s.hit) {
-            monsterLine = `The ${m.kind} misses the ${target.kind}.`;
-            const updatedTarget = target.with({ held: newHeld });
-            monsterMap.set(target.id, updatedTarget);
-          } else {
-            const nhp = target.stats.hp - s.damage;
-            if (nhp <= 0) {
-              monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${target.kind} for ${s.damage}.` : `The ${m.kind} hits the ${target.kind} for ${s.damage}.`;
-              monsterMap.delete(target.id);
+          const struckHeroes = [];
+          for (const h of heroes) {
+            if (!h.alive) continue;
+            let strikes = false;
+            for (const bc of blockCells) { if (h.actor.covers(bc.x, bc.y)) { strikes = true; break; } }
+            if (strikes) struckHeroes.push(h);
+          }
+          const struckMonsters = [];
+          const struckMonsterIds = new Set();
+          for (const mm of monsterMap.values()) {
+            if (mm.id === m.id) continue;
+            if (struckMonsterIds.has(mm.id)) continue;
+            let strikes = false;
+            for (const bc of blockCells) { if (mm.covers(bc.x, bc.y)) { strikes = true; break; } }
+            if (strikes && bestiary.hostile(m.kind, mm.kind)) { struckMonsters.push(mm); struckMonsterIds.add(mm.id); }
+          }
+          for (const h of struckHeroes) {
+            const target = h.actor;
+            const { rng: nrr, roll, ward } = combatDraw(rng);
+            rng = nrr;
+            const s = combat.resolve(m.stats, target.stats, roll, ward);
+            let monsterLine = "";
+            const newHeld = Math.max(target.held || 0, newTime + 300);
+            const isSlowed = s.hit && s.damage > 0 && isSlowingMonster(m.kind);
+            if (!s.hit) {
+              monsterLine = `The ${m.kind} misses ${h.name}.`;
+              heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
             } else {
-              monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${target.kind} for ${s.damage}.` : `The ${m.kind} hits the ${target.kind} for ${s.damage}.`;
-              const nstats = statsShape.of({ hp: nhp, maxHp: target.stats.maxHp, attack: target.stats.attack, defense: target.stats.defense, range: target.stats.range, magic: target.stats.magic, magicPower: target.stats.magicPower, magicResist: target.stats.magicResist });
-              const updatedTarget = target.with({ stats: nstats, held: newHeld });
+              const nhp = target.stats.hp - s.damage;
+              if (nhp <= 0) {
+                monsterLine = `${h.name} falls.`;
+                heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: statsShape.of({ hp: 0, maxHp: hh.actor.stats.maxHp, attack: hh.actor.stats.attack, defense: hh.actor.stats.defense, range: hh.actor.stats.range, magic: hh.actor.stats.magic, magicPower: hh.actor.stats.magicPower, magicResist: hh.actor.stats.magicResist }), held: newHeld }), pending: hh.pending, alive: false, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+              } else {
+                monsterLine = s.critical ? `Critical! The ${m.kind} hits ${h.name} for ${s.damage}.` : `The ${m.kind} hits ${h.name} for ${s.damage}.`;
+                const nstats = statsShape.of({ hp: nhp, maxHp: target.stats.maxHp, attack: target.stats.attack, defense: target.stats.defense, range: target.stats.range, magic: target.stats.magic, magicPower: target.stats.magicPower, magicResist: target.stats.magicResist });
+                if (isSlowed) {
+                  heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld, slow: 3 }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+                } else {
+                  heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+                }
+              }
+            }
+            log.push(monsterLine);
+            if (isSlowed) log.push(`${h.name}: you are slowed!`);
+          }
+          for (const tm of struckMonsters) {
+            const { rng: nrr, roll, ward } = combatDraw(rng);
+            rng = nrr;
+            const s = combat.resolve(m.stats, tm.stats, roll, ward);
+            let monsterLine = "";
+            const newHeld = Math.max(tm.held || 0, newTime + 300);
+            if (!s.hit) {
+              monsterLine = `The ${m.kind} misses the ${tm.kind}.`;
+              const updatedTm = tm.with({ held: newHeld });
+              monsterMap.set(tm.id, updatedTm);
+            } else {
+              const nhp = tm.stats.hp - s.damage;
+              if (nhp <= 0) {
+                monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${tm.kind} for ${s.damage}.` : `The ${m.kind} hits the ${tm.kind} for ${s.damage}.`;
+                monsterMap.delete(tm.id);
+              } else {
+                monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${tm.kind} for ${s.damage}.` : `The ${m.kind} hits the ${tm.kind} for ${s.damage}.`;
+                const nstats = statsShape.of({ hp: nhp, maxHp: tm.stats.maxHp, attack: tm.stats.attack, defense: tm.stats.defense, range: tm.stats.range, magic: tm.stats.magic, magicPower: tm.stats.magicPower, magicResist: tm.stats.magicResist });
+                const updatedTm = tm.with({ stats: nstats, held: newHeld });
+                monsterMap.set(tm.id, updatedTm);
+              }
+            }
+            log.push(monsterLine);
+          }
+          let updatedM = m.with({ mode, ready: newTime + bestiary.entry(m.kind).strike, facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach: 1 } });
+          if (m.slow > 0) updatedM = updatedM.with({ slow: m.slow - 1 });
+          monsterMap.set(m.id, updatedM);
+          acted = true; continue;
+        } else {
+          const target = meleeTarget.type === 'hero' ? meleeTarget.hero.actor : meleeTarget.monster;
+          const { rng: nrr, roll, ward } = combatDraw(rng);
+          rng = nrr;
+          const s = combat.resolve(m.stats, target.stats, roll, ward);
+          let monsterLine = "";
+          let isSlowed = false;
+          if (meleeTarget.type === 'hero') {
+            isSlowed = s.hit && s.damage > 0 && isSlowingMonster(m.kind);
+            const newHeld = Math.max(target.held || 0, newTime + 300);
+            if (!s.hit) {
+              monsterLine = `The ${m.kind} misses ${meleeTarget.hero.name}.`;
+              heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+            } else {
+              const nhp = target.stats.hp - s.damage;
+              if (nhp <= 0) {
+                monsterLine = `${meleeTarget.hero.name} falls.`;
+                heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: statsShape.of({ hp: 0, maxHp: hh.actor.stats.maxHp, attack: hh.actor.stats.attack, defense: hh.actor.stats.defense, range: hh.actor.stats.range, magic: hh.actor.stats.magic, magicPower: hh.actor.stats.magicPower, magicResist: hh.actor.stats.magicResist }), held: newHeld }), pending: hh.pending, alive: false, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+              } else {
+                monsterLine = s.critical ? `Critical! The ${m.kind} hits ${meleeTarget.hero.name} for ${s.damage}.` : `The ${m.kind} hits ${meleeTarget.hero.name} for ${s.damage}.`;
+                const nstats = statsShape.of({ hp: nhp, maxHp: target.stats.maxHp, attack: target.stats.attack, defense: target.stats.defense, range: target.stats.range, magic: target.stats.magic, magicPower: target.stats.magicPower, magicResist: target.stats.magicResist });
+                if (isSlowed) {
+                  heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld, slow: 3 }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+                } else {
+                  heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+                }
+              }
+            }
+          } else {
+            const newHeld = Math.max(target.held || 0, newTime + 300);
+            if (!s.hit) {
+              monsterLine = `The ${m.kind} misses the ${target.kind}.`;
+              const updatedTarget = target.with({ held: newHeld });
               monsterMap.set(target.id, updatedTarget);
+            } else {
+              const nhp = target.stats.hp - s.damage;
+              if (nhp <= 0) {
+                monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${target.kind} for ${s.damage}.` : `The ${m.kind} hits the ${target.kind} for ${s.damage}.`;
+                monsterMap.delete(target.id);
+              } else {
+                monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${target.kind} for ${s.damage}.` : `The ${m.kind} hits the ${target.kind} for ${s.damage}.`;
+                const nstats = statsShape.of({ hp: nhp, maxHp: target.stats.maxHp, attack: target.stats.attack, defense: target.stats.defense, range: target.stats.range, magic: target.stats.magic, magicPower: target.stats.magicPower, magicResist: target.stats.magicResist });
+                const updatedTarget = target.with({ stats: nstats, held: newHeld });
+                monsterMap.set(target.id, updatedTarget);
+              }
             }
           }
+          log.push(monsterLine);
+          if (meleeTarget.type === 'hero' && isSlowed) log.push(`${meleeTarget.hero.name}: you are slowed!`);
+          let updatedM = m.with({ mode, ready: newTime + bestiary.entry(m.kind).strike, facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach: 1 } });
+          if (m.slow > 0) updatedM = updatedM.with({ slow: m.slow - 1 });
+          monsterMap.set(m.id, updatedM);
+          acted = true; continue;
         }
-        log.push(monsterLine);
-        if (meleeTarget.type === 'hero' && isSlowed) log.push(`${meleeTarget.hero.name}: you are slowed!`);
-        let updatedM = m.with({ mode, ready: newTime + bestiary.entry(m.kind).strike, facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach: 1 } });
-        if (m.slow > 0) updatedM = updatedM.with({ slow: m.slow - 1 });
-        monsterMap.set(m.id, updatedM);
-        acted = true; continue;
       }
       if (!free) { monsterMap.set(m.id, m); acted = true; continue; }
       const updatedM = m.with({ mode, pos: pointShape.of(m.pos.x + dx, m.pos.y + dy), ready: newTime + bestiary.entry(m.kind).step, facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 } });
