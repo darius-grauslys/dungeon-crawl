@@ -1699,9 +1699,8 @@ function advance(world, ms) {
       // held now: stays pending
       continue;
     }
-    const intent = intentShape.move(ps.dx, ps.dy);
     const latFn = (type) => heroLatency(h.actor, type);
-    const res = heroFiredAction(world, { ...h, pending: intent }, newTime, latFn, { gold, items, monstersList, log: log.slice(-50), rng });
+    const res = heroFiredAction(world, h, newTime, latFn, { gold, items, monstersList, log: log.slice(-50), rng });
     updatedHeroes[ps.heroIndex] = res.hero;
     gold = res.gold; items = res.items; monstersList = res.monstersList; log = res.log;
     if (res.rng !== undefined) rng = res.rng;
