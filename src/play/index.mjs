@@ -81,6 +81,7 @@ export function start(document, options = {}) {
   let me = null;
   let paused = false;
   let menuOpenFlag = false;
+  let aiming = false;
 
   const menuHandlers = {
     settings: () => {},
@@ -171,7 +172,7 @@ export function start(document, options = {}) {
       } else {
         now = latestWorld.time;
       }
-      viewEdge.draw(latestWorld, me, paused, now);
+      viewEdge.draw(latestWorld, me, paused, now, aiming);
     }
     rafId = raf(frame);
   }
@@ -188,7 +189,7 @@ export function start(document, options = {}) {
         me = msg.name;
         menu.setSession(msg.session);
         screen = "game";
-        stopKeys = inputEdge.listen(document, { intent: handleIntent, command: handleCommand });
+        stopKeys = inputEdge.listen(document, { intent: handleIntent, command: handleCommand, aiming: (held) => { aiming = held; } });
         break;
       }
       case "lobby": {
