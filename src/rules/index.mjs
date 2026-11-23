@@ -45,7 +45,7 @@ function pick(rng, list) {
 }
 
 function maybeSplitSlime(m, currentGrid, monsterMap, heroes, items, newTime, log, rng) {
-  if (m.kind !== "slime" && m.kind !== "blue-slime") return { monsters: null, rng };
+  if (!bestiary.SLIMES.includes(m.kind)) return { monsters: null, rng };
   if (m.stats.maxHp <= 1) return { monsters: null, rng };
   if (m.mode === "guard") return { monsters: null, rng };
   const { rng: r1, value: v1 } = mulberryDraw(rng);
