@@ -69,18 +69,6 @@ function wareLabel(kind) {
   return kind;
 }
 
-function wareTooHigh(stats, kind) {
-  if (kind.startsWith("sword")) {
-    const limit = kind === "sword" ? 8 : kind === "sword-2" ? 12 : kind === "sword-3" ? 16 : 24;
-    return stats.attack >= limit;
-  }
-  if (kind.startsWith("armor")) {
-    const limit = kind === "armor" ? 4 : kind === "armor-2" ? 8 : kind === "armor-3" ? 12 : 24;
-    return stats.defense >= limit;
-  }
-  return false;
-}
-
 function cellsCovered(actor) {
   const cells = [];
   const size = actor.size || 1;
@@ -216,25 +204,11 @@ function makeFloor(seed, depth, rngIn) {
   }
 
   if (isShopDepth(depth)) {
+    const kinds = ["potion", "sword", "armor", "ring", "necklace", "potion"];
     const round = levelShape.round(depth);
-    const nWares = round === 1 ? 6 : round === 2 ? 9 : round === 3 ? 12 : 18;
-    const foodKinds = ["cheese", "bread", "meat"];
-    const poolKinds = ["potion", "sword", "sword-2", "armor", "armor-2", "ring", "necklace"];
-    const kinds = [];
-    for (let i = 0; i < nWares; i++) {
-      if (i < 2) {
-        const { rng: nr, value } = mulberryDraw(rng);
-        rng = nr;
-        kinds.push(foodKinds[Math.floor(value * 3)]);
-      } else {
-        const { rng: nr, value } = mulberryDraw(rng);
-        rng = nr;
-        kinds.push(poolKinds[Math.floor(value * poolKinds.length)]);
-      }
-    }
-    for (let i = 0; i < nWares; i++) {
+    for (let i = 0; i < 6; i++) {
       const kind = kinds[i];
-      const cfg = kind === "potion" ? { base: 30, spread: 6 } : kind.startsWith("cheese") ? { base: 6, spread: 2 } : kind.startsWith("bread") ? { base: 10, spread: 3 } : kind.startsWith("meat") ? { base: 16, spread: 4 } : kind.startsWith("sword") ? { base: 30, spread: 6 } : kind.startsWith("armor") ? { base: 40, spread: 6 } : { base: 35, spread: 6 };
+      const cfg = kind === "potion" ? { base: 20, spread: 12 } : kind === "sword" ? { base: 30, spread: 6 } : kind === "armor" ? { base: 40, spread: 6 } : { base: 35, spread: 6 };
       const { rng: nr, value } = mulberryDraw(rng);
       rng = nr;
       const spread = cfg.spread;
@@ -540,15 +514,6 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
       if (it.price > 0 && it.pos.x === nx && it.pos.y === ny) {
         let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("attack"), aim: { dx, dy }, facing: actorShape.facingFor(dx, dy) });
         if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
-        const tooHigh = wareTooHigh(h.actor.stats, it.kind);
-        if (tooHigh) {
-          const statName = it.kind.startsWith("sword") ? "attack" : "defense";
-          offer = null;
-          updatedActor = updatedActor.with({ gesture: { kind: "use", at: newTime } });
-          log.push(`${h.name}: your ${statName} is too high for ${wareLabel(it.kind)}.`);
-          const newHero = h.with({ actor: updatedActor, pending: null, offer });
-          return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
-        }
         if (offer === it.id) {
           if (gold >= it.price) {
             gold -= it.price;

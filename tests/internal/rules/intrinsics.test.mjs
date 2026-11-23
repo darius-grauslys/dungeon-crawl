@@ -430,15 +430,13 @@ test("shop floors: no monsters, six wares with prices, every cell visible and ex
   const wShop = rules.fromSave(saveShape.of({ seed: 5, depth: 6, players: [{ name: "Ann", stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) }] }));
   assert.equal(wShop.monsters.length, 0);
   assert.equal(wShop.items.length, 6);
-  const foodKinds = ["cheese", "bread", "meat"];
-  const poolKinds = ["potion", "sword", "sword-2", "armor", "armor-2", "ring", "necklace"];
   for (const it of wShop.items) {
-    assert.ok(poolKinds.includes(it.kind) || foodKinds.includes(it.kind));
+    assert.ok(["potion", "sword", "armor", "ring", "necklace"].includes(it.kind));
     assert.equal(it.price > 0, true);
     assert.ok(wShop.grid.open(it.pos.x, it.pos.y));
   }
   const kinds = wShop.items.map((it) => it.kind);
-  assert.ok(foodKinds.includes(kinds[0]) && foodKinds.includes(kinds[1]));
+  assert.deepEqual(kinds, ["potion", "sword", "armor", "ring", "necklace", "potion"]);
   assert.equal(wShop.visible.count(), 48 * 32);
   assert.equal(wShop.explored.count(), 48 * 32);
 });
