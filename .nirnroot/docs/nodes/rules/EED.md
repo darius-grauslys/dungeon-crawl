@@ -175,11 +175,14 @@ The second lair (depth 14) is the **serpent**'s: a `serpent`
 from its entry, untiered: 60/60/10/6) stands on the plan's `boss` square,
 `dormant`, facing left, and, as with the golem, the plan's `stairs` cell
 is `floor` while it lives. No levers, no guards: it is fought as it is.
-The other lairs (21 and 28) are empty halls with their stairs open: no
-monsters, no items.
+The third lair (depth 21) is the **reaper**'s, the same way: a `reaper`
+(2 by 2 cells; stats from its entry, untiered: 90/90/14/8, `magic` 4,
+`magicPower` 2) on the plan's `boss` square, `dormant`, facing left, the
+`stairs` cell `floor` while it lives. The last lair (28) is an empty
+hall with its stairs open: no monsters, no items.
 
-The golem and the serpent are the **bosses**: what follows of the
-golem's cleave and death holds for both (`<m>` the boss's kind in each
+The golem, the serpent and the reaper are the **bosses**: what follows of the
+golem's cleave and death holds for each (`<m>` the boss's kind in each
 line: `The serpent is slain.`, `Gold spills from the serpent!`); the
 levers weaken only a golem.
 - **Waking.** When a `dormant` monster's `ready` is reached, if an alive
@@ -232,6 +235,77 @@ levers weaken only a golem.
   `flung` from the cell at the centre of that square (`pos` plus
   `Math.floor(size / 2)` each way) at the time it died.
 
+**Abilities.** Some kinds do more than move and attack, by their
+`bestiary` `ability` (and every action's latency is as the table says,
+then doubled while `slow`, then **halved** (`Math.floor`) while the
+actor's `haste` is above 0, which then takes 1 off `haste`):
+
+- **Push** (`beetle`): a creature its attack damages (and that is still
+  alive) is pushed one cell along the attack's direction `(dx, dy)`:
+  its whole square moves by it when every cell it would cover is open,
+  holds no other creature, ware or lever, and the move cuts no corner;
+  otherwise it stays. A creature bigger than one cell is never pushed.
+- **Curse** (`mummy`): a hero its attack damages (still alive) is
+  cursed: its actor's `curse` becomes 3, with the line `<h> is
+  cursed!`. Every action a cursed hero fires (a `face` is none) deals it
+  1 damage, before the action, and takes 1 off `curse`; brought to 0
+  hit points it falls (`<h> falls.`) and the action doesn't happen.
+- **Enrage** (`wolf-man`): when an attack leaves it alive at no more
+  than half its `maxHp` (`hp * 2 <= maxHp`), its actor's `kind` becomes
+  `enraged-wolf-man` (same `id`, cell and stats: from then on it acts at
+  that kind's speed, twice as fast), with the line `The wolf-man is
+  enraged!`.
+- **Chant** (`cultist`): when its `ready` is reached and it has no
+  `chant`: if another monster is within 5 of it, no monster within 5 of
+  it (itself included) has `haste` above 0, and no foe is next to it, it
+  **begins to chant** instead of deciding: its `chant` becomes `{kind:
+  'haste', at: t, until: t + 3 * step}` (`t` the time, `step` its
+  kind's; three steps' worth), its `ready` `until`, with the line `The
+  cultist begins to chant.` When its `ready` is reached with a `chant`
+  of `haste`, it **finishes**: every monster within 5 of it (itself
+  included) gets `haste` 3, its `chant` becomes `null` and its `ready`
+  the time plus its `step`, with the line `The cultist's chant quickens
+  the monsters!` Otherwise it acts as any monster does.
+- **Summon** (`scarecrow`): it never moves nor attacks (`monsters`
+  answers it a wait). When its `ready` is reached: with a `chant` of
+  `summon`, it **finishes**: three `swarm`s (stats from their entry,
+  untiered: 3/3/4/0, `magic` 2) appear on the first three free cells
+  within 2 of it (open, holding no creature, ware or lever; by distance
+  `max(|dx|, |dy|)`, then row by row), each `ready` the time plus its
+  `step` (80); its `chant`
+  becomes `null`, its `cooldown` the time plus 8 of its steps, its `ready`
+  the time plus its `step`, with the line `The scarecrow calls a
+  swarm!`. Without a `chant`, at or past its `cooldown`, with a foe
+  within its `reach` and fewer than 3 `swarm`s within 5 of it, it
+  **begins to chant**: `chant` `{kind: 'summon', at: t, until: t + 5 *
+  step}`, `ready` `until`, the line `The scarecrow begins to chant.`
+  Otherwise it waits (`ready` plus its `step`).
+- **Split** (`swarm`): any damage to a swarm takes exactly 1 hit point,
+  whatever its amount; a swarm left alive by it (at `hp` above 0)
+  splits: a new `swarm` of `hp` 1 (`maxHp` 3) appears on the first free
+  cell next to it (in `monsters`' order of preference: up, right, down,
+  left, then the diagonals; open, holding no creature, ware or lever),
+  `ready` the time plus 80; with no free cell, none. A swarm at 1 hit point that
+  is damaged dies, and doesn't split.
+- **Fuse** (`pumpkin`): it never attacks (`monsters` makes it wait next
+  to a foe), but walks toward foes as any monster does, slowly. When its
+  `ready` is reached with no `fuse` and a foe within 2 of its square, its
+  `fuse` becomes `{at: t}` (it still acts that turn), with the line `The
+  pumpkin's fuse is lit!`. When its `ready` is reached at or past
+  `fuse.at + 6 * step` (three steps at a slow blink, three at a fast
+  one: the screen's), it **explodes** instead of acting: it is removed,
+  the world's `effects` gains `{kind: 'blast', x, y, size, at: t}` (its
+  square), the line `The pumpkin explodes!`, and every creature (heroes
+  and monsters alike, friend or foe, another pumpkin too) covering a
+  cell within 2 of its square takes 25 damage, all of it magic (no roll,
+  never warded), each with the line `The blast hits <h> for 25.` /
+  `The blast hits the <m> for 25.` and, brought to 0, `<h> falls.` /
+  `The <m> is slain.` (a swarm still takes 1; a boss slain this way dies
+  as a boss does).
+
+A world's `effects` are kept for 1000 milliseconds: each `advance`
+drops every effect whose `at` is more than 1000 below the new time.
+
 # API Shapes:
 - [shape:world](../../shapes/world.md)
 - [shape:intent](../../shapes/intent.md)
@@ -268,7 +342,7 @@ levers weaken only a golem.
    - `descend` (a grid with no `stairs` cell: nothing happens): when every alive hero is within 5 of the stairs, the party goes down (the step 4 below takes it, after the monsters); otherwise nothing but the log line `All party members must be within 5 units of the exit!`.
 2. **Monsters**, in the order of `monsters` (one removed before its turn does nothing): each whose `ready` is at most the new `time` takes its action: a `dormant` one may wake (**Lairs**); then `monsters.decide`, with its foes the creatures hostile to it (the alive heroes, then the monsters), its threats the monsters it flees, and the cells it may not step onto: every other alive creature's cells, the wares' and the levers'. With no foe and no threat, it waits. A `move` whose moved square reaches a cell a hostile creature covers is a melee attack on that creature (the alive heroes before the monsters, in their order); a `move` onto cells all open, holding no creature, ware or lever, and not cutting a corner, is a step there; anything else, nothing. An `attack` is an attack along its range. A hero brought to 0 hit points is no longer alive (its actor stays where it fell, and no one else sees it there: it blocks nothing and is not drawn).
 3. **A wipe**: with at least one hero and none alive, the floor starts again from `entry`: the world `fromSave(entry)` would give, but keeping `time`, `gold` and the log (every `ready` the current `time`), with the line `The party has fallen. <label> begins again.` (`<label>` `level.label(depth)`: `Level 3`, `Shop`, `Lair`).
-4. **The stairs**: only when a `descend` fired in step 1 with every alive hero within 5 of the stairs, and a hero is still alive and every alive hero is still within 5 of them after step 2 (else the line `All party members must be within 5 units of the exit!`): on depth 33 the state becomes `won` (log `The party escapes the dungeon with <g> gold!`); otherwise the next depth's floor, freshly placed (monsters' `ready` the current `time`), every hero on its start cells, alive, its `colour` and `group` kept, `gesture` null, each `maxHp` 4 more, `hp` 4 more for one that was alive (never above `maxHp`) and 1 for one that wasn't, `ready` the current `time`, `pending` null, `offer` null, `slow` 0, `held` 0; `explored` reset; `entry` the save of the new floor and the heroes as they now are; the log: on a dungeon floor `The party descends to level <n>.` (`<n>` `level.number(depth)`); on a shop `The party descends to a shop.` and `A shop! Bump a ware twice to buy it.`; on the golem's lair `The party descends into a lair.` and `A golem guards the way down. Pull the levers to weaken it!`; on the serpent's `The party descends into a lair.` and `A great serpent guards the way down!`; on another lair `The party descends into a lair.` alone.
+4. **The stairs**: only when a `descend` fired in step 1 with every alive hero within 5 of the stairs, and a hero is still alive and every alive hero is still within 5 of them after step 2 (else the line `All party members must be within 5 units of the exit!`): on depth 33 the state becomes `won` (log `The party escapes the dungeon with <g> gold!`); otherwise the next depth's floor, freshly placed (monsters' `ready` the current `time`), every hero on its start cells, alive, its `colour` and `group` kept, `gesture` null, each `maxHp` 4 more, `hp` 4 more for one that was alive (never above `maxHp`) and 1 for one that wasn't, `ready` the current `time`, `pending` null, `offer` null, `slow` 0, `held` 0; `explored` reset; `entry` the save of the new floor and the heroes as they now are; the log: on a dungeon floor `The party descends to level <n>.` (`<n>` `level.number(depth)`); on a shop `The party descends to a shop.` and `A shop! Bump a ware twice to buy it.`; on the golem's lair `The party descends into a lair.` and `A golem guards the way down. Pull the levers to weaken it!`; on the serpent's `The party descends into a lair.` and `A great serpent guards the way down!`; on the reaper's `The party descends into a lair.` and `A reaper guards the way down!`; on another lair `The party descends into a lair.` alone.
 5. `visible` is computed again from every alive hero's cell (radius 7) (on a shop: every cell), and `explored` takes in `visible`.
 Every event adds a line to the log (the 50 most recent are kept).
 
@@ -334,7 +408,7 @@ In the `latency` world with Ann (24/24/8/4) at (1, 1) and a `sword` (not a ware)
 
 
 ## Intrinsic - lair:
-`w = fromSave(save.of({seed: 4, depth: 7, players: [{name: 'Ann', stats: 24/24/4/1}]}))`: depth 7, Ann at (8, 16), the grid `at(33, 16)` `floor` (no stairs anywhere); 73 monsters: the first a `golem` at (32, 15), `size` 3, `mode` `dormant`, stats deep equal to `{hp: 40, maxHp: 40, attack: 12, defense: 12, range: 1, magic: 6, magicPower: 2, magicResist: 0}`, `facing` `left`; the other 72 each a `slime` of `mode` `guard` and stats 6/6/2/1 (`range` 1, `magic` 0, `magicPower` 1, `magicResist` 0), on the plan's 72 spots; 3 items, each a `lever` not `pulled`, on (39, 7), (39, 25) and (39, 16) (behind the golem). `fromSave` at depth 14: one monster, a `serpent` at (32, 15), `size` 3, `mode` `dormant`, `facing` `left`, stats deep equal to `{hp: 60, maxHp: 60, attack: 10, defense: 6, range: 1, magic: 0, magicPower: 1, magicResist: 0}`; no items; `at(33, 16)` `floor`. `fromSave` at depth 21: no monsters, no items, `at(33, 16)` `stairs`.
+`w = fromSave(save.of({seed: 4, depth: 7, players: [{name: 'Ann', stats: 24/24/4/1}]}))`: depth 7, Ann at (8, 16), the grid `at(33, 16)` `floor` (no stairs anywhere); 73 monsters: the first a `golem` at (32, 15), `size` 3, `mode` `dormant`, stats deep equal to `{hp: 40, maxHp: 40, attack: 12, defense: 12, range: 1, magic: 6, magicPower: 2, magicResist: 0}`, `facing` `left`; the other 72 each a `slime` of `mode` `guard` and stats 6/6/2/1 (`range` 1, `magic` 0, `magicPower` 1, `magicResist` 0), on the plan's 72 spots; 3 items, each a `lever` not `pulled`, on (39, 7), (39, 25) and (39, 16) (behind the golem). `fromSave` at depth 14: one monster, a `serpent` at (32, 15), `size` 3, `mode` `dormant`, `facing` `left`, stats deep equal to `{hp: 60, maxHp: 60, attack: 10, defense: 6, range: 1, magic: 0, magicPower: 1, magicResist: 0}`; no items; `at(33, 16)` `floor`. `fromSave` at depth 21: one monster, a `reaper` at (32, 15), `size` 2, `mode` `dormant`, stats deep equal to `{hp: 90, maxHp: 90, attack: 14, defense: 8, range: 1, magic: 4, magicPower: 2, magicResist: 0}`; no items; `at(33, 16)` `floor`. `fromSave` at depth 28: no monsters, no items, `at(33, 16)` `stairs`.
 
 ## Intrinsic - levers:
 In a world on `['##########', '#........#', '#........#', '#........#', '#........#', '##########']` with `Ann` (24/24/4/1) at (1, 1), `lever`s (ids 20, 21, 22) at (2, 1), (1, 2) and (2, 2), and a `golem` (id 10, stats 40/40/12/12 with `magic` 6 and `magicPower` 2, `size` 3, `mode` `dormant`, `ready` 10000) at (5, 2): Ann's `move(1, 0)` advanced by 50 leaves her at (1, 1), `ready` 400, `last` `null` (as it was), `gesture` `{kind: 'use', at: 50}`, the lever (2, 1) `pulled`, the golem's `attack` 6, `defense` 6, `magic` 3, `size` 2, `small` false, and the log's last line `Ann pulls a lever. The golem weakens!`. Then her `move(0, 1)` at time 400: the golem's `attack` 3, `defense` 3, `magic` 1, `size` 1; then her `move(1, 1)` at time 750: `attack` 1, `defense` 1, `magic` 0, `size` 1, `small` true, `pos` still (5, 2), `magicPower` still 2. A pulled lever bumped again changes nothing but Ann's `ready`, `aim`, `facing` and `gesture` (`{kind: 'use', at}` again). Ann never stands on a lever.
@@ -367,7 +441,34 @@ Every attack takes its two draws from the world's `rng` and stores the state the
 In a world on `['######', '#....#', '######']` with `Ann` (24/24/4/1) at (1, 1) and a `golem` of `size` 1, `mode` `roam`, stats 40/40/12/12 with `magic` 6 and `magicPower` 2, `ready` 0, at (2, 1): for `rng` from 0 to 39, after `advance(w, 50)` Ann has 24 hit points (a miss), 7 (a hit: 11 physical and 6 magic), or none and not alive (a critical: 28); at least one is 7. With Ann's `magicResist` 1 instead (ward chance 50%): her hit points after a hit are 7 (the magic not warded) or 12 (warded: 11 and 1); among the 40, at least one 7 and at least one 12.
 
 ## Intrinsic - themes:
-`fromSave(save.of({seed: 3, depth: 8, players: [{name: 'Ann', stats: 24/24/4/1}]}))` has 4 monsters, each a `blue-slime` of 9/9/3/1, a `blue-spider` of 10/10/4/1, an `archer` of 10/10/4/1 (`range` 4), a `swordsman` of 16/16/6/2 or a `mage` of 12/12/3/1 (`range` 4, `magic` 4) (`hp`/`maxHp`/`attack`/`defense`); never a plain `skeleton` nor a `blue-snake`. Over the seeds 0 to 19 at depths 8 to 12, every monster is of those five kinds, at least one is a `mage`, and the mages are from a tenth to two fifths of them all. At depth 33, 12 monsters, each a `worm` of 27/27/9/4, a `fire-slime` of 30/30/9/5, an `imp` of 36/36/10/5 or a `demon` of 48/48/11/6; at depth 15, 4 monsters, each a `beetle`, `mummy` or `cultist`, every `cultist` of `range` 4 and `magic` 8 (`magicPower` 1); at depth 22, each a `spider`, `ghost` or `reaper`. At depths 1 and 2, over the seeds 0 to 19, every monster is a `bat` of 3/3/2/0, a `slime` of 6/6/2/1 or a `snake` of 5/5/3/0. At depth 3, every monster is one of those or a `swordsman` (11/11/5/2), the swordsmen at most a fifth of them all over the seeds 0 to 19. Over the seeds 0 to 19 at depth 4, every monster is a `bat`, `slime`, `snake`, `skeleton` (9/9/4/2), `archer`, `swordsman` or `mage`; at depth 5 the same with a `blue-spider` (7/7/3/1) in place of the `snake` (no `snake` at depth 5). Over those seeds at depths 4 and 5 together, every monster is a `bat`, `slime`, `snake`, `blue-spider`, `skeleton`, `archer` (7/7/3/1, `range` 4), `swordsman` or `mage` (8/8/2/1, `range` 4, `magic` 4), at least one is an `archer` and at least one a `mage`, and each of the archers, the swordsmen and the mages is at most a fifth of them all.
+`fromSave(save.of({seed: 3, depth: 8, players: [{name: 'Ann', stats: 24/24/4/1}]}))` has 4 monsters. Over the seeds 0 to 19 at depth 8 (level 6), every monster is a `blue-slime` (9/9/3/1), `blue-spider` (10/10/4/1), `archer` (10/10/4/1, `range` 4), `swordsman` (16/16/6/2), `snowman` (7/7/0/0: `attack` 0, the tier adds none; `magic` 1, `range` 4), `mage` (12/12/3/1, `magic` 4) or `snow-skeleton` (16/16/6/2); never a `wolf-man`, a plain `skeleton` or a `blue-snake`. Over the seeds 0 to 19 at depths 9 to 12 (levels 7 to 10), every monster is of those kinds or a `wolf-man` (21/21/6/2), at least one is a `wolf-man`, at least one a `snow-skeleton`, at least one a `snowman` and at least one a `mage`; the mages are from a tenth to two fifths of them all. At depth 15, 4 monsters, each a `beetle` (16/16/6/9: base defense 8), `mummy` or `cultist`, every `cultist` of `range` 4 and `magic` 8 (`magicPower` 1). Over the seeds 0 to 19 at depth 22, every monster is a `spider`, `ghost`, `scarecrow` (`attack` 0) or `pumpkin` (`size` 2, `attack` 0, its 2 by 2 square all `floor`), at least one a `scarecrow` and at least one a `pumpkin`; never a `reaper`. At depth 33, 12 monsters, each an `imp` of 36/36/10/5, a `demon` of 48/48/11/6 or a `beholder` of 60/60/10/6 (`range` 5, `magic` 6); never a `worm` or `fire-slime`. At depths 1 and 2, over the seeds 0 to 19, every monster is a `bat` of 3/3/2/0, a `slime` of 6/6/2/1 or a `snake` of 5/5/3/0. At depth 3, every monster is one of those or a `swordsman` (11/11/5/2), the swordsmen at most a fifth of them all over the seeds 0 to 19. Over the seeds 0 to 19 at depth 4, every monster is a `bat`, `slime`, `snake`, `skeleton` (9/9/4/2), `archer`, `swordsman` or `mage`; at depth 5 the same with a `blue-spider` (7/7/3/1) in place of the `snake`. Over those seeds at depths 4 and 5 together, at least one monster is an `archer` and at least one a `mage`, and each of the archers, the swordsmen and the mages is at most a fifth of them all.
+
+## Intrinsic - pushes:
+In a world on `['########', '#......#', '########']` with `Ann` (24/24/4/1) at (3, 1) and a `beetle` (stats 8/8/4/8, `ready` 0) at (2, 1): for `rng` from 0 to 39, `advance(w, 50)` leaves the beetle's `ready` 1250 (its `strike` 1200); in every one where Ann has fewer than 24 hit points and is alive she is at (4, 1) (pushed), in every one where she has 24 she is at (3, 1); at least one of each. With a `bat` (`ready` 10000) at (4, 1), Ann stays at (3, 1) in every one.
+
+## Intrinsic - curses:
+In a world on `['#######', '#.....#', '#######']` with `Ann` (24/24/4/1) at (2, 1) and a `mummy` (12/12/5/2, `ready` 0) at (3, 1): for `rng` from 0 to 39, in every one where `advance(w, 50)` leaves Ann alive with fewer than 24 hit points, her `curse` is 3 and the log holds `Ann is cursed!`; at least one such. With Ann alone at (1, 1), 10 of 24, `curse` 3, `ready` 0: her `move(1, 0)` advanced by 50 leaves her at (2, 1) with `hp` 9 and `curse` 2; then a `wait()` advanced to her `ready` (250) `hp` 8 and `curse` 1; a `face(0, 1)` then changes neither. With Ann at 1 hit point and `curse` 1, her `move(1, 0)` advanced by 50 leaves her not alive at (1, 1), the log's last line `Ann falls.`
+
+## Intrinsic - enrages:
+In a world on `['#######', '#.....#', '#######']` with `Ann` (24/24/9/1) at (1, 1) and a `wolf-man` (14/14/5/2, `ready` 10000) at (2, 1): for `rng` from 0 to 39, after Ann's `attack(1, 0)` advanced by 50, in every one where the monster of id 10 is still there with 7 hit points (a hit of 7), its `kind` is `enraged-wolf-man` and the log holds `The wolf-man is enraged!`; at least one such; where it has 14, it is still a `wolf-man`. With Ann's attack 5 instead (hits of 3), it is a `wolf-man` in every one. An `enraged-wolf-man` (14/14/5/2, `ready` 0) at (4, 1) with Ann at (1, 1): `advance(w, 50)` steps it to (3, 1) with `ready` 250.
+
+## Intrinsic - hastes:
+In a world on `['#########', '#.......#', '#########']` with `Ann` at (1, 1) and a `skeleton` of `ready` 0 and `haste` 2 at (4, 1): `advance(w, 50)` steps it to (3, 1) with `ready` 250 (half its 400) and `haste` 1. With `haste` 0, its `ready` is 450.
+
+## Intrinsic - chants:
+In a world on `['############', '#..........#', '############']` with `Ann` at (1, 1), a `cultist` (7/7/5/1, `range` 4, `magic` 8, `ready` 0) at (8, 1) and a `skeleton` (`ready` 10000) at (10, 1): `advance(w, 50)` leaves the cultist at (8, 1) with `chant` `{kind: 'haste', at: 50, until: 1250}` and `ready` 1250, Ann at 24 hit points, and the log's last line `The cultist begins to chant.` Advanced on to time 1250 (by 600 twice), the cultist's `chant` is `null`, its `haste` 3 and the skeleton's 3, the cultist's `ready` 1650, and the log holds `The cultist's chant quickens the monsters!`. With the skeleton's `haste` 1 at the start, or with no skeleton, the cultist's `chant` stays `null` after `advance(w, 50)` and it doesn't stay at (8, 1).
+
+## Intrinsic - summons:
+In a world on `['############', '#..........#', '#..........#', '#..........#', '############']` with `Ann` at (1, 2) and a `scarecrow` (10/10/0/2, `ready` 0) at (8, 2): `advance(w, 50)` leaves its `chant` `{kind: 'summon', at: 50, until: 2050}`, `ready` 2050, the log's last line `The scarecrow begins to chant.` Advanced on to time 2050 (by 1000 twice): three new `swarm`s of 3/3/4/0 (`magic` 2), at (7, 1), (8, 1) and (9, 1), each `ready` 2130; the scarecrow at (8, 2), `chant` `null`, `cooldown` 5250, `ready` 2450, and the log holds `The scarecrow calls a swarm!`. With three `swarm`s (`ready` 10000) at (8, 1), (9, 1) and (10, 1) from the start, it doesn't chant: `chant` `null`, `ready` 450.
+
+## Intrinsic - splits:
+In a world on `['#######', '#.....#', '#######']` with `Ann` (24/24/40/1) at (1, 1) and a `swarm` (3/3/4/0, `magic` 2, `ready` 10000) at (2, 1): for `rng` from 0 to 39, in every one where Ann's `attack(1, 0)` advanced by 50 hits, the swarm (id 10) has 2 hit points and a new `swarm` of `hp` 1 and `maxHp` 3 stands at (3, 1); at least one such. With the swarm at 1 hit point, in every one where it is hit it is gone and no swarm is left.
+
+## Intrinsic - explodes:
+In a world on `['#########', '#.......#', '#.......#', '#.......#', '#########']` with `Ann` at (1, 1) and a `pumpkin` (12/12/0/1, `size` 2, `ready` 0) at (3, 2): `advance(w, 50)` gives it `fuse` `{at: 50}` and the log holds `The pumpkin's fuse is lit!`; it never attacks. In the same grid at time 4790 with the pumpkin (`fuse` `{at: 0}`, `ready` 4800) at (4, 1), `Ann` (30/30/4/1) at (2, 1), `Bob` (24/24/4/1) at (7, 3), a `skeleton` (9/9/4/2, `ready` 10000) at (4, 3) and a `bat` (`ready` 10000) at (1, 3): `advance(w, 50)` removes the pumpkin, gives `effects` `[{kind: 'blast', x: 4, y: 1, size: 2, at: 4840}]`, leaves Ann at 5 hit points, Bob not alive, the skeleton gone and the bat untouched, and the log holds `The pumpkin explodes!`, `The blast hits Ann for 25.`, `Bob falls.` and `The skeleton is slain.` Advanced by 1000 more the `effects` still hold the blast; by 1 more, `effects` is `[]`.
+
+## Intrinsic - reaper-dies:
+`fromSave` of Ann at depth 21, with Ann's stats 24/24/99/1 at (31, 16) and the reaper's `hp` 1, `defense` 0, `ready` 10000: for `rng` from 0 to 39, in at least one, Ann's `move(1, 0)` advanced by 50 leaves no monster, `at(33, 16)` `stairs`, the log holding `The reaper is slain.` and `Gold spills from the reaper!`, and from 1 to 5 new `gold` items adding up to 75 to 225.
 
 ## Intrinsic - floor-items:
 Over the seeds 0 to 19 at depths 1 to 5: each floor has exactly 2 `gold` and exactly 2 food items (`cheese`, `bread` or `meat`); at most 1 `potion`, and the floors with one are at most half; a sword of some grade on stages 2 and 4 alone and an armor on stages 3 and 5 alone, each of grade 1 (`sword`, `armor`). At depths 8 to 12, the swords and armors are each of grade 1 or 2, and over those seeds at least one of each grade 2 (`sword-2`, `armor-2`); at depths 29 to 33, of grades 1 to 4. Every item's `price` is 0.

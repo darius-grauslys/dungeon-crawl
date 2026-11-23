@@ -18,7 +18,12 @@ the sounds to play. Pure.
     `prev` (or the creature new): `powerup` for `power`, `use` for
     `use`;
   - its `stats.hp` lower than in `prev`: `hit`;
-  - a hero alive in `prev` and not alive in `next`: `death`.
+  - a hero alive in `prev` and not alive in `next`: `death`;
+  - its actor's `fuse` not `null` and different from the one in `prev`
+    (or the creature new): `hiss`.
+- Each `effects` entry of `next` (a `blast`) not in `prev`'s (compared
+  by its five fields): `boom`, at the centre cell of its square (`x` and
+  `y` plus `Math.floor(size / 2)`), heard even out of sight.
 - Each monster of `prev` seen in `prev` and missing from `next`:
   `death`, at its cell in `prev`.
 - `next.gold` above `prev.gold`: `coin`, gain 1.
@@ -62,6 +67,9 @@ Two monsters (ids 10 and 11), at (2, 1) and (5, 1), both stepping, with Ann at (
 
 ## Intrinsic - dies:
 Ann alive in `prev` and not alive in `next` (0 hit points), with Bob at (3, 1) as `me`: `hit` and `death`, each gain `1 - 2 / 12`.
+
+## Intrinsic - fuses:
+On the `steps` grid with every cell `visible`, Ann at (1, 1) in both, a `pumpkin` (id 10, `size` 1 here) at (4, 1) in both, its `fuse` `null` in `prev` and `{at: 50}` in `next`: `hiss`, gain `1 - 3 / 12`; the same `fuse` in both: `[]`. With `next`'s `effects` `[{kind: 'blast', x: 4, y: 1, size: 1, at: 50}]` and `prev`'s `[]` (the pumpkin gone from `next`, its cell not `visible`): `death` (the pumpkin, seen in `prev`, is gone), then `boom`, each of gain `1 - 3 / 12`.
 
 ## Intrinsic - refuses:
 `cues({}, next, 'Ann')`, `cues(prev, null, 'Ann')` and `cues(prev, next, 5)` throw a `TypeError`.

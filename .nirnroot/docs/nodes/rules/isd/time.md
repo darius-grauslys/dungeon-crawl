@@ -28,20 +28,26 @@ from the level's list:
 | 3 | 0.08: `swordsman` | bat, slime, snake |
 | 4 | 0.10: `archer`; 0.16: `swordsman`; 0.22: `mage` | bat, slime, snake, skeleton |
 | 5 | 0.10: `archer`; 0.16: `swordsman`; 0.22: `mage` | bat, slime, blue-spider, skeleton |
-| 6 to 10 | 0.25: `mage` | blue-slime, blue-spider, archer, swordsman |
+| 6 | 0.25: `mage`; 0.32: `snow-skeleton` | blue-slime, blue-spider, archer, swordsman, snowman |
+| 7 to 10 | 0.25: `mage`; 0.32: `snow-skeleton`; 0.45: `wolf-man` | blue-slime, blue-spider, archer, swordsman, snowman |
 | 11 to 15 | (no first draw) | beetle, mummy, cultist |
-| 16 to 20 | (no first draw) | spider, ghost, reaper |
-| 21 to 25 | (no first draw) | worm, fire-slime, imp, demon |
+| 16 to 20 | (no first draw) | spider, ghost, scarecrow, pumpkin |
+| 21 to 25 | (no first draw) | imp, demon, beholder |
 
 (On levels 4 and 5, a first draw from 0.10 to below 0.16 is a
 swordsman, from 0.16 to below 0.22 a mage. Levels 6 to 10 have no plain
 skeleton, only the armed ones; from level 5 to 10 the blue spider takes
 the snake's place, and no `blue-snake` is placed anywhere: it grew into
-the second lair's serpent.)
+the second lair's serpent. The reaper is the third lair's boss, never
+placed on a floor. A `pumpkin` is 2 by 2: it stands on its spot as its
+top-left cell only when the 2 by 2 square from there is all `floor`
+and holds no monster placed before it; otherwise a `spider` stands
+there instead (no draw more).)
 
 Monster stats from `bestiary.entry(kind)` (`hp` = `maxHp`), with the
 tier: `hp` and `maxHp` are `base + Math.floor(base * tier / 2)`,
-`attack` `base + tier`, `defense` `base + Math.floor(tier / 2)` (a
+`attack` `base + tier` (but a kind whose base `attack` is 0 keeps 0:
+the snowman, the scarecrow, the pumpkin), `defense` `base + Math.floor(tier / 2)` (a
 `demon` of tier 4: 48/48/11/6), `range`, `magic` and `magicPower` the
 entry's, `magicResist` 0. Every monster
 `mode` `roam`, `size` the entry's (1), `ready` as the EED says.
@@ -86,7 +92,8 @@ So each shop's prices are a quarter more than the last's.
 true), on arrival and after every `advance`.
 
 On a **lair** depth (`boss`): when the plan has a `boss`, the boss (id
-10; the `golem` on round 1, the `serpent` on round 2; stats from its
+10; the `golem` on round 1, the `serpent` on round 2, the `reaper` on
+round 3; stats from its
 entry, untiered; `size` 3, `mode` `dormant`, `facing` `left`) at
 `plan.boss`; the grid made again with `tile-grid`'s
 `of`, the `plan.stairs` cell `floor`; the levers (ids 11 onward) on
@@ -128,12 +135,22 @@ Math.floor(value * 100)`. The log line follows the strike: `hit` false
 is a miss line, `critical` true the `Critical!` line, `damage` the
 `<n>`.
 
-**The golem's cleave.** When a golem's `move` reaches a hostile
+**The golem's cleave** (a boss's). When a boss's `move` reaches a hostile
 creature, work out the EED's block from its `pos`, `size` (`small`: 1)
 and the direction, collect every hostile creature covering a cell of
 it (alive heroes in order, then monsters, each once), and run the same
 melee strike helper on each in turn (two draws each, threaded). Its
 `ready` and `last` are set once.
+
+**Abilities.** Keep one helper that applies damage to a creature (from
+any source: an attack, a curse, a blast), and does there what damage
+does: a swarm's split, a wolf-man's enraging, the push and the curse of
+the attacker's kind, and a death (a boss's too). Every action's latency
+goes through one helper: the table's, doubled while `slow`, halved
+(`Math.floor`) while `haste`, each taking 1 off its counter. A chant and
+a fuse are checked when the monster's `ready` is reached, before
+`monsters.decide` (a chanting monster does nothing else until its
+`until`).
 
 **The golem's gold** (a boss's). When a boss dies, at time `t`, two draws: the
 total `(25 + Math.floor(value * 51)) * level.round(depth)`, then the count `n = 1 +
@@ -183,6 +200,11 @@ Exactly these lines (`<h>` the hero's name, `<m>` the monster's kind):
   `Not enough gold for <ware>: <p> needed, the party has <g>.`
 - `A shop! Bump a ware twice to buy it.`
 - `<h> joins the party.`
+- `<h> is cursed!` / `The wolf-man is enraged!` / `The cultist begins to chant.` /
+  `The cultist's chant quickens the monsters!` / `The scarecrow begins to chant.` /
+  `The scarecrow calls a swarm!` / `The pumpkin's fuse is lit!` / `The pumpkin explodes!` /
+  `The blast hits <h> for 25.` / `The blast hits the <m> for 25.` /
+  `A reaper guards the way down!`
 - `All party members must be within 5 units of the exit!`
 - `The party descends to level <n>.` / `The party descends to a shop.` /
   `The party descends into a lair.` /

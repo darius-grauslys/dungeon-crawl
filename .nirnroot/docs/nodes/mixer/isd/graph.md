@@ -6,7 +6,7 @@ connected to the master. Keep a map of decoded sound buffers by path, a
 map of decoded music by track, the current track number and its source
 and gain node.
 
-`load`: `Promise.all` over the twelve paths: `fetch(base + path)`, check
+`load`: `Promise.all` over the fourteen paths: `fetch(base + path)`, check
 `ok` (else throw an `Error` naming the path), `arrayBuffer()`,
 `context.decodeAudioData(...)`, store. `play`: check the cue, pick the
 buffer (`random`), wire source → new gain (`gain.value = cue.gain`) →
@@ -34,6 +34,8 @@ This Node's edge:
 - [asset:sfx/powerup.mp3](../../../../../assets/sfx/powerup.mp3)
 - [asset:sfx/use.mp3](../../../../../assets/sfx/use.mp3)
 - [asset:sfx/stairs.mp3](../../../../../assets/sfx/stairs.mp3)
+- [asset:sfx/hiss.mp3](../../../../../assets/sfx/hiss.mp3)
+- [asset:sfx/boom.mp3](../../../../../assets/sfx/boom.mp3)
 - [asset:music/dungeon-1.mp3](../../../../../assets/music/dungeon-1.mp3)
 - [asset:music/dungeon-2.mp3](../../../../../assets/music/dungeon-2.mp3)
 - [asset:music/dungeon-3.mp3](../../../../../assets/music/dungeon-3.mp3)

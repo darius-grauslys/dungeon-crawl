@@ -11,7 +11,7 @@ export function create(...args) {
 }
 
 // __nirnroot_begin__ load
-// `mixer.load() -> promise`. Fetches the twelve sound files (`base` plus each path), and decodes each (`response.arrayBuffer()`, then `context.decodeAudioData`). Resolves, with nothing, once all twelve are decoded; rejects, with an `Error` whose message holds the file's path, as soon as one fails (a response not `ok` fails). A sound plays only once its files are decoded.
+// `mixer.load() -> promise`. Fetches the fourteen sound files (`base` plus each path), and decodes each (`response.arrayBuffer()`, then `context.decodeAudioData`). Resolves, with nothing, once all fourteen are decoded; rejects, with an `Error` whose message holds the file's path, as soon as one fails (a response not `ok` fails). A sound plays only once its files are decoded.
 // __nirnroot_end__
 export function load(...args) {
   return target.load(...args);

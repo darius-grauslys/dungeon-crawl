@@ -24,6 +24,9 @@ As the EED states.
 ## Intrinsic - ward:
 As the EED states.
 
+## Intrinsic - casters:
+As the EED states.
+
 ## Intrinsic - refuses:
 As the EED states.
 

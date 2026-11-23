@@ -27,7 +27,9 @@ the background rgb(22, 13, 19):
    below);
 4. the creatures standing on `visible` cells (a creature bigger than a
    cell when any cell it covers is `visible`): the monsters, then the
-   alive heroes (heroes on top), each where its animation puts it;
+   alive heroes (heroes on top), each where its animation puts it; then
+   over them the **fuse** blink and the **chant** sparkles (below);
+4. the **blasts** of the world's `effects` (below);
 5. the projectiles of ranged attacks in flight (below);
 6. the aim dot of `me`'s hero (below);
 7. the price of every ware (an item whose `price` is above 0) on a
@@ -54,6 +56,55 @@ blends the theme before it with the one after it: the cell `(x, y)` is
 drawn in `blend[1]` when `x + (x * 7 + y * 13) % 5 >= 26`, else in
 `blend[0]` (the hall's west in the old theme, its east in the new, with
 a ragged seam). Items and creatures are the same in every theme.
+
+**Floors.** Once the sprites are loaded, a `floor` cell is not always
+the theme's one `floor` tile: it is one of `atlas.floors(theme)` (calm
+patterns first, busy last; `N` of them), calm in the middle of a room
+and busier toward its walls, in blotches. For the cell `(x, y)`:
+
+1. `d`: for an open cell, its distance (`max(|dx|, |dy|)`) to the
+   nearest cell that is not open (outside the grid counts as not open),
+   at most 6; 0 for a cell that is not open.
+2. `b`: `d` blurred: the sum over the 3 by 3 cells around it of `d`
+   times the weight (4 at the centre, 2 for the four orthogonal
+   neighbours, 1 for the four corners; a cell outside the grid has `d`
+   0), divided by 16.
+3. `n`: value noise, with `h(i, j)` a number in [0, 1) for the lattice
+   point `(i, j)`: `v = (world.seed ^ Math.imul(world.depth,
+   0x9E3779B1) ^ Math.imul(i, 0x85EBCA6B) ^ Math.imul(j, 0xC2B2AE35)) >>>
+   0`, then mulberry32's mix of it (`t = (v + 0x6D2B79F5) >>> 0; t =
+   Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t
+   | 61); h = ((t ^ (t >>> 14)) >>> 0) / 4294967296`). With `gx = x / 4`,
+   `i = Math.floor(gx)`, `fx = gx - i` (and `j`, `fy` likewise from `y`),
+   `n` is `h` blended bilinearly over the four lattice points `(i, j)`,
+   `(i + 1, j)`, `(i, j + 1)`, `(i + 1, j + 1)` by `fx` and `fy`.
+4. `e = Math.min(0.999, Math.max(0, 1 - (b - 1) / 3 + (n - 0.5) *
+   0.6))`, and the cell's tile is `atlas.floors(theme)[Math.floor(e *
+   N)]` (`theme` the cell's, a lair's blend side included).
+
+So a cell next to a wall (`b` about 1) is drawn busy, one 4 or more
+from the walls calm, with a blotchy edge between. A shop's one floor
+pattern is its floor everywhere. Stairs and walls are as before; in flat
+colours, every floor is the floor colour.
+
+**Fuse.** A creature whose actor's `fuse` is `{at}` blinks, with `t =
+now - at` (0 or more): while `t` is below 2400 it is lit when `t % 400`
+is below 100 (a quarter of the time), from 2400 on when `t % 400` is
+below 300 (three quarters). Lit, its square (the `48 s` pixels of the
+cells it covers, moved and scaled with it as its picture is) is covered
+by rgba(255, 220, 120, 0.45).
+
+**Chant.** A creature whose actor's `chant` is `{kind, at, until}`, while
+`now` is from `at` below `until`, has a sparkle over it: the sprite
+`sparkle-<f>` (`f = Math.floor((now - at) / 150) % 3`) drawn over its
+square at its size; in flat colours, a square of 12 by 12 pixels of
+rgb(255, 240, 180) centred on its centre.
+
+**Blasts.** Each `effects` entry of `kind` `blast` (`{x, y, size, at}`),
+while `t = now - at` is from 0 below 450, draws `sparkle-<Math.floor(t /
+150)>` over every cell within 2 of its square (`x - 2` to `x + size +
+1`, and `y` likewise) that is `visible`; in flat colours, a square of
+12 by 12 pixels of rgb(255, 240, 180) centred on each such cell.
 
 **Prices.** A ware's price is written over its cell: the text
 `<price>g` in `bold 14px monospace`, centred on the cell's middle
@@ -179,6 +230,15 @@ with `PAUSED` in rgb(230, 220, 200), `bold 24px monospace`, centred in it.
 `draw(world, me, paused, now, aiming)`. Draws the world for the player `me`, as above, onto the canvas given to `init` (throws an `Error` if none was given), with the paused band when `paused` is true. `now` is the world time to animate at, a number of 0 or more (left out: the world's `time`): the page draws every frame, with `now` running on from the last world's `time` between two worlds. `aiming` (left out: `false`): whether the player is aiming, so the aim dot is drawn.
 
 # Intrinsics:
+## Intrinsic - floors:
+After `load('/assets/')` resolves, a world at depth 1 on a 15 by 11 grid (`fromRows`: a border of `#` around `floor`), every cell `visible` and `explored`, `Ann` alive at (1, 1): `draw(w, 'Ann', false)`; the cell (7, 5) (four from every wall) is pixel for pixel one of `atlas.floors('dungeon')[0]` to `[6]` drawn at 48 by 48 pixels (smoothing off) over the background rgb(22, 13, 19), and the cell (1, 5) (next to a wall) one of `[16]` to `[22]`. The same world drawn twice gives the same pixels; with `seed` 2 instead of 1, the 13 by 9 floor cells are not all the same as with seed 1.
+
+## Intrinsic - effects:
+On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, the monster and the gold left out, plus a monster (`slime`) at (4, 1):
+- with the slime's `fuse` `{at: 0}`: at `now` 50 the centre pixel of (4, 1) is within 3 in each channel of rgb(236, 127, 82) (the lit blink over its red); at `now` 150 it is rgb(220, 50, 50); at 2650 lit again; at 2750 rgb(220, 50, 50);
+- with the slime's `chant` `{kind: 'haste', at: 0, until: 1200}` instead: at `now` 100 its centre pixel is rgb(255, 240, 180); at `now` 1300 rgb(220, 50, 50);
+- with no slime and the world's `effects` `[{kind: 'blast', x: 4, y: 1, size: 1, at: 0}]`: at `now` 100 the centre pixel of (5, 1) is rgb(255, 240, 180); at `now` 500 it is the floor's rgb(50, 36, 44).
+
 ## Intrinsic - camera:
 For a world on a 48 by 32 grid with a view of 16 by 10 and `Ann`'s hero alive: Ann at (2, 2) gives (0, 0); at (40, 30), (32, 22); at (20, 15), (12, 10). With Ann not alive and `Bob` alive at (20, 15), `camera(w, 'Ann', 16, 10)` is (12, 10); with no hero alive, (0, 0). On a 10 by 5 grid, any focus gives (0, 0).
 

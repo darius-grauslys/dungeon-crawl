@@ -32,6 +32,9 @@ As the EED states.
 ## Intrinsic - bar:
 As the EED states.
 
+## Intrinsic - minimap:
+As the EED states: build the 48 by 32 grid with `tile-grid`'s `fromRows` and the masks with `mask`'s `of`.
+
 ## Intrinsic - refuses:
 As the EED states.
 

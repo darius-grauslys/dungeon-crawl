@@ -4,7 +4,7 @@
 import * as target from "../src/atlas/index.mjs";
 
 // __nirnroot_begin__ load
-// `load(base) -> promise`. `base` a URL prefix ending in `/` (the page's is `/assets/`); each sheet is fetched from `base` plus its path in the table. Resolves, with nothing, once all twenty are loaded and keyed; rejects, with an `Error` whose message contains the sheet's path, as soon as one fails to load. A later `load` replaces what an earlier one loaded once it resolves.
+// `load(base) -> promise`. `base` a URL prefix ending in `/` (the page's is `/assets/`); each sheet is fetched from `base` plus its path in the table. Resolves, with nothing, once all twenty-one are loaded and keyed; rejects, with an `Error` whose message contains the sheet's path, as soon as one fails to load. A later `load` replaces what an earlier one loaded once it resolves.
 // __nirnroot_end__
 export function load(...args) {
   return target.load(...args);
@@ -38,8 +38,15 @@ export function frames(...args) {
   return target.frames(...args);
 }
 
+// __nirnroot_begin__ floors
+// `floors(theme) -> array of sprite`. The theme's floor patterns, calmest first, as **Floors** says: a fresh array of `sprite`s on the theme's floor sheet (23 for `dungeon`, 16 `frozen`, 20 `arid`, 12 `temple`, 19 `magma`, 1 `interior`). Before a `load` has resolved, answers `null`. A theme not of the six throws a `TypeError`.
+// __nirnroot_end__
+export function floors(...args) {
+  return target.floors(...args);
+}
+
 // __nirnroot_begin__ names
-// `names() -> array`. The fifty-nine names, in the table's order, a fresh array each call.
+// `names() -> array`. The seventy names, in the table's order, a fresh array each call.
 // __nirnroot_end__
 export function names(...args) {
   return target.names(...args);

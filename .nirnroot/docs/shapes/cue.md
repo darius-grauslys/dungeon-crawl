@@ -13,6 +13,8 @@ A sound to play now: which one, and how loud. Immutable.
 | `powerup` | a hero took a power-up |
 | `use` | a hero used something (a lever, a ware, nothing) |
 | `stairs` | the party went down to another floor |
+| `hiss` | a fuse was lit |
+| `boom` | something exploded |
 
 The module (`shapes/cue/index.mjs`) exports `of({name, gain})`: `name`
 one of the table's; `gain` a number above 0 and at most 1, how loud
@@ -30,10 +32,10 @@ Property `gain`.
 # Intrinsics:
 ## Intrinsic - valid:
 `of({name: 'step', gain: 0.5})` has those values and is frozen; `of({name:
-'stairs', gain: 1})` is accepted. `name: 'boom'`, `gain: 0`, `gain:
-1.5`, `gain: '1'` and a missing `gain` each throw a `TypeError`. `NAMES`
-is `['step', 'swing', 'shot', 'hit', 'death', 'coin', 'powerup', 'use',
-'stairs']` and frozen.
+'stairs', gain: 1})` is accepted. `name: 'bang'`, `gain: 0`, `gain:
+1.5`, `gain: '1'` and a missing `gain` each throw a `TypeError`. `of({name: 'hiss', gain: 0.5})` and `of({name: 'boom', gain: 1})` are
+accepted. `NAMES` is `['step', 'swing', 'shot', 'hit', 'death', 'coin',
+'powerup', 'use', 'stairs', 'hiss', 'boom']` and frozen.
 
 # Callbacks:
 None
