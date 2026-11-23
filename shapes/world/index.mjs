@@ -90,13 +90,28 @@ function isActor(v) {
     if (typeof v.fuse.at !== 'number' || !Number.isInteger(v.fuse.at) || v.fuse.at < 0) return false;
     if (Object.keys(v.fuse).length !== 1) return false;
   }
+  if (v.air !== null) {
+    if (!v.air || typeof v.air !== 'object' || !Object.isFrozen(v.air)) return false;
+    if (v.air.phase !== 'crouch' && v.air.phase !== 'rise' && v.air.phase !== 'aloft' && v.air.phase !== 'drop') return false;
+    if (typeof v.air.at !== 'number' || !Number.isInteger(v.air.at) || v.air.at < 0) return false;
+    if (Object.keys(v.air).length !== 2) return false;
+  }
+  if (v.flung !== null) {
+    if (!v.flung || typeof v.flung !== 'object' || !Object.isFrozen(v.flung)) return false;
+    if (typeof v.flung.x !== 'number' || !Number.isInteger(v.flung.x) || v.flung.x < 0) return false;
+    if (typeof v.flung.y !== 'number' || !Number.isInteger(v.flung.y) || v.flung.y < 0) return false;
+    if (typeof v.flung.at !== 'number' || !Number.isInteger(v.flung.at) || v.flung.at < 0) return false;
+    if (Object.keys(v.flung).length !== 3) return false;
+  }
   if (v.kind === 'hero') {
     if (v.haste !== 0) return false;
     if (v.cooldown !== 0) return false;
     if (v.chant !== null) return false;
     if (v.fuse !== null) return false;
+    if (v.air !== null) return false;
+    if (v.flung !== null) return false;
   }
-  return Object.keys(v).length === 19;
+  return Object.keys(v).length === 21;
 }
 
 function isItem(v) {
@@ -144,6 +159,16 @@ function isEffect(v) {
   return Object.keys(v).length === 5;
 }
 
+function isSpike(v, grid) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  if (typeof v.x !== 'number' || !Number.isInteger(v.x) || v.x < 0 || v.x >= grid.width) return false;
+  if (typeof v.y !== 'number' || !Number.isInteger(v.y) || v.y < 0 || v.y >= grid.height) return false;
+  if (typeof v.shift !== 'number' || !Number.isInteger(v.shift) || v.shift < 0 || v.shift > 5) return false;
+  const keys = Object.keys(v);
+  if (keys.length !== 3 || !keys.includes('x') || !keys.includes('y') || !keys.includes('shift')) return false;
+  return true;
+}
+
 /**
  * World: the whole state of a game at one moment. Immutable.
  */
@@ -164,6 +189,7 @@ class World {
     this.log = fields.log;
     this.entry = fields.entry;
     this.effects = fields.effects;
+    this.spikes = fields.spikes;
   }
 
   with(changes) {
@@ -182,7 +208,8 @@ class World {
       gold: this.gold,
       log: this.log,
       entry: this.entry,
-      effects: this.effects
+      effects: this.effects,
+      spikes: this.spikes
     };
     if (changes) {
       for (const key of Object.keys(changes)) {
@@ -252,6 +279,8 @@ class World {
         chant: h.actor.chant ? { kind: h.actor.chant.kind, at: h.actor.chant.at, until: h.actor.chant.until } : null,
         cooldown: h.actor.cooldown,
         fuse: h.actor.fuse ? { at: h.actor.fuse.at } : null,
+        air: h.actor.air ? { phase: h.actor.air.phase, at: h.actor.air.at } : null,
+        flung: h.actor.flung ? { x: h.actor.flung.x, y: h.actor.flung.y, at: h.actor.flung.at } : null,
       };
       const heroData = {
         name: h.name,
@@ -295,6 +324,8 @@ class World {
         chant: m.chant ? { kind: m.chant.kind, at: m.chant.at, until: m.chant.until } : null,
         cooldown: m.cooldown,
         fuse: m.fuse ? { at: m.fuse.at } : null,
+        air: m.air ? { phase: m.air.phase, at: m.air.at } : null,
+        flung: m.flung ? { x: m.flung.x, y: m.flung.y, at: m.flung.at } : null,
       };
       return monsterData;
     });
@@ -325,6 +356,7 @@ class World {
       items: itemsData,
       entry: this.entry.data(),
       effects: this.effects ? this.effects.map((e) => ({ kind: e.kind, x: e.x, y: e.y, size: e.size, at: e.at })) : [],
+      spikes: this.spikes ? this.spikes.map((s) => ({ x: s.x, y: s.y, shift: s.shift })) : [],
     };
   }
 }
@@ -343,7 +375,7 @@ export function of(fields) {
     'seed', 'rng', 'depth', 'time', 'state', 'grid', 'heroes', 'monsters',
     'items', 'visible', 'explored', 'gold', 'log', 'entry'
   ];
-  const expectedKeys = [...requiredKeys, 'effects'];
+  const expectedKeys = [...requiredKeys, 'effects', 'spikes'];
   for (const k of requiredKeys) {
     if (!(k in fields)) {
       throw new TypeError(`world: missing field ${k}`);
@@ -357,7 +389,7 @@ export function of(fields) {
 
   const {
     seed, rng, depth, time, state, grid, heroes, monsters, items,
-    visible, explored, gold, log, entry, effects = []
+    visible, explored, gold, log, entry, effects = [], spikes = []
   } = fields;
 
   if (!Array.isArray(effects)) {
@@ -425,6 +457,23 @@ export function of(fields) {
       throw new TypeError('world: items must be an array of items');
     }
   }
+  if (!Array.isArray(spikes)) {
+    throw new TypeError('world: spikes must be an array');
+  }
+  const spikesObjs = spikes.map((s) => {
+    if (!isSpike(s, grid)) {
+      throw new TypeError('world: spikes must be an array of {x, y, shift}');
+    }
+    return Object.freeze({ x: s.x, y: s.y, shift: s.shift });
+  });
+  const seenSpikes = new Set();
+  for (const s of spikesObjs) {
+    const key = `${s.x},${s.y}`;
+    if (seenSpikes.has(key)) {
+      throw new TypeError('world: spikes must not have two on one cell');
+    }
+    seenSpikes.add(key);
+  }
   if (!(visible instanceof maskShape.Mask)) {
     throw new TypeError('world: visible must be a mask');
   }
@@ -470,7 +519,8 @@ export function of(fields) {
     gold,
     log: Object.freeze(log.slice()),
     entry,
-    effects: Object.freeze(effectsObjs)
+    effects: Object.freeze(effectsObjs),
+    spikes: Object.freeze(spikesObjs)
   });
 
   return Object.freeze(world);
@@ -490,7 +540,7 @@ export function fromData(data) {
     'seed', 'rng', 'depth', 'time', 'state', 'gold', 'log', 'grid',
     'visible', 'explored', 'heroes', 'monsters', 'items', 'entry'
   ];
-  const expectedKeys = [...requiredKeys, 'effects'];
+  const expectedKeys = [...requiredKeys, 'effects', 'spikes'];
   for (const k of requiredKeys) {
     if (!(k in data)) {
       throw new TypeError(`world: missing data key ${k}`);
@@ -504,7 +554,7 @@ export function fromData(data) {
 
   const {
     seed, rng, depth, time, state, gold, log, grid, visible, explored,
-    heroes, monsters, items, entry, effects = []
+    heroes, monsters, items, entry, effects = [], spikes = []
   } = data;
 
   const effectsObjs = effects.map((e) => {
@@ -549,6 +599,24 @@ export function fromData(data) {
     throw new TypeError('world: grid must be an array of strings');
   }
   const gridObj = tileGridShape.fromRows(grid);
+
+  if (!Array.isArray(spikes)) {
+    throw new TypeError('world: spikes must be an array');
+  }
+  const spikesObjs = spikes.map((s) => {
+    if (!isSpike(s, gridObj)) {
+      throw new TypeError('world: spikes must be an array of {x, y, shift}');
+    }
+    return { x: s.x, y: s.y, shift: s.shift };
+  });
+  const seenSpikes = new Set();
+  for (const s of spikesObjs) {
+    const key = `${s.x},${s.y}`;
+    if (seenSpikes.has(key)) {
+      throw new TypeError('world: spikes must not have two on one cell');
+    }
+    seenSpikes.add(key);
+  }
 
   if (!Array.isArray(visible)) {
     throw new TypeError('world: visible must be an array of strings');
@@ -649,6 +717,8 @@ export function fromData(data) {
       chant: actorData.chant ? { kind: actorData.chant.kind, at: actorData.chant.at, until: actorData.chant.until } : null,
       cooldown: actorData.cooldown,
       fuse: actorData.fuse ? { at: actorData.fuse.at } : null,
+      air: actorData.air ? { phase: actorData.air.phase, at: actorData.air.at } : null,
+      flung: actorData.flung ? { x: actorData.flung.x, y: actorData.flung.y, at: actorData.flung.at } : null,
     });
     const heroObj = heroShape.of({ name: h.name, actor: actorObj, pending, alive: h.alive, offer: h.offer, colour: h.colour ?? 0, group: h.group ?? 0 });
     heroObjs.push(heroObj);
@@ -685,6 +755,8 @@ export function fromData(data) {
       chant: m.chant ? { kind: m.chant.kind, at: m.chant.at, until: m.chant.until } : null,
       cooldown: m.cooldown,
       fuse: m.fuse ? { at: m.fuse.at } : null,
+      air: m.air ? { phase: m.air.phase, at: m.air.at } : null,
+      flung: m.flung ? { x: m.flung.x, y: m.flung.y, at: m.flung.at } : null,
     });
     if (monsterObj.kind === 'hero') {
       throw new TypeError('world: monsters must not be of kind hero');
@@ -724,5 +796,6 @@ export function fromData(data) {
     log,
     entry: entryObj,
     effects: effectsObjs,
+    spikes: spikesObjs,
   });
 }
