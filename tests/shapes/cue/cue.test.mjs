@@ -19,8 +19,22 @@ test("valid: of({name: 'stairs', gain: 1}) is accepted", () => {
   assert.ok(Object.isFrozen(c));
 });
 
-test("valid: name: 'boom' throws a TypeError", () => {
-  assert.throws(() => of({ name: "boom", gain: 0.5 }), TypeError);
+test("valid: name: 'bang' throws a TypeError", () => {
+  assert.throws(() => of({ name: "bang", gain: 0.5 }), TypeError);
+});
+
+test("valid: of({name: 'hiss', gain: 0.5}) is accepted", () => {
+  const c = of({ name: "hiss", gain: 0.5 });
+  assert.strictEqual(c.name, "hiss");
+  assert.strictEqual(c.gain, 0.5);
+  assert.ok(Object.isFrozen(c));
+});
+
+test("valid: of({name: 'boom', gain: 1}) is accepted", () => {
+  const c = of({ name: "boom", gain: 1 });
+  assert.strictEqual(c.name, "boom");
+  assert.strictEqual(c.gain, 1);
+  assert.ok(Object.isFrozen(c));
 });
 
 test("valid: gain: 0 throws a TypeError", () => {
@@ -50,6 +64,8 @@ test("valid: NAMES is the table's names and frozen", () => {
     "powerup",
     "use",
     "stairs",
+    "hiss",
+    "boom",
   ]);
   assert.ok(Object.isFrozen(NAMES));
 });
