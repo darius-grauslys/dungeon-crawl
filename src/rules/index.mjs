@@ -92,7 +92,7 @@ function itemGradeName(kind) {
 }
 
 function isBoss(kind) {
-  return kind === "golem" || kind === "serpent" || kind === "reaper";
+  return kind === "golem" || kind === "serpent";
 }
 
 function cellsCovered(actor) {
@@ -117,28 +117,6 @@ function distanceLe(actorA, actorB) {
     }
   }
   return minDist;
-}
-
-function distanceToSquare(monster, cell) {
-  const size = monster.size || 1;
-  const cx0 = monster.pos.x, cy0 = monster.pos.y;
-  const cx1 = cx0 + size - 1, cy1 = cy0 + size - 1;
-  const dx = Math.max(cx0 - cell.x, 0, cell.x - cx1);
-  const dy = Math.max(cy0 - cell.y, 0, cell.y - cy1);
-  return Math.max(dx, dy);
-}
-
-function cellsWithinSquare(monster, radius) {
-  const size = monster.size || 1;
-  const cx0 = monster.pos.x, cy0 = monster.pos.y;
-  const cx1 = cx0 + size - 1, cy1 = cy0 + size - 1;
-  const result = [];
-  for (let y = cy1 - radius; y <= cy1 + radius; y++) {
-    for (let x = cx0 - radius; x <= cx1 + radius; x++) {
-      if (distanceToSquare(monster, pointShape.of(x, y)) <= radius) result.push(pointShape.of(x, y));
-    }
-  }
-  return result;
 }
 
 function startCells(plan) {
@@ -208,22 +186,16 @@ function makeFloor(seed, depth, rngIn) {
   if (isLairDepth(depth)) {
     if (plan.boss) {
       const tiles = plan.grid.tiles();
-      const round = levelShape.round(depth);
       const newTiles = tiles.map((t, idx) => {
         const x = idx % plan.grid.width;
         const y = Math.floor(idx / plan.grid.width);
-        if (x === plan.stairs.x && y === plan.stairs.y) {
-          if (round === 3) return "wall";
-          return "floor";
-        }
+        if (x === plan.stairs.x && y === plan.stairs.y) return "floor";
         return t;
       });
       grid = tileGridShape.of(plan.grid.width, plan.grid.height, newTiles);
 
-      let bossKind, bossSize;
-      if (round === 1) { bossKind = "golem"; bossSize = 3; }
-      else if (round === 2) { bossKind = "serpent"; bossSize = 3; }
-      else { bossKind = "reaper"; bossSize = 2; }
+      const round = levelShape.round(depth);
+      const bossKind = round === 2 ? "serpent" : "golem";
       const bossEntry = bestiary.entry(bossKind);
       monsters.push(
         actorShape.of({
@@ -233,7 +205,7 @@ function makeFloor(seed, depth, rngIn) {
           stats: statsShape.of({ hp: bossEntry.hp, maxHp: bossEntry.hp, attack: bossEntry.attack, defense: bossEntry.defense, range: bossEntry.range, magic: bossEntry.magic, magicPower: bossEntry.magicPower, magicResist: 0 }),
           ready: 0,
           mode: "dormant",
-          size: bossSize,
+          size: 3,
           facing: "left",
           aim: { dx: -1, dy: 0 },
         })
@@ -302,16 +274,14 @@ function makeFloor(seed, depth, rngIn) {
     kindsList = ["bat", "slime", "snake", "skeleton"];
   } else if (level === 5) {
     kindsList = ["bat", "slime", "blue-spider", "skeleton"];
-  } else if (level === 6) {
-    kindsList = ["blue-slime", "blue-spider", "archer", "swordsman", "snowman"];
-  } else if (level >= 7 && level <= 10) {
-    kindsList = ["blue-slime", "blue-spider", "archer", "swordsman", "snowman"];
+  } else if (level >= 6 && level <= 10) {
+    kindsList = ["blue-slime", "blue-spider", "archer", "swordsman"];
   } else if (level >= 11 && level <= 15) {
     kindsList = ["beetle", "mummy", "cultist"];
   } else if (level >= 16 && level <= 20) {
-    kindsList = ["spider", "ghost", "scarecrow", "pumpkin"];
+    kindsList = ["spider", "ghost", "reaper"];
   } else if (level >= 21 && level <= 25) {
-    kindsList = ["imp", "demon", "beholder"];
+    kindsList = ["worm", "fire-slime", "imp", "demon"];
   }
 
   for (let i = 0; i < numMonsters; i++) {
@@ -328,39 +298,24 @@ function makeFloor(seed, depth, rngIn) {
       else if (value < 0.16) kind = "swordsman";
       else if (value < 0.22) kind = "mage";
       else { const { rng: nr2, item: k } = pick(rng, kindsList); rng = nr2; kind = k; }
-    } else if (level === 6) {
+    } else if (level >= 6 && level <= 10) {
       const { rng: nr, value } = mulberryDraw(rng);
       rng = nr;
       if (value < 0.25) kind = "mage";
-      else if (value < 0.32) kind = "snow-skeleton";
-      else { const { rng: nr2, item: k } = pick(rng, kindsList); rng = nr2; kind = k; }
-    } else if (level >= 7 && level <= 10) {
-      const { rng: nr, value } = mulberryDraw(rng);
-      rng = nr;
-      if (value < 0.25) kind = "mage";
-      else if (value < 0.32) kind = "snow-skeleton";
-      else if (value < 0.45) kind = "wolf-man";
       else { const { rng: nr2, item: k } = pick(rng, kindsList); rng = nr2; kind = k; }
     } else {
       const { rng: nr, item: k } = pick(rng, kindsList);
       rng = nr;
       kind = k;
     }
-    let pos = spots[i];
-    if (kind === "pumpkin") {
-      const ok = grid.open(pos.x, pos.y) && grid.open(pos.x + 1, pos.y) && grid.open(pos.x, pos.y + 1) && grid.open(pos.x + 1, pos.y + 1);
-      let occupied = false;
-      for (const mm of monsters) { if (mm.covers(pos.x, pos.y) || mm.covers(pos.x + 1, pos.y) || mm.covers(pos.x, pos.y + 1) || mm.covers(pos.x + 1, pos.y + 1)) { occupied = true; break; } }
-      if (!ok || occupied) { kind = "spider"; pos = spots[i]; }
-    }
+    const pos = spots[i];
     const e = bestiary.entry(kind);
-    const eAttack = e.attack === 0 ? 0 : e.attack + tier;
     monsters.push(
       actorShape.of({
         id: idCounter++,
         kind,
         pos,
-        stats: statsShape.of({ hp: e.hp + Math.floor(e.hp * tier / 2), maxHp: e.hp + Math.floor(e.hp * tier / 2), attack: eAttack, defense: e.defense + Math.floor(tier / 2), range: e.range, magic: e.magic, magicPower: e.magicPower, magicResist: 0 }),
+        stats: statsShape.of({ hp: e.hp + Math.floor(e.hp * tier / 2), maxHp: e.hp + Math.floor(e.hp * tier / 2), attack: e.attack + tier, defense: e.defense + Math.floor(tier / 2), range: e.range, magic: e.magic, magicPower: e.magicPower, magicResist: 0 }),
         ready: 0,
         mode: "roam",
         size: e.size,
@@ -410,17 +365,16 @@ function makeFloor(seed, depth, rngIn) {
   return { plan, monsters, items, rng, grid };
 }
 
-function newGame(seed, depth = 1) {
+function newGame(seed) {
   if (!Number.isInteger(seed) || seed < 0 || seed > 4294967295) {
     throw new TypeError("rules.newGame: seed must be an integer from 0 to 4294967295");
   }
-  const d = depth || 1;
-  const { plan, monsters, items, rng, grid } = makeFloor(seed, d, seed);
+  const { plan, monsters, items, rng, grid } = makeFloor(seed, 1, seed);
   const visible = maskShape.empty(grid.width, grid.height);
   const explored = maskShape.empty(grid.width, grid.height);
-  const entry = saveShape.of({ seed, depth: d, players: [] });
+  const entry = saveShape.of({ seed, depth: 1, players: [] });
   return worldShape.of({
-    seed, rng, depth: d, time: 0, state: "playing", grid,
+    seed, rng, depth: 1, time: 0, state: "playing", grid,
     heroes: [], monsters, items, visible, explored, gold: 0,
     log: ["Welcome to the dungeon. Find the stairs (>)."], entry,
   });
@@ -529,15 +483,6 @@ function heroLatency(actor, type) {
   else if (type === "use") lat = HERO_LATENCY.use;
   else lat = HERO_LATENCY.step; // step, wait, descend
   if ((type === "step" || type === "attack") && actor.slow > 0) lat = lat * 2;
-  if (actor.haste > 0) lat = Math.floor(lat / 2);
-  return lat;
-}
-
-function monsterLatency(monster, type) {
-  const e = bestiary.entry(monster.kind);
-  let lat = type === "attack" ? e.strike : e.step;
-  if (monster.slow > 0) lat = lat * 2;
-  if (monster.haste > 0) lat = Math.floor(lat / 2);
   return lat;
 }
 
@@ -659,23 +604,6 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
   let monstersList = state.monstersList;
   let offer = h.offer;
   let rng = state.rng;
-  let idCounter = 10;
-  for (const mm of monstersList) if (mm.id > idCounter) idCounter = mm.id;
-  idCounter++;
-
-  // Curse tick: each action a cursed hero fires deals it 1 damage and takes 1 off curse
-  if (h.actor.curse > 0) {
-    const nhp = h.actor.stats.hp - 1;
-    const newCurse = h.actor.curse - 1;
-    if (nhp <= 0) {
-      log.push(`${h.name} falls.`);
-      const updatedActor = h.actor.with({ stats: statsShape.of({ hp: 0, maxHp: h.actor.stats.maxHp, attack: h.actor.stats.attack, defense: h.actor.stats.defense, range: h.actor.stats.range, magic: h.actor.stats.magic, magicPower: h.actor.stats.magicPower, magicResist: h.actor.stats.magicResist }), curse: newCurse });
-      const newHero = h.with({ actor: updatedActor, alive: false, pending: null, offer: null });
-      return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
-    }
-    const updatedActor = h.actor.with({ stats: statsShape.of({ hp: nhp, maxHp: h.actor.stats.maxHp, attack: h.actor.stats.attack, defense: h.actor.stats.defense, range: h.actor.stats.range, magic: h.actor.stats.magic, magicPower: h.actor.stats.magicPower, magicResist: h.actor.stats.magicResist }), curse: newCurse });
-    h = h.with({ actor: updatedActor });
-  }
 
   if (intent.kind === "move") {
     const dx = intent.dx, dy = intent.dy;
@@ -751,7 +679,6 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
     if (!gridOpen(world.grid, nx, ny) || stepCutCorner(world.grid, h.actor, dx, dy)) {
       let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("step"), aim: { dx, dy }, facing: actorShape.facingFor(dx, dy), last: h.actor.last });
       if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
-      if (h.actor.haste > 0) { updatedActor = updatedActor.with({ haste: h.actor.haste - 1 }); }
       const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
       return { hero: newHero, gold, items, monstersList, log, grid: undefined, rng };
     }
@@ -767,65 +694,30 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
       if (h.actor.slow > 0) {
         updatedActor = updatedActor.with({ slow: h.actor.slow - 1 });
       }
-      if (h.actor.haste > 0) { updatedActor = updatedActor.with({ haste: h.actor.haste - 1 }); }
       const newHeld = Math.max(monsterHit.held || 0, newTime + 300);
       let newMonster = monsterHit.with({ held: newHeld });
-      let monstersAfter = monstersList.map((mm) => mm.id === monsterHit.id ? newMonster : mm);
+      let monstersAfter = monstersList;
       let monsterLine = "";
       const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
       if (!s.hit) {
         monsterLine = `${h.name} misses the ${monsterHit.kind}.`;
+        monstersAfter = monstersList.map((mm) => mm.id === monsterHit.id ? newMonster : mm);
       } else {
-        let newMonsterFinal = newMonster;
-        let splitSwarm = null;
-        if (monsterHit.kind === "swarm" || monsterHit.kind === "enraged-swarm") {
-          const nhpSwarm = monsterHit.stats.hp - 1;
-          if (nhpSwarm <= 0) {
-            monsterLine = `The ${monsterHit.kind} is slain.`;
-            monstersAfter = monstersAfter.filter((mm) => mm.id !== monsterHit.id);
-          } else {
-            newMonsterFinal = newMonster.with({ stats: statsShape.of({ hp: nhpSwarm, maxHp: 3, attack: 4, defense: 0, range: 1, magic: 2, magicPower: 1, magicResist: 0 }) });
-            monstersAfter = monstersAfter.map((mm) => mm.id === monsterHit.id ? newMonsterFinal : mm);
-            monsterLine = s.critical ? `Critical! ${h.name} hits the ${monsterHit.kind} for 1.` : `${h.name} hits the ${monsterHit.kind} for 1.`;
-            const dirs = [[0, -1], [1, 0], [0, 1], [-1, 0], [1, -1], [1, 1], [-1, 1], [-1, -1]];
-            for (const [dx, dy] of dirs) {
-              const nx = monsterHit.pos.x + dx, ny = monsterHit.pos.y + dy;
-              if (world.grid.open(nx, ny)) {
-                let occupied = false;
-                for (const mm of monstersAfter) { if (mm.covers(nx, ny)) { occupied = true; break; } }
-                if (!occupied) {
-                  splitSwarm = actorShape.of({ id: idCounter++, kind: "swarm", pos: pointShape.of(nx, ny), stats: statsShape.of({ hp: 1, maxHp: 3, attack: 4, defense: 0, range: 1, magic: 2, magicPower: 1, magicResist: 0 }), ready: newTime + 80, mode: "roam", size: 1 });
-                  monstersAfter.push(splitSwarm);
-                  break;
-                }
-              }
-            }
+        const nhp = monsterHit.stats.hp - s.damage;
+        if (nhp <= 0) {
+          monsterLine = `The ${monsterHit.kind} is slain.`;
+          monstersAfter = monstersAfter.filter((mm) => mm.id !== monsterHit.id);
+          if (isBoss(monsterHit.kind)) {
+            const gd = golemDeath(world, monstersAfter, monsterHit, newTime, gold, log, rng);
+            monstersAfter = gd.monsters;
+            items = gd.items;
+            return { hero: newHero, gold, items, monstersList: monstersAfter, log: log.slice(-50), grid: gd.grid, rng: gd.rng };
           }
         } else {
-          const nhp = monsterHit.stats.hp - s.damage;
-          if (nhp <= 0) {
-            monsterLine = `The ${monsterHit.kind} is slain.`;
-            monstersAfter = monstersAfter.filter((mm) => mm.id !== monsterHit.id);
-            if (isBoss(monsterHit.kind)) {
-              const gd = golemDeath(world, monstersAfter, monsterHit, newTime, gold, log, rng);
-              monstersAfter = gd.monsters;
-              items = gd.items;
-              return { hero: newHero, gold, items, monstersList: monstersAfter, log: log.slice(-50), grid: gd.grid, rng: gd.rng };
-            }
-          } else {
-            if (monsterHit.kind === "wolf-man" && nhp * 2 <= monsterHit.stats.maxHp) {
-              monsterLine = s.critical ? `Critical! ${h.name} hits the ${monsterHit.kind} for ${s.damage}.` : `${h.name} hits the ${monsterHit.kind} for ${s.damage}.`;
-              log.push("The wolf-man is enraged!");
-              const nstats = statsShape.of({ hp: nhp, maxHp: monsterHit.stats.maxHp, attack: monsterHit.stats.attack, defense: monsterHit.stats.defense, range: monsterHit.stats.range, magic: monsterHit.stats.magic, magicPower: monsterHit.stats.magicPower, magicResist: monsterHit.stats.magicResist });
-              newMonsterFinal = newMonster.with({ stats: nstats, kind: "enraged-wolf-man" });
-              monstersAfter = monstersAfter.map((mm) => mm.id === monsterHit.id ? newMonsterFinal : mm);
-            } else {
-              const nstats = statsShape.of({ hp: nhp, maxHp: monsterHit.stats.maxHp, attack: monsterHit.stats.attack, defense: monsterHit.stats.defense, range: monsterHit.stats.range, magic: monsterHit.stats.magic, magicPower: monsterHit.stats.magicPower, magicResist: monsterHit.stats.magicResist });
-              newMonsterFinal = newMonster.with({ stats: nstats });
-              monstersAfter = monstersAfter.map((mm) => mm.id === monsterHit.id ? newMonsterFinal : mm);
-              monsterLine = s.critical ? `Critical! ${h.name} hits the ${monsterHit.kind} for ${s.damage}.` : `${h.name} hits the ${monsterHit.kind} for ${s.damage}.`;
-            }
-          }
+          const nstats = statsShape.of({ hp: nhp, maxHp: monsterHit.stats.maxHp, attack: monsterHit.stats.attack, defense: monsterHit.stats.defense, range: monsterHit.stats.range, magic: monsterHit.stats.magic, magicPower: monsterHit.stats.magicPower, magicResist: monsterHit.stats.magicResist });
+          newMonster = newMonster.with({ stats: nstats });
+          monstersAfter = monstersAfter.map((mm) => mm.id === monsterHit.id ? newMonster : mm);
+          monsterLine = s.critical ? `Critical! ${h.name} hits the ${monsterHit.kind} for ${s.damage}.` : `${h.name} hits the ${monsterHit.kind} for ${s.damage}.`;
         }
       }
       log.push(monsterLine);
@@ -840,7 +732,6 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
         const statName = picked.kind.startsWith("sword") ? "attack" : "defense";
         let updatedActor = h.actor.with({ pos: pointShape.of(nx, ny), ready: newTime + heroLatencyFn("step"), aim: { dx, dy }, facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 } });
         if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
-        if (h.actor.haste > 0) { updatedActor = updatedActor.with({ haste: h.actor.haste - 1 }); }
         log.push(`${h.name}: your ${statName} is too high for ${itemGradeName(picked.kind)}. Use it (e) to trade it for gold.`);
         const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
         return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
@@ -867,14 +758,12 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
       const powerGesture = picked.kind === "gold" ? null : { kind: "power", at: newTime };
       updatedActor = updatedActor.with({ pos: pointShape.of(nx, ny), ready: newTime + heroLatencyFn("step"), aim: { dx, dy }, facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 }, gesture: powerGesture });
       if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
-      if (h.actor.haste > 0) { updatedActor = updatedActor.with({ haste: h.actor.haste - 1 }); }
       log.push(msg);
       const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
       return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
     }
     let updatedActor = h.actor.with({ pos: pointShape.of(nx, ny), ready: newTime + heroLatencyFn("step"), aim: { dx, dy }, facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 } });
     if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
-    if (h.actor.haste > 0) { updatedActor = updatedActor.with({ haste: h.actor.haste - 1 }); }
     const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
     return { hero: newHero, gold, items, monstersList, log, grid: undefined, rng };
   } else if (intent.kind === "attack") {
@@ -910,7 +799,6 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
     const aimDy = (dx === 0 && dy === 0) ? h.actor.aim.dy : dir.dy;
     let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("attack"), aim: (dx === 0 && dy === 0) ? h.actor.aim : { dx: aimDx, dy: aimDy }, facing: actorShape.facingFor(aimDx, aimDy) });
     if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
-    if (h.actor.haste > 0) { updatedActor = updatedActor.with({ haste: h.actor.haste - 1 }); }
     if (wareHit) {
       const tooHigh = wareTooHigh(h.actor.stats, wareHit.kind);
       if (tooHigh) {
@@ -974,11 +862,10 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
     }
     updatedActor = updatedActor.with({ last: { kind: "attack", dx: aimDx, dy: aimDy, at: newTime, reach } });
     if (h.actor.slow > 0) { updatedActor = updatedActor.with({ slow: h.actor.slow - 1 }); }
-    if (h.actor.haste > 0) { updatedActor = updatedActor.with({ haste: h.actor.haste - 1 }); }
     if (monster) {
       const newHeld = Math.max(monster.held || 0, newTime + 300);
       let newMonster = monster.with({ held: newHeld });
-      let monstersAfter = monstersList.map((mm) => mm.id === monster.id ? newMonster : mm);
+      let monstersAfter = monstersList;
       const { rng: nrr, roll, ward } = combatDraw(rng);
       rng = nrr;
       const s = combat.resolve(h.actor.stats, monster.stats, roll, ward);
@@ -986,56 +873,23 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
       const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
       if (!s.hit) {
         monsterLine = `${h.name} misses the ${monster.kind}.`;
+        monstersAfter = monstersList.map((mm) => mm.id === monster.id ? newMonster : mm);
       } else {
-        let newMonsterFinal = newMonster;
-        if (monster.kind === "swarm" || monster.kind === "enraged-swarm") {
-          const nhpSwarm = monster.stats.hp - 1;
-          if (nhpSwarm <= 0) {
-            monsterLine = `The ${monster.kind} is slain.`;
-            monstersAfter = monstersAfter.filter((mm) => mm.id !== monster.id);
-          } else {
-            newMonsterFinal = newMonster.with({ stats: statsShape.of({ hp: nhpSwarm, maxHp: 3, attack: 4, defense: 0, range: 1, magic: 2, magicPower: 1, magicResist: 0 }) });
-            monstersAfter = monstersAfter.map((mm) => mm.id === monster.id ? newMonsterFinal : mm);
-            monsterLine = s.critical ? `Critical! ${h.name} hits the ${monster.kind} for 1.` : `${h.name} hits the ${monster.kind} for 1.`;
-            const dirs = [[0, -1], [1, 0], [0, 1], [-1, 0], [1, -1], [1, 1], [-1, 1], [-1, -1]];
-            for (const [dx, dy] of dirs) {
-              const nx = monster.pos.x + dx, ny = monster.pos.y + dy;
-              if (world.grid.open(nx, ny)) {
-                let occupied = false;
-                for (const mm of monstersAfter) { if (mm.covers(nx, ny)) { occupied = true; break; } }
-                if (!occupied) {
-                  const splitSwarm = actorShape.of({ id: idCounter++, kind: "swarm", pos: pointShape.of(nx, ny), stats: statsShape.of({ hp: 1, maxHp: 3, attack: 4, defense: 0, range: 1, magic: 2, magicPower: 1, magicResist: 0 }), ready: newTime + 80, mode: "roam", size: 1 });
-                  monstersAfter.push(splitSwarm);
-                  break;
-                }
-              }
-            }
+        const nhp = monster.stats.hp - s.damage;
+        if (nhp <= 0) {
+          monsterLine = `The ${monster.kind} is slain.`;
+          monstersAfter = monstersAfter.filter((mm) => mm.id !== monster.id);
+          if (isBoss(monster.kind)) {
+            const gd = golemDeath(world, monstersAfter, monster, newTime, gold, log, rng);
+            monstersAfter = gd.monsters;
+            items = gd.items;
+            return { hero: newHero, gold, items, monstersList: monstersAfter, log: log.slice(-50), grid: gd.grid, rng: gd.rng };
           }
         } else {
-          const nhp = monster.stats.hp - s.damage;
-          if (nhp <= 0) {
-            monsterLine = `The ${monster.kind} is slain.`;
-            monstersAfter = monstersAfter.filter((mm) => mm.id !== monster.id);
-            if (isBoss(monster.kind)) {
-              const gd = golemDeath(world, monstersAfter, monster, newTime, gold, log, rng);
-              monstersAfter = gd.monsters;
-              items = gd.items;
-              return { hero: newHero, gold, items, monstersList: monstersAfter, log: log.slice(-50), grid: gd.grid, rng: gd.rng };
-            }
-          } else {
-            if (monster.kind === "wolf-man" && nhp * 2 <= monster.stats.maxHp) {
-              monsterLine = s.critical ? `Critical! ${h.name} hits the ${monster.kind} for ${s.damage}.` : `${h.name} hits the ${monster.kind} for ${s.damage}.`;
-              log.push("The wolf-man is enraged!");
-              const nstats = statsShape.of({ hp: nhp, maxHp: monster.stats.maxHp, attack: monster.stats.attack, defense: monster.stats.defense, range: monster.stats.range, magic: monster.stats.magic, magicPower: monster.stats.magicPower, magicResist: monster.stats.magicResist });
-              newMonsterFinal = newMonster.with({ stats: nstats, kind: "enraged-wolf-man" });
-              monstersAfter = monstersAfter.map((mm) => mm.id === monster.id ? newMonsterFinal : mm);
-            } else {
-              const nstats = statsShape.of({ hp: nhp, maxHp: monster.stats.maxHp, attack: monster.stats.attack, defense: monster.stats.defense, range: monster.stats.range, magic: monster.stats.magic, magicPower: monster.stats.magicPower, magicResist: monster.stats.magicResist });
-              newMonsterFinal = newMonster.with({ stats: nstats });
-              monstersAfter = monstersAfter.map((mm) => mm.id === monster.id ? newMonsterFinal : mm);
-              monsterLine = s.critical ? `Critical! ${h.name} hits the ${monster.kind} for ${s.damage}.` : `${h.name} hits the ${monster.kind} for ${s.damage}.`;
-            }
-          }
+          const nstats = statsShape.of({ hp: nhp, maxHp: monster.stats.maxHp, attack: monster.stats.attack, defense: monster.stats.defense, range: monster.stats.range, magic: monster.stats.magic, magicPower: monster.stats.magicPower, magicResist: monster.stats.magicResist });
+          newMonster = newMonster.with({ stats: nstats });
+          monstersAfter = monstersAfter.map((mm) => mm.id === monster.id ? newMonster : mm);
+          monsterLine = s.critical ? `Critical! ${h.name} hits the ${monster.kind} for ${s.damage}.` : `${h.name} hits the ${monster.kind} for ${s.damage}.`;
         }
       }
       log.push(monsterLine);
@@ -1045,7 +899,6 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
     return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
   } else if (intent.kind === "use") {
     let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("use"), gesture: { kind: "use", at: newTime } });
-    if (h.actor.haste > 0) { updatedActor = updatedActor.with({ haste: h.actor.haste - 1 }); }
     let traded = false;
     for (const it of items) {
       if (it.pos.x === h.actor.pos.x && it.pos.y === h.actor.pos.y && !it.pulled && it.price === 0 && (it.kind.startsWith("sword") || it.kind.startsWith("armor")) && wareTooHigh(h.actor.stats, it.kind)) {
@@ -1063,7 +916,6 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
     return { hero: newHero, gold, items, monstersList, log: log.slice(-50), grid: undefined, rng };
   } else if (intent.kind === "wait" || intent.kind === "descend") {
     let updatedActor = h.actor.with({ ready: newTime + heroLatencyFn("wait") });
-    if (h.actor.haste > 0) { updatedActor = updatedActor.with({ haste: h.actor.haste - 1 }); }
     const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
     return { hero: newHero, gold, items, monstersList, log, grid: undefined, rng };
   }
@@ -1075,10 +927,9 @@ function advance(world, ms) {
     throw new TypeError("rules.advance: ms must be an integer from 1 to 1000");
   }
   const newTime = world.time + ms;
-  const eff = (world.effects || []).filter((e) => newTime - e.at <= 1000);
 
   if (world.state !== "playing") {
-    return worldShape.of({ ...world, time: newTime, rng: world.rng, effects: eff });
+    return worldShape.of({ ...world, time: newTime, rng: world.rng });
   }
 
   let log = [...world.log];
@@ -1121,9 +972,6 @@ function advance(world, ms) {
   const turn = Math.floor(newTime / 400);
   const monsterMap = new Map();
   for (const m of monstersList) monsterMap.set(m.id, m);
-  let idCounter = 10;
-  for (const mm of monstersList) if (mm.id > idCounter) idCounter = mm.id;
-  idCounter++;
 
   for (const entry of monstersList) {
     // skip if removed before its turn
@@ -1142,173 +990,10 @@ function advance(world, ms) {
         mode = "roam";
         log.push(`The ${m.kind} awakens!`);
       } else {
-        monsterMap.set(entry.id, m.with({ ready: newTime + monsterLatency(m, "step"), mode }));
+        monsterMap.set(entry.id, m.with({ ready: newTime + bestiary.entry(m.kind).step, mode }));
         continue;
       }
     }
-
-    // Monster abilities: chant, summon, fuse
-    if (m.kind === "cultist") {
-      const step = bestiary.entry(m.kind).step;
-      if (m.chant && m.chant.kind === "haste") {
-        const allMonsters = [...monsterMap.values()];
-        for (const mm of allMonsters) {
-          if (distanceLe(m, mm) <= 5) { monsterMap.set(mm.id, mm.with({ haste: 3 })); }
-        }
-        const updatedM = m.with({ chant: null, ready: newTime + step, haste: 3 });
-        monsterMap.set(m.id, updatedM);
-        log.push("The cultist's chant quickens the monsters!");
-        continue;
-      }
-      if (!m.chant) {
-        const allMonsters = [...monsterMap.values()];
-        let anotherMonsterWithin5 = false;
-        let anyHastedWithin5 = false;
-        for (const mm of allMonsters) {
-          if (mm.id === m.id) continue;
-          if (distanceLe(m, mm) <= 5) {
-            anotherMonsterWithin5 = true;
-            if ((mm.haste || 0) > 0) anyHastedWithin5 = true;
-          }
-        }
-        let foeNextTo = false;
-        for (const h of heroes) {
-          if (h.alive && bestiary.hostile(m.kind, 'hero')) {
-            if (distanceLe(m, h.actor) <= 1) { foeNextTo = true; break; }
-          }
-        }
-        if (anotherMonsterWithin5 && !anyHastedWithin5 && !foeNextTo) {
-          const until = newTime + 3 * step;
-          const updatedM = m.with({ chant: { kind: 'haste', at: newTime, until }, ready: until });
-          monsterMap.set(m.id, updatedM);
-          log.push("The cultist begins to chant.");
-          continue;
-        }
-      }
-    } else if (m.kind === "scarecrow") {
-      const step = bestiary.entry(m.kind).step;
-      if (m.chant && m.chant.kind === "summon") {
-        const swarmsWithin5 = [...monsterMap.values()].filter((mm) => mm.kind === "swarm" && distanceLe(m, mm) <= 5).length;
-        if (swarmsWithin5 >= 3) {
-          monsterMap.set(m.id, m.with({ ready: newTime + step }));
-          continue;
-        }
-        const swarmsPlaced = [...monsterMap.values()].filter((mm) => mm.kind === "swarm").length;
-        const freeCells = [];
-        for (let d = 0; d <= 2; d++) {
-          for (let y = 0; y < currentGrid.height; y++) {
-            for (let x = 0; x < currentGrid.width; x++) {
-              const c = pointShape.of(x, y);
-              if (distanceToSquare(m, c) === d) {
-                if (currentGrid.open(x, y)) {
-                  let occupied = false;
-                  for (const mm of monsterMap.values()) { if (mm.covers(x, y)) { occupied = true; break; } }
-                  for (const it of items) { if (it.pos.x === x && it.pos.y === y) { occupied = true; break; } }
-                  if (!occupied) freeCells.push(c);
-                }
-              }
-            }
-          }
-        }
-        const toPlace = Math.min(3 - swarmsPlaced, freeCells.length);
-        for (let i = 0; i < toPlace; i++) {
-          const c = freeCells[i];
-          const swarmId = idCounter++;
-          const swarm = actorShape.of({ id: swarmId, kind: "swarm", pos: c, stats: statsShape.of({ hp: 3, maxHp: 3, attack: 4, defense: 0, range: 1, magic: 2, magicPower: 1, magicResist: 0 }), ready: newTime + 80, mode: "roam", size: 1 });
-          monsterMap.set(swarmId, swarm);
-
-        }
-        const updatedM = m.with({ chant: null, cooldown: newTime + 8 * step, ready: newTime + step });
-        monsterMap.set(m.id, updatedM);
-        log.push("The scarecrow calls a swarm!");
-        continue;
-      }
-      if (!m.chant) {
-        const cooldown = m.cooldown || 0;
-        const swarmsWithin5 = [...monsterMap.values()].filter((mm) => mm.kind === "swarm" && distanceLe(m, mm) <= 5).length;
-        let foeWithinReach = false;
-        for (const h of heroes) {
-          if (h.alive && bestiary.hostile(m.kind, 'hero')) {
-            if (distanceLe(m, h.actor) <= bestiary.entry(m.kind).reach) { foeWithinReach = true; break; }
-          }
-        }
-        if (newTime >= cooldown && foeWithinReach && swarmsWithin5 < 3) {
-          const until = newTime + 5 * step;
-          const updatedM = m.with({ chant: { kind: 'summon', at: newTime, until }, ready: until });
-          monsterMap.set(m.id, updatedM);
-          log.push("The scarecrow begins to chant.");
-          continue;
-        }
-      }
-      monsterMap.set(m.id, m.with({ ready: newTime + step }));
-      continue;
-    } else if (m.kind === "pumpkin") {
-      const step = bestiary.entry(m.kind).step;
-      if (m.fuse) {
-        if (newTime >= m.fuse.at + 6 * step) {
-          // explode
-          monsterMap.delete(m.id);
-          monstersList = monstersList.filter((mm) => mm.id !== m.id);
-          const blast = { kind: 'blast', x: m.pos.x, y: m.pos.y, size: m.size || 2, at: newTime };
-          eff.push(blast);
-          log.push("The pumpkin explodes!");
-          const blastCells = cellsWithinSquare(m, 2);
-          for (const h of heroes) {
-            if (!h.alive) continue;
-            let hit = false;
-            for (const c of cellsCovered(h.actor)) { if (blastCells.some((bc) => bc.x === c.x && bc.y === c.y)) { hit = true; break; } }
-            if (hit) {
-              log.push(`The blast hits ${h.name} for 25.`);
-              const nhp = h.actor.stats.hp - 25;
-              if (nhp <= 0) { log.push(`${h.name} falls.`); heroes = heroes.map((hh) => hh.actor.id === h.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: statsShape.of({ hp: 0, maxHp: hh.actor.stats.maxHp, attack: hh.actor.stats.attack, defense: hh.actor.stats.defense, range: hh.actor.stats.range, magic: hh.actor.stats.magic, magicPower: hh.actor.stats.magicPower, magicResist: hh.actor.stats.magicResist }), curse: hh.actor.curse }), pending: hh.pending, alive: false, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh); }
-              else { heroes = heroes.map((hh) => hh.actor.id === h.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: statsShape.of({ hp: nhp, maxHp: hh.actor.stats.maxHp, attack: hh.actor.stats.attack, defense: hh.actor.stats.defense, range: hh.actor.stats.range, magic: hh.actor.stats.magic, magicPower: hh.actor.stats.magicPower, magicResist: hh.actor.stats.magicResist }), curse: hh.actor.curse }), pending: hh.pending, alive: true, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh); }
-            }
-          }
-          for (const mm of [...monsterMap.values()]) {
-            let hit = false;
-            for (const c of cellsCovered(mm)) { if (blastCells.some((bc) => bc.x === c.x && bc.y === c.y)) { hit = true; break; } }
-            if (hit) {
-              if (isBoss(mm.kind)) { log.push(`The blast hits the ${mm.kind} for 25.`); monsterMap.delete(mm.id); monstersList = monstersList.filter((x) => x.id !== mm.id); if (isBoss(mm.kind)) { const gd = golemDeath(world, monstersList, mm, newTime, gold, log, rng); monstersList = gd.monsters; items = gd.items; } }
-              else if (mm.kind === "swarm") {
-                const nhp = mm.stats.hp - 1;
-                if (nhp <= 0) { log.push(`The ${mm.kind} is slain.`); monsterMap.delete(mm.id); monstersList = monstersList.filter((x) => x.id !== mm.id); }
-                else { monsterMap.set(mm.id, mm.with({ stats: statsShape.of({ hp: nhp, maxHp: 3, attack: 4, defense: 0, range: 1, magic: 2, magicPower: 1, magicResist: 0 }) })); }
-              } else {
-                log.push(`The blast hits the ${mm.kind} for 25.`);
-                const nhp = mm.stats.hp - 25;
-                if (nhp <= 0) { monsterMap.delete(mm.id); monstersList = monstersList.filter((x) => x.id !== mm.id); }
-                else { monsterMap.set(mm.id, mm.with({ stats: statsShape.of({ hp: nhp, maxHp: mm.stats.maxHp, attack: mm.stats.attack, defense: mm.stats.defense, range: mm.stats.range, magic: mm.stats.magic, magicPower: mm.stats.magicPower, magicResist: mm.stats.magicResist }) })); }
-              }
-            }
-          }
-          monsterMap.delete(m.id);
-          continue;
-        }
-      } else {
-        let foeWithin2 = false;
-        for (const h of heroes) {
-          if (h.alive) {
-            for (const c of cellsCovered(h.actor)) { if (distanceToSquare(m, c) <= 2) { foeWithin2 = true; break; } }
-            if (foeWithin2) break;
-          }
-        }
-        if (!foeWithin2) {
-          for (const mm of monsterMap.values()) {
-            if (mm.id === m.id) continue;
-            if (bestiary.hostile(m.kind, mm.kind)) {
-              for (const c of cellsCovered(mm)) { if (distanceToSquare(m, c) <= 2) { foeWithin2 = true; break; } }
-            }
-            if (foeWithin2) break;
-          }
-        }
-        if (foeWithin2) {
-          const updatedM = m.with({ fuse: { at: newTime } });
-          monsterMap.set(m.id, updatedM);
-          log.push("The pumpkin's fuse is lit!");
-        }
-      }
-    }
-
     const foesCells = [];
     const threatsCells = [];
     const blockedCells = [];
@@ -1426,22 +1111,10 @@ function advance(world, ms) {
               } else {
                 monsterLine = s.critical ? `Critical! The ${m.kind} hits ${h.name} for ${s.damage}.` : `The ${m.kind} hits ${h.name} for ${s.damage}.`;
                 const nstats = statsShape.of({ hp: nhp, maxHp: target.stats.maxHp, attack: target.stats.attack, defense: target.stats.defense, range: target.stats.range, magic: target.stats.magic, magicPower: target.stats.magicPower, magicResist: target.stats.magicResist });
-                let curse = h.actor.curse;
-                let newPos = target.pos;
-                if (m.kind === "mummy") { curse = 3; log.push(`${h.name} is cursed!`); }
-                let pushed = false;
-                if (m.kind === "beetle") {
-                  const size = target.size || 1;
-                  const nx = target.pos.x + dx, ny = target.pos.y + dy;
-                  let free = true;
-                  for (let i = 0; i < size; i++) for (let j = 0; j < size; j++) { const c = pointShape.of(nx + i, ny + j); if (!currentGrid.open(c.x, c.y)) free = false; }
-                  if (size > 1) pushed = false;
-                  else { for (const mm of monsterMap.values()) { if (mm.id !== m.id && mm.covers(nx, ny)) { free = false; break; } } pushed = free; newPos = pushed ? pointShape.of(nx, ny) : target.pos; }
-                }
                 if (isSlowed) {
-                  heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld, slow: 3, curse, pos: newPos }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+                  heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld, slow: 3 }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
                 } else {
-                  heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld, curse, pos: newPos }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+                  heroes = heroes.map((hh) => hh.actor.id === target.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats, held: newHeld }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
                 }
               }
             }
@@ -1472,11 +1145,10 @@ function advance(world, ms) {
             }
             log.push(monsterLine);
           }
-          let updatedM = m.with({ mode, ready: newTime + monsterLatency(m, "attack"), facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach: 1 } });
+          let updatedM = m.with({ mode, ready: newTime + bestiary.entry(m.kind).strike, facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach: 1 } });
           if (m.slow > 0) updatedM = updatedM.with({ slow: m.slow - 1 });
-          if (m.haste > 0) updatedM = updatedM.with({ haste: m.haste - 1 });
           monsterMap.set(m.id, updatedM);
-          continue;
+          acted = true; continue;
         } else {
           const target = meleeTarget.type === 'hero' ? meleeTarget.hero.actor : meleeTarget.monster;
           const { rng: nrr, roll, ward } = combatDraw(rng);
@@ -1526,16 +1198,14 @@ function advance(world, ms) {
           }
           log.push(monsterLine);
           if (meleeTarget.type === 'hero' && isSlowed) log.push(`${meleeTarget.hero.name}: you are slowed!`);
-          let updatedM = m.with({ mode, ready: newTime + monsterLatency(m, "attack"), facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach: 1 } });
+          let updatedM = m.with({ mode, ready: newTime + bestiary.entry(m.kind).strike, facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach: 1 } });
           if (m.slow > 0) updatedM = updatedM.with({ slow: m.slow - 1 });
-          if (m.haste > 0) updatedM = updatedM.with({ haste: m.haste - 1 });
           monsterMap.set(m.id, updatedM);
-          continue;
+          acted = true; continue;
         }
       }
       if (!free) { monsterMap.set(m.id, m); acted = true; continue; }
-      let updatedM = m.with({ mode, pos: pointShape.of(m.pos.x + dx, m.pos.y + dy), ready: newTime + monsterLatency(m, "step"), facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 } });
-      if (m.haste > 0) updatedM = updatedM.with({ haste: m.haste - 1 });
+      const updatedM = m.with({ mode, pos: pointShape.of(m.pos.x + dx, m.pos.y + dy), ready: newTime + bestiary.entry(m.kind).step, facing: actorShape.facingFor(dx, dy), last: { kind: "move", dx, dy, at: newTime, reach: 1 } });
       monsterMap.set(m.id, updatedM);
       acted = true; continue;
     } else if (decideIntent.kind === "attack") {
@@ -1560,7 +1230,7 @@ function advance(world, ms) {
         reach = k;
       }
       reach = target ? mk : 1;
-      if (!target) { let updatedM = m.with({ ready: newTime + monsterLatency(m, "step"), facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach: 1 } }); if (m.haste > 0) updatedM = updatedM.with({ haste: m.haste - 1 }); monsterMap.set(m.id, updatedM); acted = true; continue; }
+      if (!target) { monsterMap.set(m.id, m.with({ ready: newTime + bestiary.entry(m.kind).step, facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach: 1 } })); acted = true; continue; }
       const tStats = target.type === 'hero' ? target.hero.actor.stats : target.monster.stats;
       const { rng: nrr, roll, ward } = combatDraw(rng);
       rng = nrr;
@@ -1611,14 +1281,12 @@ function advance(world, ms) {
       }
       log.push(monsterLine);
       if (target.type === 'hero' && isSlowed) log.push(`${target.hero.name}: you are slowed!`);
-      let updatedM = m.with({ mode, ready: newTime + monsterLatency(m, "attack"), facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach } });
+      let updatedM = m.with({ mode, ready: newTime + bestiary.entry(m.kind).strike, facing: actorShape.facingFor(dx, dy), last: { kind: "attack", dx, dy, at: newTime, reach } });
       if (m.slow > 0) updatedM = updatedM.with({ slow: m.slow - 1 });
-      if (m.haste > 0) updatedM = updatedM.with({ haste: m.haste - 1 });
       monsterMap.set(m.id, updatedM);
       acted = true; continue;
     } else {
-      monsterMap.set(m.id, m.with({ ready: newTime + monsterLatency(m, "step"), mode }));
-      if (m.haste > 0) monsterMap.set(m.id, monsterMap.get(m.id).with({ haste: m.haste - 1 }));
+      monsterMap.set(m.id, m.with({ ready: newTime + bestiary.entry(m.kind).step, mode }));
       acted = true;
     }
     if (!acted) monsterMap.set(m.id, m);
@@ -1632,7 +1300,7 @@ function advance(world, ms) {
     const newLog = [...saved.log, `The party has fallen. ${levelShape.label(world.depth)} begins again.`].slice(-50);
     const finalVisible = computeVisible(saved.grid, saved.depth, []);
     const finalExplored = maskShape.union(saved.explored, finalVisible);
-    return worldShape.of({ ...saved, time: newTime, gold, log: newLog, visible: finalVisible, explored: finalExplored, rng, effects: eff });
+    return worldShape.of({ ...saved, time: newTime, gold, log: newLog, visible: finalVisible, explored: finalExplored, rng });
   }
 
   // 4. Stairs / descend
@@ -1653,7 +1321,7 @@ function advance(world, ms) {
       log.push(`The party escapes the dungeon with ${gold} gold!`);
       const fv = computeVisible(currentGrid, world.depth, heroes.filter((h) => h.alive));
       const fe = maskShape.union(world.explored, fv);
-      return worldShape.of({ ...world, time: newTime, heroes, monsters: monstersList, items, visible: fv, explored: fe, state: "won", log: log.slice(-50), gold, grid: currentGrid, rng, effects: eff });
+      return worldShape.of({ ...world, time: newTime, heroes, monsters: monstersList, items, visible: fv, explored: fe, state: "won", log: log.slice(-50), gold, grid: currentGrid, rng });
     }
     const newDepth = world.depth + 1;
     const { plan, monsters: newMonsters, items: newItems, rng: newRng, grid: newGrid } = makeFloor(world.seed, newDepth, rng);
@@ -1680,7 +1348,6 @@ function advance(world, ms) {
       log.push("The party descends into a lair.");
       const round = levelShape.round(newDepth);
       if (round === 2) log.push("A great serpent guards the way down!");
-      else if (round === 3) log.push("A reaper guards the way down!");
       else log.push("A golem guards the way down. Pull the levers to weaken it!");
     }
     else { log.push(`The party descends to level ${levelShape.number(newDepth)}.`); }
@@ -1690,7 +1357,6 @@ function advance(world, ms) {
       seed: world.seed, rng: newRng, depth: newDepth, time: newTime, state: "playing", grid: newGrid,
       heroes: newHeroes, monsters: newMonsters, items: newItems, visible: finalVisible, explored: finalExplored, gold,
       log: log.slice(-50), entry: saveShape.of({ seed: world.seed, depth: newDepth, players: newHeroes.map((nh) => ({ name: nh.name, stats: { hp: nh.actor.stats.hp, maxHp: nh.actor.stats.maxHp, attack: nh.actor.stats.attack, defense: nh.actor.stats.defense, range: nh.actor.stats.range, magic: nh.actor.stats.magic, magicPower: nh.actor.stats.magicPower, magicResist: nh.actor.stats.magicResist } })) }),
-      effects: eff,
     });
   } else if (descendFired) {
     log.push("All party members must be within 5 units of the exit!");
@@ -1700,7 +1366,7 @@ function advance(world, ms) {
   const finalVisible = computeVisible(currentGrid, world.depth, aliveHeroes);
   const finalExplored = maskShape.union(world.explored, finalVisible);
 
-  return worldShape.of({ ...world, time: newTime, heroes, monsters: monstersList, items, visible: finalVisible, explored: finalExplored, state: "playing", log: log.slice(-50), gold, grid: currentGrid, rng, effects: eff });
+  return worldShape.of({ ...world, time: newTime, heroes, monsters: monstersList, items, visible: finalVisible, explored: finalExplored, state: "playing", log: log.slice(-50), gold, grid: currentGrid, rng });
 }
 
 export { newGame, fromSave, toSave, join, intend, advance };
