@@ -140,6 +140,18 @@ test("kites: ranged monsters back off", () => {
   assert.deepEqual(decide(skel, grid, [point.of(5, 3)], [], [], 0), intent.move(0, -1));
 });
 
+test("kites: shoot between steps while backing off", () => {
+  const grid = tileGrid.of(12, 12, Array(144).fill("floor"));
+  const archerMove = actor.of({ id: 1, kind: "archer", pos: point.of(5, 5), stats: stats.of({ hp: 7, maxHp: 14, attack: 3, defense: 1, range: 4 }), last: { kind: "move", dx: 0, dy: 1, at: 0 } });
+  // foe at (5,3): 2 away, in line, last was move: shoot between steps attack(0,-1).
+  assert.deepEqual(decide(archerMove, grid, [point.of(5, 3)], [], [], 0), intent.attack(0, -1));
+  // foe at (6,3): 2 away, not in line, last was move: back off to (0,1).
+  assert.deepEqual(decide(archerMove, grid, [point.of(6, 3)], [], [], 0), intent.move(0, 1));
+  const archerAttack = actor.of({ id: 2, kind: "archer", pos: point.of(5, 5), stats: stats.of({ hp: 7, maxHp: 14, attack: 3, defense: 1, range: 4 }), last: { kind: "attack", dx: 0, dy: -1, at: 0, reach: 2 } });
+  // foe at (5,3): last was attack, not move: back off to (0,1).
+  assert.deepEqual(decide(archerAttack, grid, [point.of(5, 3)], [], [], 0), intent.move(0, 1));
+});
+
 test("kites: cornered melee and shoot", () => {
   const grid = tileGrid.fromRows(["#######", "#.....#", "#######"]);
   const archer = actor.of({ id: 1, kind: "archer", pos: point.of(5, 1), stats: stats.of({ hp: 7, maxHp: 14, attack: 3, defense: 1, range: 4 }) });

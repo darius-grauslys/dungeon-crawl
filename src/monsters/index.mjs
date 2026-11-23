@@ -231,7 +231,8 @@ export function decide(monster, grid, foes, threats, blocked, turn) {
   }
 
   // 3. Keeping its distance: a roam monster with range above 1, with the
-  // nearest foe's cell closer than its range: back off one step, if any.
+  // nearest foe's cell closer than its range: if its last is a move and a
+  // foe's cell is in line, shoot toward it; otherwise back off one step.
   if (mode === "roam" && range > 1) {
     let nearestFoe = null;
     let nearestFoeDist = Infinity;
@@ -243,6 +244,15 @@ export function decide(monster, grid, foes, threats, blocked, turn) {
       }
     }
     if (nearestFoe && nearestFoeDist < range) {
+      // If its last is a move and a foe's cell is in line, shoot between steps.
+      if (monster.last && monster.last.kind === "move") {
+        for (const foe of foes) {
+          if (inLine(foe)) {
+            const shootDir = { dx: Math.sign(foe.x - mpos.x), dy: Math.sign(foe.y - mpos.y) };
+            return intent.attack(shootDir.dx, shootDir.dy);
+          }
+        }
+      }
       const step = farthestStepFrom(nearestFoe);
       if (step) {
         return intent.move(step.dx, step.dy);
