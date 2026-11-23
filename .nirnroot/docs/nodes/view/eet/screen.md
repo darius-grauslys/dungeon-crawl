@@ -34,6 +34,9 @@ The edge under test:
 ## Intrinsic - camera:
 As the EED states.
 
+## Intrinsic - cell-at:
+As the EED states: compare each answer's `x` and `y`.
+
 ## Intrinsic - flat-colours:
 As the EED states.
 

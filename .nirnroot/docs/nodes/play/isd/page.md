@@ -27,6 +27,25 @@ there is a world, draw every frame (`view.draw(world, me, paused, now, aiming)`,
    `joined`: `landing.hide()`, clear the lobby interval, `menu.setSession(session)`,
    screen `game`, start listening to the keys.
 
+5. **Journeys.** Keep `journey` (`null`, or `{kind: 'explore' | 'cell',
+   cell, depth, seen, awaited}`). The `intent` and `command` handlers
+   given to `input.listen` end it first (`journey = null`), then do
+   what they did; the `explore` command then starts one. A `click`
+   listener on the canvas (removed by `stop`) works out the pixel as
+   the EED says, `view.cellAt`, and starts a `cell` journey. Starting
+   one records the latest world's `depth` and `seen =
+   travel.sighted(world, me)`. On each new `state`, before drawing,
+   check the end conditions (depth, alive, and for `explore` the new
+   sighted list against `seen`, then `seen` = it), and clear `awaited`
+   when me's cell or `ready` differs from the awaited ones. In the frame
+   loop, with a journey, not paused and nothing awaited (or awaited for
+   1500 ms): ask the step (`travel.explore` or `travel.toward`), `null`
+   ending the journey, else send `act(step)` and set `awaited = {x, y,
+   ready, at: performance.now()}`. Opening the menu ends it.
+6. **Debug**: `options.debug`, else `new URLSearchParams(location.search).get('debug') === 'true'`
+   for the document's window; passed to `landing.show(document,
+   handlers, {debug})`.
+
 The default `download`: `URL.createObjectURL(new Blob([text], {type:
 'application/json'}))`, an `<a>` with `href` and `download` set, clicked,
 then the URL revoked.
@@ -43,6 +62,7 @@ Children this specification reaches:
 - [eed:view](../../view/EED.md)
 - [eed:input](../../input/EED.md)
 - [eed:audio](../../audio/EED.md)
+- [eed:travel](../../travel/EED.md)
 
 # API Shapes:
 - [shape:world](../../../shapes/world.md)
@@ -51,7 +71,7 @@ Children this specification reaches:
 - [shape:intent](../../../shapes/intent.md)
 
 # Inbound Side-Effects:
-`keydown` events on the document once in the game; the socket's messages;
+`keydown` events on the document once in the game; `click` events on the canvas; the page's address (`?debug=true`); the socket's messages;
 animation frames; the page's `location` (for the default url); the
 sprites, loaded by `view`; the sounds, loaded by `audio`; `pointerdown`
 events (to let sound play).

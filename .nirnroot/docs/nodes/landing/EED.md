@@ -27,12 +27,36 @@ first `lobby`, the list is that single `<li>` too.
 
 The name is shared by both: who the player is, whichever they do.
 
+**Debug** (only when `show` is given `{debug: true}`; otherwise none of
+this is in the page). A third group, `<div id="landing-debug">` headed
+`Debug`, for trying a floor without playing down to it. It makes a
+session from a save the landing builds itself: one player, the name
+typed, at the depth and with the stats chosen here.
+
+| element | what |
+|---|---|
+| `<input id="landing-debug-depth" type="number" min="1" max="33" step="1">` | the depth to start on, `value` 1 |
+| `<input id="landing-debug-<stat>" type="number" min="0" step="1">` for each `<stat>` of `hp`, `attack`, `defense`, `range`, `magic`, `magicPower`, `magicResist` | the **buffs**: how much each stat starts above a new hero's (`hp` adds to `hp` and `maxHp` alike), `value` 0; the `range` one also `max="8"` |
+| `<button id="landing-debug-create">` | `Start debug session` |
+| `<button class="landing-debug-boss" data-depth="<d>">` for `d` 7, 14, 21 and 28, in that order | `Lair 1 (golem)`, `Lair 2`, `Lair 3`, `Lair 4`: start on that lair |
+
+A new hero's stats are `{hp: 24, maxHp: 24, attack: 4, defense: 1,
+range: 1, magic: 0, magicPower: 1, magicResist: 0}`; the debug player's
+are those plus the buffs. A click on `landing-debug-create`: the name as
+for create; the depth must be an integer from 1 to 33 and each buff an
+integer of 0 or more (`range`'s at most 8), else the error `Debug: depth
+1 to 33, buffs whole numbers of 0 or more.`; then `create(save, name)`
+with `save = save.of({seed, depth, players: [{name, stats}]})`, `seed` a
+random integer from 0 to 4294967295 (`Math.random`). A click on a
+`landing-debug-boss` button: the same, at that button's depth (the depth
+input is set to it).
+
 # API Shapes:
 - [shape:save](../../shapes/save.md)
 
 # Functions:
 ## Function - show:
-`show(document, {create, join}) -> handle`. Puts the landing in `document.body` (once: a second `show` while one stands throws an `Error`), shown. A click on `landing-create`: the name (trimmed) must be a name (`save`'s `isName`), else the error `Enter a name of 1 to 16 characters.`; with a file chosen, its text is read and parsed with `save`'s `parse`, and a file that doesn't parse gives the error `That file is not a Crawl save.`; then `create(save, name)` (`save` `null` with no file). A click on a session's `Join` button: the name as for create; then `join(session, name)` with that button's session. Each click empties the error first. Answers a handle: `lobby(sessions)`, `sessions` an array of `{session, players, depth}` (`players` an array of names), redrawing the lobby list from it (the name typed, the file chosen and the error are kept); `error(text)`, showing `text` in `landing-error`; `hide()`, removing the landing from the page (`show` may then be called again); `shown()`, whether it is in the page.
+`show(document, {create, join}, options) -> handle`. `options` (left out: `{}`): `debug`, true to show the debug group. Puts the landing in `document.body` (once: a second `show` while one stands throws an `Error`), shown. A click on `landing-create`: the name (trimmed) must be a name (`save`'s `isName`), else the error `Enter a name of 1 to 16 characters.`; with a file chosen, its text is read and parsed with `save`'s `parse`, and a file that doesn't parse gives the error `That file is not a Crawl save.`; then `create(save, name)` (`save` `null` with no file). A click on a session's `Join` button: the name as for create; then `join(session, name)` with that button's session. Each click empties the error first. Answers a handle: `lobby(sessions)`, `sessions` an array of `{session, players, depth}` (`players` an array of names), redrawing the lobby list from it (the name typed, the file chosen and the error are kept); `error(text)`, showing `text` in `landing-error`; `hide()`, removing the landing from the page (`show` may then be called again); `shown()`, whether it is in the page.
 
 # Intrinsics:
 ## Intrinsic - builds:
@@ -49,6 +73,9 @@ After `lobby([{session: 'ABCDEF', players: ['Ann', 'Bob'], depth: 3}, {session: 
 
 ## Intrinsic - joins:
 With the name ` Cy ` and that first lobby, a click on the first `Join` calls `join('ABCDEF', 'Cy')` once. With the name empty, `join` is not called and the error reads `Enter a name of 1 to 16 characters.`
+
+## Intrinsic - debug:
+`show(document, handlers)` (no options) puts no `#landing-debug` in the page. `show(document, handlers, {debug: true})` puts one, with `#landing-debug-depth` of `value` `1`, each of the seven buff inputs of `value` `0`, `#landing-debug-create`, and four `button.landing-debug-boss` of `data-depth` `7`, `14`, `21` and `28` in order. With the name `Ann`, the depth `3`, `#landing-debug-attack` `5`, `#landing-debug-hp` `10` and `#landing-debug-range` `2`, a click on `#landing-debug-create` calls `create` once, with a save of `depth` 3, a `seed` an integer from 0 to 4294967295, and one player `Ann` of stats `{hp: 34, maxHp: 34, attack: 9, defense: 1, range: 3, magic: 0, magicPower: 1, magicResist: 0}`, and `'Ann'`. A click on the `data-depth` `7` boss button (the same buffs) calls `create` with a save of depth 7 and those stats. With the depth `40`, or `#landing-debug-magic` `-1`, a click on `#landing-debug-create` calls nothing and the error reads `Debug: depth 1 to 33, buffs whole numbers of 0 or more.`; with the name empty, the name's error.
 
 ## Intrinsic - handle:
 `error('No such session.')` puts that text in `#landing-error`; `hide()` takes `#landing` out of the page and `shown()` is then false; `show` again works.

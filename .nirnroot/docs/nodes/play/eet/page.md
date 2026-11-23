@@ -52,6 +52,18 @@ As the EED states.
 ## Intrinsic - menu:
 As the EED states.
 
+## Intrinsic - explores:
+As the EED states: build each world with `world`'s `of` (masks with `mask`'s `of`), Ann's actor with `actor`'s `of`.
+
+## Intrinsic - enemy:
+As the EED states.
+
+## Intrinsic - clicks:
+As the EED states.
+
+## Intrinsic - debug:
+As the EED states.
+
 ## Intrinsic - creates-canvas:
 As the EED states.
 

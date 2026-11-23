@@ -5,7 +5,10 @@ monster's `stats`. Keep small helpers: the eight directions in the order
 of preference; `free(x, y, dx, dy)` for a step of the monster's square
 (the EED's rule, the corner check on walls alone); `nextTo(cell)`
 answering the direction or `null`; `inLine(cell)`. Go through the EED's
-rules in order.
+rules in order. The kiting rule (3) and the fleeing rule (6) share one
+helper: the free step that leaves the monster farthest from a set of
+cells, or `null` when none is farther than now; kiting falls through to
+the next rules on `null`, fleeing waits.
 
 For the chase, run one breadth-first search **from the goal**: start
 from every square position (top-left cell) whose square is next to the

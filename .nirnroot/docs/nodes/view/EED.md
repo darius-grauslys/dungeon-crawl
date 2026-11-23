@@ -172,12 +172,18 @@ with `PAUSED` in rgb(230, 220, 200), `bold 24px monospace`, centred in it.
 ## Function - camera:
 `camera(world, me, cols, rows) -> point`. The camera, as the layout says, for the player `me` (a string; any name) and a view of `cols` by `rows` cells.
 
+## Function - cell-at:
+`cellAt(world, me, x, y) -> point`. The cell of the grid drawn under the canvas pixel `(x, y)` (canvas pixels, as `draw` lays them out on the canvas given to `init`, for the player `me`): with `cols` and `rows` from the canvas's size and the camera as the layout says, the point `(camera.x + Math.floor(x / 48), camera.y + Math.floor(y / 48))`. `null` when the pixel is not on the map: `x` below 0 or at least `cols * 48`, `y` below 0 or at least `rows * 48` (the panel), or the cell outside the grid. Throws an `Error` if no canvas was given to `init`.
+
 ## Function - draw:
 `draw(world, me, paused, now, aiming)`. Draws the world for the player `me`, as above, onto the canvas given to `init` (throws an `Error` if none was given), with the paused band when `paused` is true. `now` is the world time to animate at, a number of 0 or more (left out: the world's `time`): the page draws every frame, with `now` running on from the last world's `time` between two worlds. `aiming` (left out: `false`): whether the player is aiming, so the aim dot is drawn.
 
 # Intrinsics:
 ## Intrinsic - camera:
 For a world on a 48 by 32 grid with a view of 16 by 10 and `Ann`'s hero alive: Ann at (2, 2) gives (0, 0); at (40, 30), (32, 22); at (20, 15), (12, 10). With Ann not alive and `Bob` alive at (20, 15), `camera(w, 'Ann', 16, 10)` is (12, 10); with no hero alive, (0, 0). On a 10 by 5 grid, any focus gives (0, 0).
+
+## Intrinsic - cell-at:
+On the page's 800 by 600 canvas (`cols` 16, `rows` 10), a world on a 48 by 32 grid with `Ann` alive at (20, 15) (the camera (12, 10)): `cellAt(w, 'Ann', 100, 60)` is (14, 11); `cellAt(w, 'Ann', 0, 0)` (12, 10); `cellAt(w, 'Ann', 767, 479)` (27, 19); `cellAt(w, 'Ann', 768, 10)`, `cellAt(w, 'Ann', 10, 480)` (the panel) and `cellAt(w, 'Ann', -1, 10)` are `null`. On a 10 by 5 grid (the camera (0, 0)): `cellAt(w, 'Ann', 100, 60)` is (2, 1) and `cellAt(w, 'Ann', 600, 100)` (the cell (12, 2), outside the grid) `null`.
 
 ## Intrinsic - flat-colours:
 On the page's 800 by 600 canvas, before any `load`: a world on `['#######', '#.>...#', '#######']` with every cell `visible` and `explored`, `Ann` alive at (1, 1), `Bob` alive at (3, 1), a monster at (4, 1) and a `gold` at (5, 1). After `draw(w, 'Ann', false)`, the centre pixel of the cell (0, 0) is rgb(90, 80, 90); of (2, 1) rgb(230, 200, 60); of (1, 1) rgb(60, 120, 255); of (3, 1) rgb(60, 200, 120); of (4, 1) rgb(220, 50, 50); of (5, 1) rgb(240, 180, 40). After `draw(w, 'Bob', false)`, (1, 1) is rgb(60, 200, 120) and (3, 1) rgb(60, 120, 255). With Bob not alive, the centre of (3, 1) is the floor rgb(50, 36, 44). The pixel (796, 596) is not the background (the panel is drawn).

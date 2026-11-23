@@ -102,6 +102,15 @@ As the EED states.
 ## Intrinsic - golem-dies:
 As the EED states: replace the heroes and monsters of the `lair` world with `with`.
 
+## Intrinsic - golem-gold:
+As the EED states: replace the heroes and the golem of the `lair` world with `with` (the golem's `pos`, `size`, `small`, `stats` and `ready`).
+
+## Intrinsic - cleaves:
+As the EED states: build the golem with `actor`'s `of` (`kind: 'golem'`, `size`, `mode: 'roam'`), the heroes with `hero`'s `of`; give the other heroes `ready` 10000 and no `pending`.
+
+## Intrinsic - guards:
+As the EED states: build the guard with `actor`'s `of` (`mode: 'guard'`, kind `slime`, stats 6/6/2/1, `ready` 0).
+
 ## Intrinsic - misses:
 As the EED states: match each log line with a regular expression and read `<n>` from it.
 
