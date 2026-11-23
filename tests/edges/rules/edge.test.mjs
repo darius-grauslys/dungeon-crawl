@@ -974,11 +974,11 @@ test("lair", () => {
     assert.strictEqual(it.kind, "lever");
     assert.strictEqual(it.pulled, false);
   }
-  assert.strictEqual(w.items[0].pos.x, 12);
-  assert.strictEqual(w.items[0].pos.y, 8);
-  assert.strictEqual(w.items[1].pos.x, 12);
-  assert.strictEqual(w.items[1].pos.y, 24);
-  assert.strictEqual(w.items[2].pos.x, 22);
+  assert.strictEqual(w.items[0].pos.x, 39);
+  assert.strictEqual(w.items[0].pos.y, 7);
+  assert.strictEqual(w.items[1].pos.x, 39);
+  assert.strictEqual(w.items[1].pos.y, 25);
+  assert.strictEqual(w.items[2].pos.x, 39);
   assert.strictEqual(w.items[2].pos.y, 16);
 
   const w14 = fromSave(save.of({ seed: 4, depth: 14, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
@@ -1111,6 +1111,162 @@ test("golem-dies", () => {
 
   const wDescend = advance(intend(wGolemDeadSuccess, "Ann", intent.descend()), 350);
   assert.strictEqual(wDescend.depth, 8);
+});
+
+test("golem-gold", () => {
+  const w = fromSave(save.of({ seed: 4, depth: 7, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
+  const wWithAnn = w.with({ heroes: [hero.of({ name: "Ann", actor: w.heroes[0].actor.with({ stats: stats.of({ hp: 24, maxHp: 24, attack: 40, defense: 1, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), pos: point.of(19, 10) }), pending: null, alive: true })] });
+  const wGolemShrunk = wWithAnn.with({ monsters: [wWithAnn.monsters[0].with({ pos: point.of(20, 10), size: 1, small: true, stats: stats.of({ hp: 1, maxHp: 40, attack: 12, defense: 0, range: 1, magic: 6, magicPower: 2, magicResist: 0 }), ready: 10000 }), ...wWithAnn.monsters.slice(1)] });
+
+  let goodCount = 0;
+  let wGolemGoldSuccess = null;
+  for (let rng = 0; rng <= 39; rng++) {
+    const wRng = wGolemShrunk.with({ rng });
+    const w1 = advance(intend(wRng, "Ann", intent.move(1, 0)), 50);
+    if (w1.monsters.length === 0 && w1.grid.at(33, 16) === "stairs") {
+      const log = w1.log.join("\n");
+      if (log.includes("The golem is slain.") && log.includes("The guardians crumble.") && log.includes("The way down opens!") && log.includes("Gold spills from the golem!")) {
+        const goldItems = w1.items.filter((it) => it.kind === "gold");
+        let ok = goldItems.length >= 1 && goldItems.length <= 5;
+        let totalAmount = 0;
+        const positions = new Set();
+        if (ok) {
+          for (const gi of goldItems) {
+            totalAmount += gi.amount;
+            const key = `${gi.pos.x},${gi.pos.y}`;
+            if (positions.has(key)) ok = false;
+            positions.add(key);
+            if (w1.grid.at(gi.pos.x, gi.pos.y) !== "floor") ok = false;
+            const dx = gi.pos.x < 20 ? 20 - gi.pos.x : gi.pos.x > 20 ? gi.pos.x - 20 : 0;
+            const dy = gi.pos.y < 10 ? 10 - gi.pos.y : gi.pos.y > 10 ? gi.pos.y - 10 : 0;
+            const dist = Math.max(dx, dy);
+            if (dist < 1 || dist > 2) ok = false;
+            if (gi.pos.x === 19 && gi.pos.y === 10) ok = false;
+            if (!gi.flung || gi.flung.x !== 20 || gi.flung.y !== 10 || gi.flung.at !== 50) ok = false;
+          }
+          if (totalAmount < 25 || totalAmount > 75) ok = false;
+        }
+        if (ok) {
+          for (const gi of goldItems) {
+            const minx = 32, maxx = 34;
+            const miny = 15, maxy = 17;
+            const gdx = gi.pos.x < minx ? minx - gi.pos.x : gi.pos.x > maxx ? gi.pos.x - maxx : 0;
+            const gdy = gi.pos.y < miny ? miny - gi.pos.y : gi.pos.y > maxy ? gi.pos.y - maxy : 0;
+            const gdist = Math.max(gdx, gdy);
+            if (gdist <= 2) ok = false;
+          }
+        }
+        if (ok) {
+          goodCount++;
+          wGolemGoldSuccess = w1;
+        }
+      }
+    }
+  }
+  assert.ok(goodCount >= 1);
+
+  // size 2 golem (not small) at (20, 10), Ann at (19, 10)
+  const wGolemSize2 = wWithAnn.with({ monsters: [wWithAnn.monsters[0].with({ pos: point.of(20, 10), size: 2, small: false, stats: stats.of({ hp: 1, maxHp: 40, attack: 12, defense: 0, range: 1, magic: 6, magicPower: 2, magicResist: 0 }), ready: 10000 }), ...wWithAnn.monsters.slice(1)] });
+  for (let rng = 0; rng <= 39; rng++) {
+    const wRng = wGolemSize2.with({ rng });
+    const w1 = advance(intend(wRng, "Ann", intent.move(1, 0)), 50);
+    const goldItems = w1.items.filter((it) => it.kind === "gold");
+    for (const gi of goldItems) {
+      const dx = gi.pos.x < 20 ? 20 - gi.pos.x : gi.pos.x > 21 ? gi.pos.x - 21 : 0;
+      const dy = gi.pos.y < 10 ? 10 - gi.pos.y : gi.pos.y > 11 ? gi.pos.y - 11 : 0;
+      const dist = Math.max(dx, dy);
+      assert.ok(dist >= 1 && dist <= 2);
+      assert.deepStrictEqual(gi.flung, { x: 21, y: 11, at: 50 });
+    }
+  }
+});
+
+test("cleaves", () => {
+  const grid = tileGrid.fromRows(["##########", "#........#", "#........#", "#........#", "#........#", "##########"]);
+
+  // size 3 golem cleave
+  const heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(5, 2), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  const heroBob = hero.of({ name: "Bob", actor: actor.of({ id: 1, kind: "hero", pos: point.of(6, 3), stats: stats.of(HERO_STATS), ready: 10000 }), pending: null, alive: true });
+  const heroCy = hero.of({ name: "Cy", actor: actor.of({ id: 2, kind: "hero", pos: point.of(7, 2), stats: stats.of(HERO_STATS), ready: 10000 }), pending: null, alive: true });
+  const golem = actor.of({ id: 10, kind: "golem", pos: point.of(2, 1), stats: stats.of({ hp: 40, maxHp: 40, attack: 12, defense: 12, range: 1, magic: 6, magicPower: 2, magicResist: 0 }), ready: 0, mode: "roam", size: 3 });
+  let w = makeWorld({ grid, heroes: [heroAnn, heroBob, heroCy], monsters: [golem] });
+
+  let rngMatchCount = 0;
+  for (let rng = 0; rng <= 39; rng++) {
+    const wRng = w.with({ rng });
+    const w1 = advance(wRng, 50);
+    const g1 = w1.monsters[0];
+    assert.strictEqual(g1.pos.x, 2);
+    assert.strictEqual(g1.pos.y, 1);
+    assert.strictEqual(g1.ready, 1050);
+    assert.deepStrictEqual(g1.last, { kind: "attack", dx: 1, dy: 0, at: 50, reach: 1 });
+    const ann1 = w1.heroes.find((h) => h.name === "Ann");
+    const bob1 = w1.heroes.find((h) => h.name === "Bob");
+    const cy1 = w1.heroes.find((h) => h.name === "Cy");
+    assert.strictEqual(ann1.actor.held, 350);
+    assert.strictEqual(bob1.actor.held, 350);
+    assert.strictEqual(cy1.actor.held, 0);
+    assert.strictEqual(cy1.actor.stats.hp, 24);
+    assert.strictEqual(w1.rng, (rng + 4 * 0x6d2b79f5) >>> 0);
+    const log = w1.log;
+    assert.ok(/Ann|falls/.test(log[log.length - 2]));
+    assert.ok(/Bob|falls/.test(log[log.length - 1]));
+    rngMatchCount++;
+  }
+  assert.ok(rngMatchCount >= 1);
+
+  // size 2 golem: Ann held 350, Bob 0
+  const heroAnn2 = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(4, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  const heroBob2 = hero.of({ name: "Bob", actor: actor.of({ id: 1, kind: "hero", pos: point.of(5, 1), stats: stats.of(HERO_STATS), ready: 10000 }), pending: null, alive: true });
+  const golem2 = actor.of({ id: 10, kind: "golem", pos: point.of(2, 1), stats: stats.of({ hp: 40, maxHp: 40, attack: 12, defense: 12, range: 1, magic: 6, magicPower: 2, magicResist: 0 }), ready: 0, mode: "roam", size: 2 });
+  const w2 = makeWorld({ grid, heroes: [heroAnn2, heroBob2], monsters: [golem2] });
+  const w2a = advance(w2, 50);
+  const ann2a = w2a.heroes.find((h) => h.name === "Ann");
+  const bob2a = w2a.heroes.find((h) => h.name === "Bob");
+  assert.strictEqual(ann2a.actor.held, 350);
+  assert.strictEqual(bob2a.actor.held, 0);
+
+  // guard slime beside Ann is untouched
+  const heroAnnG = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(5, 2), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  const heroBobG = hero.of({ name: "Bob", actor: actor.of({ id: 1, kind: "hero", pos: point.of(6, 3), stats: stats.of(HERO_STATS), ready: 10000 }), pending: null, alive: true });
+  const heroCyG = hero.of({ name: "Cy", actor: actor.of({ id: 2, kind: "hero", pos: point.of(7, 2), stats: stats.of(HERO_STATS), ready: 10000 }), pending: null, alive: true });
+  const guardSlime = actor.of({ id: 11, kind: "slime", pos: point.of(5, 1), stats: stats.of(MONSTER_STATS), ready: 10000, mode: "guard" });
+  const golemG = actor.of({ id: 10, kind: "golem", pos: point.of(2, 1), stats: stats.of({ hp: 40, maxHp: 40, attack: 12, defense: 12, range: 1, magic: 6, magicPower: 2, magicResist: 0 }), ready: 0, mode: "roam", size: 3 });
+  const wG = makeWorld({ grid, heroes: [heroAnnG, heroBobG, heroCyG], monsters: [golemG, guardSlime] });
+  const wGa = advance(wG, 50);
+  const guardSlime1 = wGa.monsters.find((m) => m.kind === "slime");
+  assert.strictEqual(guardSlime1.held, 0);
+});
+
+test("guards", () => {
+  const grid = tileGrid.fromRows(["#######", "#.....#", "#######"]);
+
+  // guard slime next to Ann attacks
+  const heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(2, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  const guard = actor.of({ id: 10, kind: "slime", pos: point.of(3, 1), stats: stats.of({ hp: 6, maxHp: 6, attack: 2, defense: 1, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 0, mode: "guard" });
+  const w = makeWorld({ grid, heroes: [heroAnn], monsters: [guard] });
+  const w1 = advance(w, 50);
+  const g1 = w1.monsters[0];
+  assert.strictEqual(g1.pos.x, 3);
+  assert.strictEqual(g1.pos.y, 1);
+  assert.strictEqual(g1.ready, 650);
+  assert.strictEqual(g1.facing, "left");
+  assert.deepStrictEqual(g1.last, { kind: "attack", dx: -1, dy: 0, at: 50, reach: 1 });
+  assert.strictEqual(w1.heroes[0].actor.held, 350);
+  const logLine = w1.log[w1.log.length - 1];
+  assert.ok(/The slime hits Ann for \d+\.|Critical! The slime hits Ann for \d+\.|Ann falls\.|The slime misses Ann\./.test(logLine));
+
+  // guard 2 away waits
+  const heroAnn2 = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  const guard2 = actor.of({ id: 10, kind: "slime", pos: point.of(3, 1), stats: stats.of({ hp: 6, maxHp: 6, attack: 2, defense: 1, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 0, mode: "guard" });
+  const w2 = makeWorld({ grid, heroes: [heroAnn2], monsters: [guard2] });
+  const w2a = advance(w2, 50);
+  const g2 = w2a.monsters[0];
+  assert.strictEqual(g2.pos.x, 3);
+  assert.strictEqual(g2.pos.y, 1);
+  assert.strictEqual(g2.ready, 450);
+  assert.strictEqual(g2.last, null);
+  assert.strictEqual(w2a.heroes[0].actor.held, 0);
 });
 
 test("misses", () => {
@@ -1275,6 +1431,7 @@ test("themes", () => {
     assert.ok(["beetle", "mummy", "cultist"].includes(m.kind));
     if (m.kind === "cultist") {
       assert.strictEqual(m.stats.range, 4);
+      assert.strictEqual(m.stats.magic, 8);
     }
   }
 
@@ -1574,6 +1731,7 @@ test("bestiary/valid", () => {
   assert.strictEqual(bestiary.entry("golem").step, 1600);
   assert.strictEqual(bestiary.entry("golem").defense, 12);
   assert.strictEqual(bestiary.entry("cultist").range, 4);
+  assert.strictEqual(bestiary.entry("cultist").magic, 8);
 
   assert.strictEqual(bestiary.group("hero"), "human");
   assert.strictEqual(bestiary.group("imp"), "demon");

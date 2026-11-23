@@ -4,8 +4,8 @@ import * as save from "../../shapes/save/index.mjs";
 
 let root = null;
 
-/** `show(document, {create, join}) -> handle`. Puts the landing in `document.body` (once: a second `show` while one stands throws an `Error`), shown. */
-export function show(document, { create, join }) {
+/** `show(document, {create, join}, options) -> handle`. Puts the landing in `document.body` (once: a second `show` while one stands throws an `Error`), shown. */
+export function show(document, { create, join }, options = {}) {
   if (root) throw new Error("landing: a landing already stands");
 
   root = document.createElement("div");
@@ -49,6 +49,75 @@ export function show(document, { create, join }) {
   root.appendChild(newGameHeading);
   root.appendChild(saveInput);
   root.appendChild(createButton);
+
+  let debugDiv = null;
+  let debugDepthInput = null;
+  const buffInputs = {};
+  let debugCreateButton = null;
+  const bossButtons = [];
+
+  if (options.debug) {
+    debugDiv = document.createElement("div");
+    debugDiv.id = "landing-debug";
+
+    const debugHeading = document.createElement("p");
+    debugHeading.textContent = "Debug";
+
+    debugDepthInput = document.createElement("input");
+    debugDepthInput.id = "landing-debug-depth";
+    debugDepthInput.type = "number";
+    debugDepthInput.min = "1";
+    debugDepthInput.max = "33";
+    debugDepthInput.step = "1";
+    debugDepthInput.value = "1";
+
+    const buffStats = ["hp", "attack", "defense", "range", "magic", "magicPower", "magicResist"];
+    const buffLabels = {};
+    for (const stat of buffStats) {
+      const buffInput = document.createElement("input");
+      buffInput.id = `landing-debug-${stat}`;
+      buffInput.type = "number";
+      buffInput.min = "0";
+      buffInput.step = "1";
+      buffInput.value = "0";
+      if (stat === "range") {
+        buffInput.max = "8";
+      }
+      const label = document.createElement("label");
+      label.htmlFor = buffInput.id;
+      label.textContent = stat;
+      buffLabels[stat] = label;
+      buffInputs[stat] = buffInput;
+    }
+
+    debugCreateButton = document.createElement("button");
+    debugCreateButton.id = "landing-debug-create";
+    debugCreateButton.textContent = "Start debug session";
+
+    const bossDepths = [7, 14, 21, 28];
+    const bossLabels = ["Lair 1 (golem)", "Lair 2", "Lair 3", "Lair 4"];
+    for (let i = 0; i < bossDepths.length; i++) {
+      const bossButton = document.createElement("button");
+      bossButton.className = "landing-debug-boss";
+      bossButton.dataset.depth = String(bossDepths[i]);
+      bossButton.textContent = bossLabels[i];
+      bossButtons.push(bossButton);
+    }
+
+    debugDiv.appendChild(debugHeading);
+    debugDiv.appendChild(debugDepthInput);
+    for (const stat of buffStats) {
+      debugDiv.appendChild(buffLabels[stat]);
+      debugDiv.appendChild(buffInputs[stat]);
+    }
+    debugDiv.appendChild(debugCreateButton);
+    for (const bb of bossButtons) {
+      debugDiv.appendChild(bb);
+    }
+
+    root.appendChild(debugDiv);
+  }
+
   root.appendChild(errorP);
 
   document.body.appendChild(root);
@@ -109,6 +178,61 @@ export function show(document, { create, join }) {
     }
     create(saveData, name);
   });
+
+  const buildDebugSave = () => {
+    errorP.textContent = "";
+    const name = nameInput.value.trim();
+    if (!save.isName(name)) {
+      errorP.textContent = "Enter a name of 1 to 16 characters.";
+      return;
+    }
+
+    const depth = parseInt(debugDepthInput.value, 10);
+    if (!Number.isInteger(depth) || depth < 1 || depth > 33) {
+      errorP.textContent = "Debug: depth 1 to 33, buffs whole numbers of 0 or more.";
+      return;
+    }
+
+    const heroStats = { hp: 24, maxHp: 24, attack: 4, defense: 1, range: 1, magic: 0, magicPower: 1, magicResist: 0 };
+    const statsInput = {};
+    for (const stat of ["hp", "attack", "defense", "range", "magic", "magicPower", "magicResist"]) {
+      const val = parseInt(buffInputs[stat].value, 10);
+      if (!Number.isInteger(val) || val < 0) {
+        errorP.textContent = "Debug: depth 1 to 33, buffs whole numbers of 0 or more.";
+        return;
+      }
+      if (stat === "range" && val > 8) {
+        errorP.textContent = "Debug: depth 1 to 33, buffs whole numbers of 0 or more.";
+        return;
+      }
+      statsInput[stat] = val;
+    }
+
+    const stats = {
+      hp: heroStats.hp + statsInput.hp,
+      maxHp: heroStats.maxHp + statsInput.hp,
+      attack: heroStats.attack + statsInput.attack,
+      defense: heroStats.defense + statsInput.defense,
+      range: heroStats.range + statsInput.range,
+      magic: heroStats.magic + statsInput.magic,
+      magicPower: heroStats.magicPower + statsInput.magicPower,
+      magicResist: heroStats.magicResist + statsInput.magicResist,
+    };
+
+    const seed = Math.floor(Math.random() * 4294967296);
+    const debugSave = save.of({ seed, depth, players: [{ name, stats }] });
+    create(debugSave, name);
+  };
+
+  if (options.debug) {
+    debugCreateButton.addEventListener("click", buildDebugSave);
+    for (const bossButton of bossButtons) {
+      bossButton.addEventListener("click", () => {
+        debugDepthInput.value = bossButton.dataset.depth;
+        buildDebugSave();
+      });
+    }
+  }
 
   renderLobby([]);
 
