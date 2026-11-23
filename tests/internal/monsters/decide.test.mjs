@@ -167,6 +167,23 @@ test("no-path: waits when blocked", () => {
   assert.deepEqual(decide(skeleton, grid, [point.of(4, 1)], [], [], 0), intent.wait());
 });
 
+test("abilities: summmon waits, fuse never attacks", () => {
+  const grid = tileGrid.of(9, 9, Array(81).fill("floor"));
+  // scarecrow (ability summmon) waits with foe next to it and with foe within reach.
+  const scarecrow = actor.of({ id: 1, kind: "scarecrow", pos: point.of(4, 4), stats: s });
+  assert.deepEqual(decide(scarecrow, grid, [point.of(4, 3)], [], [], 0), intent.wait());
+  assert.deepEqual(decide(scarecrow, grid, [point.of(4, 1)], [], [], 0), intent.wait());
+  // pumpkin (ability fuse) next to a foe waits; otherwise moves toward it.
+  const pumpkin = actor.of({ id: 2, kind: "pumpkin", pos: point.of(2, 2), stats: s, size: 2 });
+  // foe at (4,2): next to its square (cell (3,2) is distance 1), waits.
+  assert.deepEqual(decide(pumpkin, grid, [point.of(4, 2)], [], [], 0), intent.wait());
+  // foe at (7,2): not next to it, steps (1,0) toward it.
+  assert.deepEqual(decide(pumpkin, grid, [point.of(7, 2)], [], [], 0), intent.move(1, 0));
+  // swarm (ability split) with foe next to it attacks.
+  const swarm = actor.of({ id: 3, kind: "swarm", pos: point.of(4, 4), stats: s });
+  assert.deepEqual(decide(swarm, grid, [point.of(4, 3)], [], [], 0), intent.move(0, -1));
+});
+
 test("refuses: bad arguments", () => {
   const grid = tileGrid.fromRows(["###", "#.>", "###"]);
   const hero = actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: s });
