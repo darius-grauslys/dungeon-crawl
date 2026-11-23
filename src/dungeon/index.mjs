@@ -190,14 +190,12 @@ function buildShopPlan() {
   const gridShape = tileGrid.of(WIDTH, HEIGHT, tiles);
   const startPt = point.of(16, 19);
   const stairsPt = point.of(31, 19);
-  const spotsArr = [
-    point.of(16, 13),
-    point.of(19, 13),
-    point.of(22, 13),
-    point.of(25, 13),
-    point.of(28, 13),
-    point.of(31, 13)
-  ];
+  const spotsArr = [];
+  for (let y of [13, 16]) {
+    for (let x = 15; x <= 31; x += 2) {
+      spotsArr.push(point.of(x, y));
+    }
+  }
   return floorPlan.of({ grid: gridShape, start: startPt, stairs: stairsPt, spots: spotsArr });
 }
 
@@ -227,6 +225,8 @@ function buildLairPlan(round) {
         }
       }
     }
+  } else if (round === 2) {
+    bossPt = point.of(32, 15);
   }
 
   return floorPlan.of({ grid: gridShape, start: startPt, stairs: stairsPt, spots: spotsArr, boss: bossPt, levers: leversArr });
