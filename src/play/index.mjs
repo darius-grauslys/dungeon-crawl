@@ -10,6 +10,7 @@ import * as menuEdge from "../../edges/edge_to_menu.mjs";
 import * as viewEdge from "../../edges/edge_to_view.mjs";
 import * as inputEdge from "../../edges/edge_to_input.mjs";
 import * as audioEdge from "../../edges/edge_to_audio.mjs";
+import * as travelEdge from "../../edges/edge_to_travel.mjs";
 
 const REASON_TEXT = {
   "full": "The server already has 4 sessions.",
@@ -48,6 +49,17 @@ export function start(document, options = {}) {
   }
   const open = options.open ?? ((u) => new WebSocket(u));
   const download = options.download ?? defaultDownload;
+
+  let debug = options.debug;
+  if (debug === undefined) {
+    const win = document.defaultView;
+    if (win && win.location) {
+      const params = new URLSearchParams(win.location.search);
+      debug = params.get('debug') === 'true';
+    } else {
+      debug = false;
+    }
+  }
 
   // Find or make the canvas
   let canvas = document.querySelector("canvas");
@@ -111,7 +123,7 @@ export function start(document, options = {}) {
     },
   };
 
-  const landing = landingEdge.show(document, landingHandlers);
+  const landing = landingEdge.show(document, landingHandlers, { debug });
 
   let lobbyInterval = setInterval(() => {
     if (screen === "landing") {
@@ -122,12 +134,45 @@ export function start(document, options = {}) {
 
   let stopKeys = null;
 
+  let journey = null; // null, or {kind: 'explore' | 'cell', cell, depth, seen, awaited}
+
+  function meAlive(world) {
+    const hero = world.heroes.find((h) => h.name === me);
+    return hero && hero.alive;
+  }
+
+  function startExploreJourney(world) {
+    journey = {
+      kind: 'explore',
+      cell: null,
+      depth: world.depth,
+      seen: travelEdge.sighted(world, me),
+      awaited: null,
+    };
+  }
+
+  function startCellJourney(world, cell) {
+    journey = {
+      kind: 'cell',
+      cell: cell,
+      depth: world.depth,
+      seen: travelEdge.sighted(world, me),
+      awaited: null,
+    };
+  }
+
+  function endJourney() {
+    journey = null;
+  }
+
   function handleIntent(intent) {
+    endJourney();
     if (screen !== "game" || menuOpenFlag) return;
     conn.send(messageShape.act(intent));
   }
 
   function handleCommand(command) {
+    endJourney();
     if (screen !== "game") return;
     if (command === "menu") {
       if (menuOpenFlag) {
@@ -140,6 +185,10 @@ export function start(document, options = {}) {
       return;
     }
     if (menuOpenFlag) return;
+    if (command === "explore") {
+      startExploreJourney(latestWorld);
+      return;
+    }
     if (command === "pause") {
       conn.send(messageShape.pause(!paused));
     } else if (command === "mute") {
@@ -150,6 +199,18 @@ export function start(document, options = {}) {
       sound.louder();
     }
   }
+
+  function handleCanvasClick(event) {
+    if (screen !== "game" || menuOpenFlag) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = (event.clientX - rect.left) * canvas.width / rect.width;
+    const y = (event.clientY - rect.top) * canvas.height / rect.height;
+    const cell = viewEdge.cellAt(latestWorld, me, x, y);
+    if (cell) {
+      startCellJourney(latestWorld, cell);
+    }
+  }
+  canvas.addEventListener("click", handleCanvasClick);
 
   const win = document.defaultView || (typeof window !== "undefined" ? window : globalThis);
   const raf = win.requestAnimationFrame.bind(win);
@@ -163,6 +224,40 @@ export function start(document, options = {}) {
       handleMessage(msg);
     }
     if (latestWorld && screen === "game") {
+      if (journey && !paused) {
+        if (journey.awaited) {
+          const elapsed = performance.now() - journey.awaited.at;
+          if (elapsed >= 1500) {
+            journey.awaited = null;
+          }
+        }
+        if (!journey.awaited) {
+          let step = null;
+          if (journey.kind === 'explore') {
+            step = travelEdge.explore(latestWorld, me);
+          } else {
+            step = travelEdge.toward(latestWorld, me, journey.cell);
+          }
+          if (step === null) {
+            journey = null;
+          } else {
+            conn.send(messageShape.act(step));
+            const hero = latestWorld.heroes.find((h) => h.name === me);
+            if (hero) {
+              const pos = hero.actor.pos;
+              journey.awaited = {
+                x: pos.x,
+                y: pos.y,
+                ready: hero.actor.ready,
+                at: performance.now(),
+              };
+            } else {
+              journey = null;
+            }
+          }
+        }
+      }
+
       let now;
       if (paused) {
         now = latestWorld.time;
@@ -207,6 +302,33 @@ export function start(document, options = {}) {
         latestWorld = msg.world;
         paused = msg.paused;
         menu.setPaused(paused);
+
+        if (journey) {
+          if (latestWorld.depth !== journey.depth) {
+            journey = null;
+          } else if (!meAlive(latestWorld)) {
+            journey = null;
+          } else if (journey.kind === 'explore') {
+            const newSighted = travelEdge.sighted(latestWorld, me);
+            const ended = newSighted.some((id) => !journey.seen.includes(id));
+            if (ended) {
+              journey = null;
+            } else {
+              journey.seen = newSighted;
+            }
+          }
+        }
+
+        if (journey && journey.awaited) {
+          const hero = latestWorld.heroes.find((h) => h.name === me);
+          if (hero) {
+            const pos = hero.actor.pos;
+            if (pos.x !== journey.awaited.x || pos.y !== journey.awaited.y || hero.actor.ready !== journey.awaited.ready) {
+              journey.awaited = null;
+            }
+          }
+        }
+
         sound.update(previousWorld, latestWorld, me);
         stateArrivalTime = performance.now();
         break;
@@ -240,6 +362,7 @@ export function start(document, options = {}) {
       }
       document.removeEventListener("keydown", resumeOnInteraction);
       document.removeEventListener("pointerdown", resumeOnInteraction);
+      canvas.removeEventListener("click", handleCanvasClick);
       conn.close();
       if (landing.shown()) {
         landing.hide();
