@@ -14,6 +14,8 @@ what it has to. Runs in Node.
 | `/ws`, as a WebSocket upgrade | 101: a new connection |
 | anything else, a missing file, or a path that would leave `<root>/assets/` | 404 |
 
+A request's path is its URL up to the first `?` (or `#`): the query is never part of it, so `/?debug=true` is the page and `/game.js?v=2` the bundle; the page reads its own query in the browser.
+
 Only `GET` (and `HEAD`) are answered; any other method is 405.
 
 The page is a complete HTML document titled `Crawl`, with a dark
@@ -38,6 +40,9 @@ None
 # Intrinsics:
 ## Intrinsic - page:
 `GET /` answers 200, a `text/html` content type, and a body containing `<canvas`, `width="960"`, `height="720"` and `/game.js`.
+
+## Intrinsic - query:
+`GET /?debug=true` answers 200 with the same body as `GET /`; `GET /game.js?v=2` answers 200 with a `text/javascript` content type; `GET /assets/sfx/coin.mp3?x=1` answers 200 with exactly the bytes of `<root>/assets/sfx/coin.mp3`; `GET /nope?debug=true` answers 404.
 
 ## Intrinsic - bundle:
 `GET /game.js` answers 200, a `text/javascript` content type, and a non-empty body that matches `/export\s*\{[^}]*\bstart\b/` (its length depends on how much of `play` is implemented, so no length is asked).

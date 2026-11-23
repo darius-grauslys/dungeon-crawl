@@ -32,6 +32,17 @@ function mimeFor(name) {
   return MIME[ext] || "application/octet-stream";
 }
 
+// A request's path is its URL up to the first `?` (or `#`): the query is
+// never part of it.
+function pathFromUrl(url) {
+  let end = url.length;
+  const q = url.indexOf("?");
+  const h = url.indexOf("#");
+  if (q !== -1 && q < end) end = q;
+  if (h !== -1 && h < end) end = h;
+  return url.slice(0, end);
+}
+
 // --- WebSocket frame helpers (RFC 6455, server side, text only) ---
 
 function parseFrame(buffer) {
@@ -154,21 +165,22 @@ export async function serve({ port, root, host }) {
     }
 
     const url = req.url || "/";
+    const route = pathFromUrl(url);
 
-    if (url === "/") {
+    if (route === "/") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       res.end(method === "HEAD" ? undefined : PAGE);
       return;
     }
 
-    if (url === "/game.js") {
+    if (route === "/game.js") {
       res.writeHead(200, { "content-type": "text/javascript; charset=utf-8" });
       res.end(method === "HEAD" ? undefined : bundle);
       return;
     }
 
-    if (url.startsWith("/assets/")) {
-      const rest = url.slice("/assets/".length);
+    if (route.startsWith("/assets/")) {
+      const rest = route.slice("/assets/".length);
       let decoded;
       try {
         decoded = decodeURIComponent(rest);
@@ -208,7 +220,8 @@ export async function serve({ port, root, host }) {
 
   server.on("upgrade", (req, socket, head) => {
     const url = req.url || "";
-    if (url !== "/ws") {
+    const route = pathFromUrl(url);
+    if (route !== "/ws") {
       socket.destroy();
       return;
     }
