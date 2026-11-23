@@ -76,3 +76,18 @@ test("lines: MP/MR when magicResist above 0", () => {
   ]);
   assert.strictEqual(lines(world, "Ann")[0], "Ann   HP 18/24   ATK 4   DEF 1   MP 1   MR 1   Gold 7   Level 2/25");
 });
+
+test("lines: Cursed line when curse above 0", () => {
+  const world = makeWorld(7, 2, ["a", "b", "c", "d"], [
+    { name: "Ann", alive: true, actor: { stats: { hp: 18, maxHp: 24, attack: 4, defense: 1 }, slow: 0, curse: 3 } },
+    { name: "Bob", alive: false, actor: { stats: { hp: 0, maxHp: 28, attack: 4, defense: 1 }, slow: 0, curse: 0 } }
+  ]);
+  assert.strictEqual(lines(world, "Ann")[0], "Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Level 2/25   Cursed 3");
+});
+
+test("lines: Cursed after Slowed when both above 0", () => {
+  const world = makeWorld(7, 2, ["a", "b", "c", "d"], [
+    { name: "Ann", alive: true, actor: { stats: { hp: 18, maxHp: 24, attack: 4, defense: 1 }, slow: 2, curse: 3 } }
+  ]);
+  assert.strictEqual(lines(world, "Ann")[0], "Ann   HP 18/24   ATK 4   DEF 1   Gold 7   Level 2/25   Slowed 2   Cursed 3");
+});
