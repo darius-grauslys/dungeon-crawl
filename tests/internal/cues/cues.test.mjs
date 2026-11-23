@@ -36,10 +36,10 @@ function makeHero(name, x, y, hp, alive = true, last = null, gesture = null) {
   return heroShape.of({ name, actor, alive });
 }
 
-function makeMonster(id, kind, x, y, hp, last = null, gesture = null) {
+function makeMonster(id, kind, x, y, hp, last = null, gesture = null, fuse = null) {
   const entry = bestiaryShape.entry(kind);
   const stats = statsShape.of({ hp, maxHp: entry.hp, attack: entry.attack, defense: entry.defense, range: entry.range });
-  return actorShape.of({ id, kind, pos: pointShape.of(x, y), stats, ready: 0, held: 0, last, gesture });
+  return actorShape.of({ id, kind, pos: pointShape.of(x, y), stats, ready: 0, held: 0, last, gesture, fuse });
 }
 
 function makeWorld({ depth = 1, gold = 0, heroes = [], monsters = [], items = [], grid, visible } = {}) {
@@ -173,6 +173,40 @@ test('cues: dies', () => {
   const heroAnnDead = heroShape.of({ name: 'Ann', actor: actorShape.of({ id: 0, kind: 'hero', pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 0, maxHp: 5, attack: 3, defense: 1, range: 1 }) }), alive: false });
   const next = worldShape.of({ seed: 1, rng: 2, depth: 1, time: 50, state: 'playing', grid, heroes: [heroAnnDead, heroBob], monsters: [], items: [], visible: vis, explored: vis, gold: 0, log: [], entry: save });
   assert.deepStrictEqual(cues(prev, next, 'Bob'), [cueShape.of({ name: 'hit', gain: 1 - 2 / 12 }), cueShape.of({ name: 'death', gain: 1 - 2 / 12 })]);
+});
+
+test('cues: hiss', () => {
+  const grid = makeGrid(['#######', '#.....#', '#######']);
+  const vis = allVisible(7, 3);
+  const save = makeSave(1);
+  const statsAnn = statsShape.of({ hp: 5, maxHp: 5, attack: 3, defense: 1, range: 1 });
+  const heroAnn0 = heroShape.of({ name: 'Ann', actor: actorShape.of({ id: 0, kind: 'hero', pos: pointShape.of(1, 1), stats: statsAnn }) });
+  const prev = worldShape.of({ seed: 1, rng: 2, depth: 1, time: 0, state: 'playing', grid, heroes: [heroAnn0], monsters: [], items: [], visible: vis, explored: vis, gold: 0, log: [], entry: save });
+
+  const pumpkinNext = makeMonster(10, 'pumpkin', 4, 1, 12, null, null, { at: 50 });
+  const heroAnnNext = heroShape.of({ name: 'Ann', actor: actorShape.of({ id: 0, kind: 'hero', pos: pointShape.of(1, 1), stats: statsAnn }) });
+  const next = worldShape.of({ seed: 1, rng: 2, depth: 1, time: 50, state: 'playing', grid, heroes: [heroAnnNext], monsters: [pumpkinNext], items: [], visible: vis, explored: vis, gold: 0, log: [], entry: save });
+  assert.deepStrictEqual(cues(prev, next, 'Ann'), [cueShape.of({ name: 'hiss', gain: 1 - 3 / 12 })]);
+
+  const pumpkinSame = makeMonster(10, 'pumpkin', 4, 1, 12, null, null, { at: 50 });
+  const prevSame = worldShape.of({ seed: 1, rng: 2, depth: 1, time: 50, state: 'playing', grid, heroes: [heroAnnNext], monsters: [pumpkinSame], items: [], visible: vis, explored: vis, gold: 0, log: [], entry: save });
+  const nextSame = worldShape.of({ seed: 1, rng: 2, depth: 1, time: 50, state: 'playing', grid, heroes: [heroAnnNext], monsters: [pumpkinSame], items: [], visible: vis, explored: vis, gold: 0, log: [], entry: save });
+  assert.deepStrictEqual(cues(prevSame, nextSame, 'Ann'), []);
+});
+
+test('cues: boom', () => {
+  const grid = makeGrid(['#######', '#.....#', '#######']);
+  const vis = allVisible(7, 3);
+  const save = makeSave(1);
+  const statsAnn = statsShape.of({ hp: 5, maxHp: 5, attack: 3, defense: 1, range: 1 });
+  const heroAnn = heroShape.of({ name: 'Ann', actor: actorShape.of({ id: 0, kind: 'hero', pos: pointShape.of(1, 1), stats: statsAnn }) });
+  const pumpkinPrev = makeMonster(10, 'pumpkin', 4, 1, 12, null, null, null);
+  const prev = worldShape.of({ seed: 1, rng: 2, depth: 1, time: 0, state: 'playing', grid, heroes: [heroAnn], monsters: [pumpkinPrev], items: [], visible: vis, explored: vis, gold: 0, log: [], entry: save, effects: [] });
+
+  const visHalf = maskShape.of(7, 3, Array(21).fill(false));
+  const heroAnnNext = heroShape.of({ name: 'Ann', actor: actorShape.of({ id: 0, kind: 'hero', pos: pointShape.of(1, 1), stats: statsAnn }) });
+  const next = worldShape.of({ seed: 1, rng: 2, depth: 1, time: 50, state: 'playing', grid, heroes: [heroAnnNext], monsters: [], items: [], visible: visHalf, explored: visHalf, gold: 0, log: [], entry: save, effects: [{ kind: 'blast', x: 4, y: 1, size: 1, at: 50 }] });
+  assert.deepStrictEqual(cues(prev, next, 'Ann'), [cueShape.of({ name: 'death', gain: 1 - 3 / 12 }), cueShape.of({ name: 'boom', gain: 1 - 3 / 12 })]);
 });
 
 test('cues: refuses', () => {
