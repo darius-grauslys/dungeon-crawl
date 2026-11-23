@@ -168,4 +168,31 @@ if (!strikeShape._sheo_stub) {
     const w1 = resolve(a0, d0, 19, 1);
     assert.equal(w1.magic, 0);
   });
+
+  test("combat.resolve: casters intrinsic", () => {
+    const a = stats(5, 5, 0, 0, 1, 1);
+    const d = stats(24, 24, 4, 1);
+    const hit11 = resolve(a, d, 11, 50);
+    assert.equal(hit11.hit, true);
+    assert.equal(hit11.critical, false);
+    assert.equal(hit11.damage, 1);
+    assert.equal(hit11.magic, 1);
+    const crit20 = resolve(a, d, 20, 50);
+    assert.equal(crit20.hit, true);
+    assert.equal(crit20.critical, true);
+    assert.equal(crit20.damage, 1);
+    assert.equal(crit20.magic, 1);
+    const miss10 = resolve(a, d, 10, 50);
+    assert.equal(miss10.hit, false);
+    assert.equal(miss10.critical, false);
+    assert.equal(miss10.damage, 0);
+    assert.equal(miss10.magic, 0);
+    // magic 0 as well, roll 20 is a miss
+    const a0 = stats(5, 5, 0, 0, 1, 0);
+    const miss20 = resolve(a0, d, 20, 50);
+    assert.equal(miss20.hit, false);
+    assert.equal(miss20.critical, false);
+    assert.equal(miss20.damage, 0);
+    assert.equal(miss20.magic, 0);
+  });
 }
