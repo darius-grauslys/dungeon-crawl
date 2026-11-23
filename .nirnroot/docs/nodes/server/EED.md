@@ -18,8 +18,10 @@ How a page plays, as the server answers it:
    have no password.
 1. It sends `create(save)` (a save, or `null` for a new game) and gets
    `created(session)`, or `refused('full')` when the server
-   already holds 4 sessions. A new game's seed is random; a save's game
-   starts on the save's floor with the save's party.
+   already holds 4 sessions, or `refused('malformed')` when no game
+   can be made from the save (no session is made then). A new game's
+   seed is random; a save's game starts on the save's floor with the
+   save's party.
 2. It sends `join(session, name)` and gets `joined(session,
    name)` and then the session's `state`; or `refused` with
    `no-session`, `name-taken` (a name already played by
