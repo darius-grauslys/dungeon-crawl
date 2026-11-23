@@ -30,9 +30,12 @@ The edge under test:
 - [shape:mask](../../../shapes/mask.md)
 - [shape:level](../../../shapes/level.md)
 
+# Assets:
+- [asset:sheets/floor.png](../../../../../assets/sheets/floor.png)
+
 # Intrinsics:
 ## Intrinsic - floors:
-As the EED states: draw each candidate `floors` sprite onto a scratch canvas filled with rgb(22, 13, 19), 48 by 48 with smoothing off, and compare its pixels with the cell's.
+As the EED states. Load the sheet yourself (`new Image()`, `src` `/assets/sheets/floor.png`, await `decode()`); for each candidate `sy`, on a scratch canvas filled with rgb(22, 13, 19), draw the 16 by 16 rectangle at (0, sy) of a copy of the sheet whose rgb(22, 13, 19) pixels were made transparent, scaled to 48 by 48 with smoothing off, and compare its pixels with the cell's. There is no other floor file: use only that sheet.
 
 ## Intrinsic - effects:
 As the EED states: set the actors' `fuse` and `chant`, and the world's `effects`, with the shapes.
