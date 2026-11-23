@@ -39,6 +39,17 @@ transparent, so a sprite drawn over the floor shows the floor around it.
 | `lever-pulled` | `sheets/generics.png` | 32 | 80 |
 | `ring` | `sheets/items.png` | 0 | 64 |
 | `necklace` | `sheets/items.png` | 128 | 64 |
+| `mage` | `sheets/monsters.png` | 0 | 16 |
+| `swordsman` | `sheets/monsters.png` | 64 | 16 |
+| `bread` | `sheets/items.png` | 0 | 144 |
+| `meat` | `sheets/items.png` | 16 | 144 |
+| `cheese` | `sheets/items.png` | 32 | 144 |
+| `sword-2` | `sheets/items.png` | 80 | 16 |
+| `sword-3` | `sheets/items.png` | 0 | 16 |
+| `sword-4` | `sheets/items.png` | 16 | 16 |
+| `armor-2` | `sheets/items.png` | 0 | 48 |
+| `armor-3` | `sheets/items.png` | 16 | 48 |
+| `armor-4` | `sheets/items.png` | 32 | 48 |
 | `wall-0` | `sheets/dungeon.png` | 48 | 0 |
 | `wall-1` | `sheets/dungeon.png` | 0 | 32 |
 | `wall-2` | `sheets/dungeon.png` | 48 | 32 |
@@ -92,7 +103,7 @@ rectangle; frame `f` of an animation of `n` frames is its `f`-th.
 
 *Monsters.* Each monster's only animation is `idle`: 3 frames side by
 side, at its table's `sx`, `sx + 16` and `sx + 32`, all at its table's
-`sy`, on its sheet. The monsters are the eighteen of `bestiary`'s
+`sy`, on its sheet. The monsters are the twenty of `bestiary`'s
 `KINDS` (every name of the table that is one).
 
 *Heroes.* `sheets/heroes.png` holds four **colour** variations of the
@@ -136,11 +147,11 @@ not used.)
 `frames(name, anim) -> integer`. How many frames the animation has (a monster's `idle` 3; the hero's as the table says). A name or an animation not of those throws a `TypeError`.
 
 ## Function - names:
-`names() -> array`. The forty-six names, in the table's order, a fresh array each call.
+`names() -> array`. The fifty-seven names, in the table's order, a fresh array each call.
 
 # Intrinsics:
 ## Intrinsic - table:
-`names()` is the table's names in order. Before any `load`, `sprite('hero')` is `null`; `sprite('dragon')` throws a `TypeError`. After `load('/assets/')` resolves, each name's sprite has the table's `sx`, `sy`, `sw` 16 and `sh` 16. `names()` has 46 names, `wall-0` to `wall-15` the last sixteen in order, `necklace` just before `wall-0` and `ring` before it, `lever-pulled` before `ring`; `sprite('ring')` has `sx` 0 and `sy` 64, `sprite('necklace')` `sx` 128 and `sy` 64; `sprite('golem')` has `sx` 64 and `sy` 112, `sprite('slime')` `sx` 64 and `sy` 48, and `sprite('blue-snake')` an `image` other than `sprite('snake')`'s; `sprite('wall-6')` has `sx` 32 and `sy` 0, `sprite('wall-9')` `sx` 48 and `sy` 16; `sprite('wall-16')` throws a `TypeError`.
+`names()` is the table's names in order. Before any `load`, `sprite('hero')` is `null`; `sprite('dragon')` throws a `TypeError`. After `load('/assets/')` resolves, each name's sprite has the table's `sx`, `sy`, `sw` 16 and `sh` 16. `names()` has 57 names, `wall-0` to `wall-15` the last sixteen in order, `armor-4` just before `wall-0`, `mage` just after `necklace`, `ring` before `necklace`, `lever-pulled` before `ring`; `sprite('mage')` has `sx` 0 and `sy` 16, `sprite('swordsman')` `sx` 64 and `sy` 16, `sprite('cheese')` `sx` 32 and `sy` 144, `sprite('armor-3')` `sx` 16 and `sy` 48, `sprite('sword-2')` `sx` 80 and `sy` 16, each the same `image` as `sprite('skeleton')` (the monsters) or `sprite('potion')` (the items); `pose('mage', 'idle', 2)` has `sx` 32 and `sy` 16; `sprite('ring')` has `sx` 0 and `sy` 64, `sprite('necklace')` `sx` 128 and `sy` 64; `sprite('golem')` has `sx` 64 and `sy` 112, `sprite('slime')` `sx` 64 and `sy` 48, and `sprite('blue-snake')` an `image` other than `sprite('snake')`'s; `sprite('wall-6')` has `sx` 32 and `sy` 0, `sprite('wall-9')` `sx` 48 and `sy` 16; `sprite('wall-16')` throws a `TypeError`.
 
 ## Intrinsic - poses:
 `frames('hero', 'idle')` is 3, `frames('hero', 'sleep')` 4, `frames('hero', 'debuff')` 4, `frames('hero', 'power_up')` 6, `frames('hero', 'stun')` 5, `frames('golem', 'idle')` 3; `frames('golem', 'stun')`, `frames('dragon', 'idle')` and `frames('wall-0', 'idle')` throw a `TypeError`. Before any `load`, `pose('hero', 'idle', 0)` is `null`; `pose('hero', 'idle', 3)`, `pose('hero', 'walk', 0)`, `pose('bat', 'sleep', 0)` and `pose('hero', 'idle', 0, {colour: 4, group: 0})` throw a `TypeError`. After `load('/assets/')` resolves: `pose('hero', 'idle', 0)` has the same `image`, `sx` and `sy` as `sprite('hero')`; `pose('hero', 'idle', 2)` `sx` 32, `sy` 0; `pose('hero', 'idle', 1, {colour: 3, group: 0})` `sx` 208, `sy` 0; `pose('hero', 'sleep', 2)` `sx` 0, `sy` 48; `pose('hero', 'debuff', 1, {colour: 1, group: 0})` `sx` 80, `sy` 80; `pose('hero', 'power_up', 3, {colour: 1, group: 0})` `sx` 64, `sy` 144; `pose('hero', 'power_up', 5)` `sx` 32, `sy` 144; `pose('hero', 'stun', 4, {colour: 2, group: 0})` `sx` 160, `sy` 192; `pose('hero', 'idle', 0, {colour: 0, group: 2})` `sx` 0, `sy` 480; `pose('golem', 'idle', 2)` `sx` 96, `sy` 112 and the same `image` as `sprite('golem')`; `pose('blue-snake', 'idle', 1)` `sx` 16, `sy` 16; every pose is 16 by 16.

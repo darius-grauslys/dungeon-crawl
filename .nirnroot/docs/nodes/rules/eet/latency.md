@@ -85,10 +85,13 @@ As the EED states.
 As the EED states.
 
 ## Intrinsic - shop:
-As the EED states.
+As the EED states: read the spots from `dungeon`'s plan only through the values the EED gives (no `dungeon` import); check each price against its kind's range.
 
 ## Intrinsic - buys:
 As the EED states: the ware with `item`'s `of` and its `price`.
+
+## Intrinsic - limits:
+As the EED states: one world per item; set Ann's stats with `stats`'s `of`, and read `<g>` from the line with a regular expression.
 
 ## Intrinsic - lair:
 As the EED states.
@@ -122,6 +125,9 @@ As the EED states: build the golem with `actor`'s `of` (`size: 1`, `mode: 'roam'
 
 ## Intrinsic - themes:
 As the EED states.
+
+## Intrinsic - floor-items:
+As the EED states: `fromSave` of a save of one player at each depth, for each seed; a food item is one of kind `cheese`, `bread` or `meat`.
 
 ## Intrinsic - saves:
 As the EED states.

@@ -3,7 +3,7 @@
 Makes the floors: on a dungeon depth, rooms joined by corridors, a
 start, a staircase, and cells to place things on; on a shop depth (6,
 13, 20 and 27), the shop, one room laid out the same every time, its
-`spots` the cells where the wares stand; on a lair depth (7, 14, 21 and
+`spots` the cells where the wares may stand; on a lair depth (7, 14, 21 and
 28), the lair, one great hall laid out the same every time, the first
 of them with its boss's place and its levers. `level` (the shape) says
 which depth is which. Pure: the same seed and depth always give the
@@ -11,9 +11,11 @@ same floor, and nothing else is read or changed.
 
 **The shop** is 48 by 32 cells, all `wall` but the room: every cell with
 `x` from 14 to 33 and `y` from 10 to 21 is `floor`, except `stairs` at
-(31, 19). `start` is (16, 19). `spots` are the six cells (16, 13),
-(19, 13), (22, 13), (25, 13), (28, 13) and (31, 13), in that order (the
-row above them is left free for the price shown over each ware). No
+(31, 19). `start` is (16, 19). `spots` are eighteen cells in two
+rows of nine, every other column: (15, 13), (17, 13), ..., (31, 13) (the
+`x` 15 to 31 by 2), then (15, 16), (17, 16), ..., (31, 16), in that order
+(the row above each is left free for the price shown over each ware; a
+shop puts its wares on the first of them, as many as it sells). No
 `boss`, no `levers`.
 
 **The lair** is 48 by 32 cells, all `wall` but the hall: every cell with
@@ -55,7 +57,7 @@ For seeds 0 to 19 and the depths of `bounded`, and for the depths 6, 7, 14 and 2
 For seeds 0 to 19 and the depths of `bounded`: `spots` has from 12 to 40 points; each is `floor`, none equals another, `start` or `stairs`, and each is at a Manhattan distance of at least 5 from `start`. `stairs` is at a Manhattan distance of at least 10 from `start`.
 
 ## Intrinsic - shop:
-`generate(s, d)` for `s` in 0, 1 and 4294967295 and `d` in 6, 13, 20 and 27: the grid is 48 by 32, `at(14, 10)`, `at(33, 21)` and `at(16, 12)` are `floor`, `at(13, 10)`, `at(34, 15)` and `at(20, 9)` `wall`, `at(31, 19)` `stairs`, and the plan's `stairs` (31, 19); `start` is (16, 19); `spots` are the six cells above, in order; `boss` is `null`; every `tiles()` is deep equal to `generate(0, 6)`'s.
+`generate(s, d)` for `s` in 0, 1 and 4294967295 and `d` in 6, 13, 20 and 27: the grid is 48 by 32, `at(14, 10)`, `at(33, 21)` and `at(16, 12)` are `floor`, `at(13, 10)`, `at(34, 15)` and `at(20, 9)` `wall`, `at(31, 19)` `stairs`, and the plan's `stairs` (31, 19); `start` is (16, 19); `spots` are the eighteen cells above, in order (the first (15, 13), the ninth (31, 13), the tenth (15, 16), the last (31, 16)), each `floor`; `boss` is `null`; every `tiles()` is deep equal to `generate(0, 6)`'s.
 
 ## Intrinsic - lair:
 `generate(s, 7)` for `s` in 0 and 4294967295: the grid is 48 by 32, `at(6, 4)`, `at(41, 27)` and `at(20, 20)` are `floor`, `at(5, 4)`, `at(42, 16)` and `at(20, 3)` `wall`, `at(33, 16)` `stairs`; `stairs` is (33, 16), `start` (8, 16), `boss` (32, 15); `levers` are (39, 7), (39, 25) and (39, 16) in order; `spots` has 72 points, the first (37, 5), the 24th (41, 9), the 25th (37, 23) and the last (41, 18), none of them a lever, and none within 2 of the boss's square (`x` 32 to 34, `y` 15 to 17). `generate(s, d)` for `d` in 14, 21 and 28: `tiles()` deep equal to `generate(0, 7)`'s, `stairs` (33, 16), `start` (8, 16), `boss` `null`, `levers` and `spots` empty.
