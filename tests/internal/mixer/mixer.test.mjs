@@ -308,8 +308,42 @@ test('music: invalid track throws', () => {
   const fake = makeFakeContext();
   const fetcher = async (url) => ({ ok: true, arrayBuffer: () => Promise.resolve(new ArrayBuffer(1)) });
   const mixer = create({ context: fake.ctx, fetch: fetcher });
-  assert.throws(() => mixer.music(6), TypeError);
+  assert.throws(() => mixer.music(10), TypeError);
+  assert.throws(() => mixer.music(-1), TypeError);
   assert.throws(() => mixer.music(1.5), TypeError);
+});
+
+test('music: tracks 6 to 9 fetch the correct files', async () => {
+  const fake = makeFakeContext(10, 'running');
+  const musicUrls = [];
+  const fetcher = async (url) => {
+    musicUrls.push(url);
+    return { ok: true, arrayBuffer: () => Promise.resolve(new ArrayBuffer(1)) };
+  };
+  const mixer = create({ context: fake.ctx, fetch: fetcher });
+
+  mixer.music(9);
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(musicUrls.length, 1);
+  assert.equal(musicUrls[0], '/assets/music/boss.mp3');
+
+  musicUrls.length = 0;
+  mixer.music(8);
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(musicUrls.length, 1);
+  assert.equal(musicUrls[0], '/assets/music/shop.mp3');
+
+  musicUrls.length = 0;
+  mixer.music(6);
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(musicUrls.length, 1);
+  assert.equal(musicUrls[0], '/assets/music/dark-comical.mp3');
+
+  musicUrls.length = 0;
+  mixer.music(7);
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(musicUrls.length, 1);
+  assert.equal(musicUrls[0], '/assets/music/desert-dungeon.mp3');
 });
 
 test('resume: calls context.resume when suspended, not when running', async () => {
