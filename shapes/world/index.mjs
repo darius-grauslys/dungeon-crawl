@@ -45,7 +45,7 @@ function isActor(v) {
   if (v.facing !== 'left' && v.facing !== 'right') return false;
   if (v.last !== null) {
     if (!v.last || typeof v.last !== 'object' || !Object.isFrozen(v.last)) return false;
-    if (v.last.kind !== 'move' && v.last.kind !== 'attack') return false;
+    if (v.last.kind !== 'move' && v.last.kind !== 'attack' && v.last.kind !== 'lunge') return false;
     if (typeof v.last.dx !== 'number' || !Number.isInteger(v.last.dx)) return false;
     if (typeof v.last.dy !== 'number' || !Number.isInteger(v.last.dy)) return false;
     if (!((v.last.dx === 1 && (v.last.dy === -1 || v.last.dy === 0 || v.last.dy === 1)) ||

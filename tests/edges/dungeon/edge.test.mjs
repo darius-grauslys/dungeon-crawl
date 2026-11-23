@@ -304,6 +304,86 @@ test("generate: wide-halls", () => {
   }
 });
 
+// Intrinsic - spikes:
+test("generate: spikes", () => {
+  // No spikes on depths 1, 6, 7, 13, 14, 28 for seeds 0 to 4.
+  const noSpikesDepths = [1, 6, 7, 13, 14, 28];
+  for (const s of [0, 1, 2, 3, 4]) {
+    for (const d of noSpikesDepths) {
+      const plan = generate(s, d);
+      assert.deepStrictEqual(plan.spikes, []);
+    }
+  }
+
+  // For seeds 0 to 19 and the depths 2, 3, 5, 8, 12, 15, 22, 26 and 33:
+  const spikeDepths = [2, 3, 5, 8, 12, 15, 22, 26, 33];
+  let hasHallway = false;
+  for (let s = 0; s <= 19; s++) {
+    for (const d of spikeDepths) {
+      const plan = generate(s, d);
+      const g = plan.grid;
+      assert.ok(plan.spikes.length >= 4 && plan.spikes.length <= 100);
+      const seen = new Set();
+      for (const sp of plan.spikes) {
+        assert.strictEqual(g.at(sp.x, sp.y), "floor");
+        assert.ok(!point.equals(sp, plan.start));
+        assert.ok(!point.equals(sp, plan.stairs));
+        const key = sp.x + "," + sp.y;
+        assert.ok(!seen.has(key));
+        seen.add(key);
+        assert.ok(sp.shift >= 0 && sp.shift <= 5);
+      }
+      const plan2 = generate(s, d);
+      assert.deepStrictEqual(plan.spikes, plan2.spikes);
+
+      // Check for hallway run: 4+ consecutive cells in a row or column with shifts k, k, k+1, k+1, ... mod 6.
+      const spikeMap = new Map();
+      for (const sp of plan.spikes) {
+        spikeMap.set(sp.x + "," + sp.y, sp.shift);
+      }
+      // Rows
+      for (let y = 0; y < g.height; y++) {
+        for (let x = 0; x <= g.width - 4; x++) {
+          const shifts = [];
+          let ok = true;
+          for (let i = 0; i < 4; i++) {
+            const k = (x + i) + "," + y;
+            if (spikeMap.has(k)) shifts.push(spikeMap.get(k));
+            else { ok = false; break; }
+          }
+          if (ok) {
+            let patternOk = true;
+            for (let i = 0; i < 4; i++) {
+              if (shifts[i] !== (shifts[0] + Math.floor(i / 2)) % 6) { patternOk = false; break; }
+            }
+            if (patternOk) hasHallway = true;
+          }
+        }
+      }
+      // Columns
+      for (let x = 0; x < g.width; x++) {
+        for (let y = 0; y <= g.height - 4; y++) {
+          const shifts = [];
+          let ok = true;
+          for (let i = 0; i < 4; i++) {
+            const k = x + "," + (y + i);
+            if (spikeMap.has(k)) shifts.push(spikeMap.get(k));
+            else { ok = false; break; }
+          }
+          if (ok) {
+            let patternOk = true;
+            for (let i = 0; i < 4; i++) {
+              if (shifts[i] !== (shifts[0] + Math.floor(i / 2)) % 6) { patternOk = false; break; }
+            }
+            if (patternOk) hasHallway = true;
+          }
+        }
+      }
+    }
+  }
+  assert.ok(hasHallway, "at least one plan has a hallway run of spikes");
+});
+
 // Intrinsic - refuses:
 test("generate: refuses", () => {
   const bad = [
