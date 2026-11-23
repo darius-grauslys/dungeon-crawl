@@ -77,7 +77,7 @@ function isDirection(dx, dy) {
 function isLast(v) {
   if (v === null) return true;
   if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
-  if (v.kind !== 'move' && v.kind !== 'attack') return false;
+  if (v.kind !== 'move' && v.kind !== 'attack' && v.kind !== 'lunge') return false;
   const { dx, dy, at, reach } = v;
   if (!isDirection(dx, dy)) return false;
   if (typeof at !== 'number' || !Number.isInteger(at) || at < 0) return false;
@@ -155,10 +155,43 @@ function isFuse(v) {
 }
 
 /**
+ * Validate that a value is an air object or null.
+ * @param {*} v
+ * @returns {boolean}
+ */
+function isAir(v) {
+  if (v === null) return true;
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  if (v.phase !== 'crouch' && v.phase !== 'rise' && v.phase !== 'aloft' && v.phase !== 'drop') return false;
+  const { at } = v;
+  if (typeof at !== 'number' || !Number.isInteger(at) || at < 0) return false;
+  const keys = Object.keys(v);
+  if (keys.length !== 2 || !keys.includes('phase') || !keys.includes('at')) return false;
+  return true;
+}
+
+/**
+ * Validate that a value is a flung object or null.
+ * @param {*} v
+ * @returns {boolean}
+ */
+function isFlung(v) {
+  if (v === null) return true;
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  const { x, y, at } = v;
+  if (typeof x !== 'number' || !Number.isInteger(x) || x < 0) return false;
+  if (typeof y !== 'number' || !Number.isInteger(y) || y < 0) return false;
+  if (typeof at !== 'number' || !Number.isInteger(at) || at < 0) return false;
+  const keys = Object.keys(v);
+  if (keys.length !== 3 || !keys.includes('x') || !keys.includes('y') || !keys.includes('at')) return false;
+  return true;
+}
+
+/**
  * Actor class: a creature on the floor: the hero or a monster. Immutable.
  */
 class Actor {
-  constructor({ id, kind, pos, stats, ready, held, facing, last, aim, slow, mode, size, small, gesture, curse, haste, chant, cooldown, fuse }) {
+  constructor({ id, kind, pos, stats, ready, held, facing, last, aim, slow, mode, size, small, gesture, curse, haste, chant, cooldown, fuse, air, flung }) {
     this.id = id;
     this.kind = kind;
     this.pos = pos;
@@ -178,6 +211,8 @@ class Actor {
     this.chant = chant;
     this.cooldown = cooldown;
     this.fuse = fuse;
+    this.air = air;
+    this.flung = flung;
   }
 
   covers(x, y) {
@@ -235,6 +270,8 @@ class Actor {
       chant: 'chant' in c ? c.chant : this.chant,
       cooldown: 'cooldown' in c ? c.cooldown : this.cooldown,
       fuse: 'fuse' in c ? c.fuse : this.fuse,
+      air: 'air' in c ? c.air : this.air,
+      flung: 'flung' in c ? c.flung : this.flung,
     });
   }
 }
@@ -244,7 +281,7 @@ class Actor {
  * @param {{id: number, kind: string, pos: point, stats: stats, ready?: number, held?: number, facing?: string, last?: object, aim?: {dx: number, dy: number}, slow?: number, mode?: string, size?: number, small?: boolean, curse?: number, haste?: number, chant?: object|null, cooldown?: number, fuse?: object|null}} input
  * @returns {object} a frozen actor
  */
-export function of({ id, kind, pos, stats, ready = 0, held = 0, facing = FACING_RIGHT, last = null, aim = {dx: 1, dy: 0}, slow = 0, mode = MODE_ROAM, size = 1, small = false, gesture = null, curse = 0, haste = 0, chant = null, cooldown = 0, fuse = null }) {
+export function of({ id, kind, pos, stats, ready = 0, held = 0, facing = FACING_RIGHT, last = null, aim = {dx: 1, dy: 0}, slow = 0, mode = MODE_ROAM, size = 1, small = false, gesture = null, curse = 0, haste = 0, chant = null, cooldown = 0, fuse = null, air = null, flung = null }) {
   if (typeof id !== 'number' || !Number.isInteger(id) || id < 0) {
     throw new TypeError('actor id must be an integer of 0 or more');
   }
@@ -302,6 +339,12 @@ export function of({ id, kind, pos, stats, ready = 0, held = 0, facing = FACING_
   if (!isFuse(fuse)) {
     throw new TypeError('actor fuse must be null or a frozen {at} with at an integer of 0 or more');
   }
+  if (!isAir(air)) {
+    throw new TypeError('actor air must be null or a frozen {phase, at} with phase crouch, rise, aloft or drop and at an integer of 0 or more');
+  }
+  if (!isFlung(flung)) {
+    throw new TypeError('actor flung must be null or a frozen {x, y, at} with x, y, at integers of 0 or more');
+  }
 
   // hero-only limits
   if (kind === 'hero') {
@@ -323,6 +366,12 @@ export function of({ id, kind, pos, stats, ready = 0, held = 0, facing = FACING_
     if (fuse !== null) {
       throw new TypeError('hero fuse must be null');
     }
+    if (air !== null) {
+      throw new TypeError('hero air must be null');
+    }
+    if (flung !== null) {
+      throw new TypeError('hero flung must be null');
+    }
   }
 
   const frozenLast = last === null ? null : Object.freeze({ kind: last.kind, dx: last.dx, dy: last.dy, at: last.at, reach: last.reach !== undefined ? last.reach : 1 });
@@ -330,7 +379,9 @@ export function of({ id, kind, pos, stats, ready = 0, held = 0, facing = FACING_
   const frozenGesture = gesture === null ? null : Object.freeze({ kind: gesture.kind, at: gesture.at });
   const frozenChant = chant === null ? null : Object.freeze({ kind: chant.kind, at: chant.at, until: chant.until });
   const frozenFuse = fuse === null ? null : Object.freeze({ at: fuse.at });
-  const actor = new Actor({ id, kind, pos, stats, ready, held, facing, last: frozenLast, aim: frozenAim, slow, mode, size, small, gesture: frozenGesture, curse, haste, chant: frozenChant, cooldown, fuse: frozenFuse });
+  const frozenAir = air === null ? null : Object.freeze({ phase: air.phase, at: air.at });
+  const frozenFlung = flung === null ? null : Object.freeze({ x: flung.x, y: flung.y, at: flung.at });
+  const actor = new Actor({ id, kind, pos, stats, ready, held, facing, last: frozenLast, aim: frozenAim, slow, mode, size, small, gesture: frozenGesture, curse, haste, chant: frozenChant, cooldown, fuse: frozenFuse, air: frozenAir, flung: frozenFlung });
   return Object.freeze(actor);
 }
 
