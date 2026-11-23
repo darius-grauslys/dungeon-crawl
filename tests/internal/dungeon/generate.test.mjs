@@ -145,23 +145,40 @@ test("generate returns the fixed lair plan on lair depth 7 (round 1)", () => {
   }
 });
 
-test("generate returns the empty lair plan on lair depths 21, 28", () => {
-  for (const d of [21, 28]) {
-    for (const s of [0, 1, 19]) {
-      const p = dungeon.generate(s, d);
-      assert.strictEqual(p.grid.width, 48);
-      assert.strictEqual(p.grid.height, 32);
-      assert.strictEqual(p.stairs.x, 33);
-      assert.strictEqual(p.stairs.y, 16);
-      assert.strictEqual(p.start.x, 8);
-      assert.strictEqual(p.start.y, 16);
-      assert.strictEqual(p.boss, null);
-      assert.strictEqual(p.levers.length, 0);
-      assert.strictEqual(p.spots.length, 0);
-      // tiles deep equal to depth 7
-      const p7 = dungeon.generate(0, 7);
-      assert.deepStrictEqual(p.grid.tiles(), p7.grid.tiles());
-    }
+test("generate returns the reaper lair plan on lair depth 21 (round 3)", () => {
+  for (const s of [0, 1, 19]) {
+    const p = dungeon.generate(s, 21);
+    assert.strictEqual(p.grid.width, 48);
+    assert.strictEqual(p.grid.height, 32);
+    assert.strictEqual(p.stairs.x, 33);
+    assert.strictEqual(p.stairs.y, 16);
+    assert.strictEqual(p.start.x, 8);
+    assert.strictEqual(p.start.y, 16);
+    assert.strictEqual(p.boss.x, 32);
+    assert.strictEqual(p.boss.y, 15);
+    assert.strictEqual(p.levers.length, 0);
+    assert.strictEqual(p.spots.length, 0);
+    // tiles deep equal to depth 7
+    const p7 = dungeon.generate(0, 7);
+    assert.deepStrictEqual(p.grid.tiles(), p7.grid.tiles());
+  }
+});
+
+test("generate returns the empty lair plan on lair depth 28", () => {
+  for (const s of [0, 1, 19]) {
+    const p = dungeon.generate(s, 28);
+    assert.strictEqual(p.grid.width, 48);
+    assert.strictEqual(p.grid.height, 32);
+    assert.strictEqual(p.stairs.x, 33);
+    assert.strictEqual(p.stairs.y, 16);
+    assert.strictEqual(p.start.x, 8);
+    assert.strictEqual(p.start.y, 16);
+    assert.strictEqual(p.boss, null);
+    assert.strictEqual(p.levers.length, 0);
+    assert.strictEqual(p.spots.length, 0);
+    // tiles deep equal to depth 7
+    const p7 = dungeon.generate(0, 7);
+    assert.deepStrictEqual(p.grid.tiles(), p7.grid.tiles());
   }
 });
 
@@ -206,5 +223,65 @@ test("generate loop produces a valid plan (regenerate-until-valid)", () => {
       assert.strictEqual(p.grid.height, 32);
       assert.ok(p.spots.length >= 12 && p.spots.length <= 40);
     }
+  }
+});
+
+test("generate makes two-cell-wide corridors on temple depths 22-26", () => {
+  const isOpen = (p, x, y) => {
+    const k = p.grid.at(x, y);
+    return k === 'floor' || k === 'stairs';
+  };
+  const inAny2x2 = (p, x, y) => {
+    const blocks = [[-1, -1], [0, -1], [-1, 0], [0, 0]];
+    for (const [bx, by] of blocks) {
+      const ax = x + bx, ay = y + by;
+      if (ax >= 0 && ax < 47 && ay >= 0 && ay < 31) {
+        if (isOpen(p, ax, ay) && isOpen(p, ax + 1, ay) && isOpen(p, ax, ay + 1) && isOpen(p, ax + 1, ay + 1)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+  for (const d of [22, 23, 24, 25, 26]) {
+    for (const s of [0, 1, 19]) {
+      const p = dungeon.generate(s, d);
+      for (let y = 0; y < 32; y++) {
+        for (let x = 0; x < 48; x++) {
+          if (!isOpen(p, x, y)) continue;
+          assert.ok(inAny2x2(p, x, y), `cell (${x},${y}) not in any 2x2 block at depth ${d}`);
+        }
+      }
+    }
+  }
+});
+
+test("generate has one-cell-wide corridors on non-temple depths", () => {
+  const isOpen = (p, x, y) => {
+    const k = p.grid.at(x, y);
+    return k === 'floor' || k === 'stairs';
+  };
+  const inAny2x2 = (p, x, y) => {
+    const blocks = [[-1, -1], [0, -1], [-1, 0], [0, 0]];
+    for (const [bx, by] of blocks) {
+      const ax = x + bx, ay = y + by;
+      if (ax >= 0 && ax < 47 && ay >= 0 && ay < 31) {
+        if (isOpen(p, ax, ay) && isOpen(p, ax + 1, ay) && isOpen(p, ax, ay + 1) && isOpen(p, ax + 1, ay + 1)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+  for (const s of [0, 1, 19]) {
+    const p = dungeon.generate(s, 2);
+    let foundNarrow = false;
+    for (let y = 0; y < 32 && !foundNarrow; y++) {
+      for (let x = 0; x < 48; x++) {
+        if (!isOpen(p, x, y)) continue;
+        if (!inAny2x2(p, x, y)) { foundNarrow = true; break; }
+      }
+    }
+    assert.ok(foundNarrow, `depth 2 should have at least one cell in no 2x2 block`);
   }
 });
