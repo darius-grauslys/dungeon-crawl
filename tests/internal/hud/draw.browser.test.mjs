@@ -10,7 +10,10 @@ function getPixel(ctx, x, y) {
 }
 
 function makeWorld(hp, maxHp) {
-  return { heroes: [{ name: "Ann", alive: true, actor: { stats: { hp, maxHp, attack: 1, defense: 1 } } }], gold: 0, depth: 1, log: [] };
+  const grid = borderGrid(48, 32);
+  const explored = allTrueMask(48, 32);
+  const visible = empty(48, 32);
+  return { heroes: [{ name: "Ann", alive: true, actor: { pos: { x: 5, y: 5 }, stats: { hp, maxHp, attack: 1, defense: 1 } } }], monsters: [], gold: 0, depth: 1, log: [], grid, explored, visible };
 }
 
 function greenCanvas(ctx) {
