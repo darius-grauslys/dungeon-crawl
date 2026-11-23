@@ -199,3 +199,129 @@ test("landing: handle", () => {
   assert.strictEqual(handle2.shown(), true, "show works again");
   handle2.hide();
 });
+
+test("landing: debug group presence", () => {
+  const handlers = { create: () => {}, join: () => {} };
+  const handle = show(document, handlers);
+  assert.strictEqual(document.getElementById("landing-debug"), null, "no debug group without options");
+  handle.hide();
+
+  const handleDebug = show(document, handlers, { debug: true });
+  assert.ok(document.getElementById("landing-debug"), "debug group with options");
+  const depthInput = document.getElementById("landing-debug-depth");
+  assert.strictEqual(depthInput.value, "1", "depth value 1");
+
+  const buffStats = ["hp", "attack", "defense", "range", "magic", "magicPower", "magicResist"];
+  for (const stat of buffStats) {
+    const buffInput = document.getElementById(`landing-debug-${stat}`);
+    assert.ok(buffInput, `has #landing-debug-${stat}`);
+    assert.strictEqual(buffInput.value, "0", `${stat} value 0`);
+    assert.strictEqual(buffInput.min, "0", `${stat} min 0`);
+    assert.strictEqual(buffInput.step, "1", `${stat} step 1`);
+    if (stat === "range") {
+      assert.strictEqual(buffInput.max, "8", `range max 8`);
+    }
+  }
+
+  assert.ok(document.getElementById("landing-debug-create"), "has #landing-debug-create");
+  assert.strictEqual(document.getElementById("landing-debug-create").textContent, "Start debug session", "debug create text");
+
+  const bossButtons = document.querySelectorAll("button.landing-debug-boss");
+  assert.strictEqual(bossButtons.length, 4, "four boss buttons");
+  assert.strictEqual(bossButtons[0].dataset.depth, "7", "first boss depth 7");
+  assert.strictEqual(bossButtons[1].dataset.depth, "14", "second boss depth 14");
+  assert.strictEqual(bossButtons[2].dataset.depth, "21", "third boss depth 21");
+  assert.strictEqual(bossButtons[3].dataset.depth, "28", "fourth boss depth 28");
+  assert.strictEqual(bossButtons[0].textContent, "Lair 1 (golem)", "first boss text");
+  assert.strictEqual(bossButtons[1].textContent, "Lair 2", "second boss text");
+  assert.strictEqual(bossButtons[2].textContent, "Lair 3", "third boss text");
+  assert.strictEqual(bossButtons[3].textContent, "Lair 4", "fourth boss text");
+
+  handleDebug.hide();
+});
+
+test("landing: debug create", async () => {
+  const createCalls = [];
+  const handlers = { create: (s, name) => createCalls.push([s, name]), join: () => {} };
+  const handle = show(document, handlers, { debug: true });
+
+  const nameInput = document.getElementById("landing-name");
+  const debugCreateButton = document.getElementById("landing-debug-create");
+
+  nameInput.value = "Ann";
+  const depthInput = document.getElementById("landing-debug-depth");
+  depthInput.value = "3";
+  document.getElementById("landing-debug-attack").value = "5";
+  document.getElementById("landing-debug-hp").value = "10";
+  document.getElementById("landing-debug-range").value = "2";
+
+  debugCreateButton.click();
+  await new Promise((r) => setTimeout(r, 20));
+  assert.strictEqual(createCalls.length, 1, "create called once");
+  assert.strictEqual(createCalls[0][0].depth, 3, "depth 3");
+  assert.ok(Number.isInteger(createCalls[0][0].seed) && createCalls[0][0].seed >= 0 && createCalls[0][0].seed <= 4294967295, "seed in range");
+  assert.strictEqual(createCalls[0][0].players.length, 1, "one player");
+  assert.strictEqual(createCalls[0][0].players[0].name, "Ann", "player name");
+  assert.deepStrictEqual(createCalls[0][0].players[0].stats, { hp: 34, maxHp: 34, attack: 9, defense: 1, range: 3, magic: 0, magicPower: 1, magicResist: 0 }, "stats");
+  assert.strictEqual(createCalls[0][1], "Ann", "name");
+
+  handle.hide();
+});
+
+test("landing: debug boss button", async () => {
+  const createCalls = [];
+  const handlers = { create: (s, name) => createCalls.push([s, name]), join: () => {} };
+  const handle = show(document, handlers, { debug: true });
+
+  const nameInput = document.getElementById("landing-name");
+  nameInput.value = "Ann";
+  document.getElementById("landing-debug-attack").value = "5";
+  document.getElementById("landing-debug-hp").value = "10";
+  document.getElementById("landing-debug-range").value = "2";
+
+  const bossButtons = document.querySelectorAll("button.landing-debug-boss");
+  bossButtons[0].click(); // depth 7
+  await new Promise((r) => setTimeout(r, 20));
+  assert.strictEqual(createCalls.length, 1, "create called once");
+  assert.strictEqual(createCalls[0][0].depth, 7, "depth 7");
+  assert.deepStrictEqual(createCalls[0][0].players[0].stats, { hp: 34, maxHp: 34, attack: 9, defense: 1, range: 3, magic: 0, magicPower: 1, magicResist: 0 }, "stats");
+
+  handle.hide();
+});
+
+test("landing: debug validation", async () => {
+  const createCalls = [];
+  const handlers = { create: (s, name) => createCalls.push([s, name]), join: () => {} };
+  const handle = show(document, handlers, { debug: true });
+
+  const nameInput = document.getElementById("landing-name");
+  const debugCreateButton = document.getElementById("landing-debug-create");
+
+  // depth 40
+  nameInput.value = "Ann";
+  document.getElementById("landing-debug-depth").value = "40";
+  debugCreateButton.click();
+  await new Promise((r) => setTimeout(r, 20));
+  assert.strictEqual(createCalls.length, 0, "create not called for depth 40");
+  assert.strictEqual(document.getElementById("landing-error").textContent, "Debug: depth 1 to 33, buffs whole numbers of 0 or more.", "error text");
+
+  createCalls.length = 0;
+  // magic -1
+  document.getElementById("landing-debug-depth").value = "3";
+  document.getElementById("landing-debug-magic").value = "-1";
+  debugCreateButton.click();
+  await new Promise((r) => setTimeout(r, 20));
+  assert.strictEqual(createCalls.length, 0, "create not called for magic -1");
+  assert.strictEqual(document.getElementById("landing-error").textContent, "Debug: depth 1 to 33, buffs whole numbers of 0 or more.", "error text");
+
+  createCalls.length = 0;
+  // empty name
+  document.getElementById("landing-debug-magic").value = "0";
+  nameInput.value = "";
+  debugCreateButton.click();
+  await new Promise((r) => setTimeout(r, 20));
+  assert.strictEqual(createCalls.length, 0, "create not called for empty name");
+  assert.strictEqual(document.getElementById("landing-error").textContent, "Enter a name of 1 to 16 characters.", "name error text");
+
+  handle.hide();
+});
