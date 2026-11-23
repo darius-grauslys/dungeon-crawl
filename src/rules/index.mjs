@@ -522,6 +522,31 @@ function gridOpen(grid, x, y) {
   return grid.at(x, y) === "floor";
 }
 
+function findQuickestFoe(world, h, monstersList) {
+  const dirs = [
+    [0, -1], [1, 0], [0, 1], [-1, 0], [1, -1], [1, 1], [-1, 1], [-1, -1]
+  ]; // up, right, down, left, up-right, down-right, down-left, up-left
+  let best = null;
+  for (const [dx, dy] of dirs) {
+    const nx = h.actor.pos.x + dx, ny = h.actor.pos.y + dy;
+    if (!gridOpen(world.grid, nx, ny)) continue;
+    if (stepCutCorner(world.grid, h.actor, dx, dy)) continue;
+    let foe = null;
+    for (const m of monstersList) {
+      if (m.covers(nx, ny) && bestiary.hostile(h.actor.kind, m.kind)) { foe = m; break; }
+    }
+    if (!foe) continue;
+    const e = bestiary.entry(foe.kind);
+    let eff = e.strike;
+    if (foe.slow > 0) eff = eff * 2;
+    if (foe.haste > 0) eff = Math.floor(eff / 2);
+    if (!best || eff < best.eff) {
+      best = { dx, dy, foe, eff };
+    }
+  }
+  return best;
+}
+
 function heroLatency(actor, type) {
   let lat;
   if (type === "attack") lat = HERO_LATENCY.attack;
@@ -877,7 +902,11 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
     const newHero = h.with({ actor: updatedActor, pending: null, offer: null });
     return { hero: newHero, gold, items, monstersList, log, grid: undefined, rng };
   } else if (intent.kind === "attack") {
-    const dx = intent.dx, dy = intent.dy;
+    let dx = intent.dx, dy = intent.dy;
+    if (dx === 0 && dy === 0) {
+      const foe = findQuickestFoe(world, h, monstersList);
+      if (foe) { dx = foe.dx; dy = foe.dy; }
+    }
     const dir = (dx === 0 && dy === 0) ? h.actor.aim : { dx, dy };
     const r = h.actor.stats.range || 1;
     let reach = 1, monster = null, mk = 1;
