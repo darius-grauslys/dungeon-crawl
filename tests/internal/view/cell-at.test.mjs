@@ -21,7 +21,8 @@ function makeCanvas(w, h) {
 }
 
 function makeWorld(annX, annY, gw, gh) {
-  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const tiles = Array(gw * gh).fill("floor");
+  const grid = tileGrid.of(gw, gh, tiles);
   const visible = mask.of(gw, gh, Array(gw * gh).fill(true));
   const explored = mask.of(gw, gh, Array(gw * gh).fill(true));
   const annActor = actor.of({ id: 0, kind: "hero", pos: point.of(annX, annY), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) });
