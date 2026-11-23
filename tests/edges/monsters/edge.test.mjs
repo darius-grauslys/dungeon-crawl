@@ -228,6 +228,26 @@ test("kites", () => {
   assert.strictEqual(i.dx, 0);
   assert.strictEqual(i.dy, -1);
 
+  // Ranged monster whose last is a move shoots a foe in line between steps.
+  const archerMoveLast = actor.of({ id: 1, kind: "archer", pos: point.of(5, 5), stats: stats.of(archerStats), last: { kind: "move", dx: 0, dy: 1, at: 0, reach: 1 } });
+  i = decide(archerMoveLast, grid, [point.of(5, 3)], [], [], 0);
+  assert.strictEqual(i.kind, "attack");
+  assert.strictEqual(i.dx, 0);
+  assert.strictEqual(i.dy, -1);
+
+  // With last a move and the foe not in line, it backs off by stepping.
+  i = decide(archerMoveLast, grid, [point.of(6, 3)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 0);
+  assert.strictEqual(i.dy, 1);
+
+  // With last an attack, it steps.
+  const archerAttackLast = actor.of({ id: 1, kind: "archer", pos: point.of(5, 5), stats: stats.of(archerStats), last: { kind: "attack", dx: 0, dy: -1, at: 0, reach: 2 } });
+  i = decide(archerAttackLast, grid, [point.of(5, 3)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 0);
+  assert.strictEqual(i.dy, 1);
+
   const guardArcher = actor.of({ id: 1, kind: "archer", pos: point.of(5, 5), stats: stats.of(archerStats), mode: "guard" });
   i = decide(guardArcher, grid, [point.of(5, 3)], [], [], 0);
   assert.strictEqual(i.kind, "wait");
@@ -330,10 +350,10 @@ test("actor/valid", () => {
 
   assert.ok(!Object.hasOwn(a, "with"));
 
-  assert.strictEqual(actor.KINDS.length, 19);
+  assert.strictEqual(actor.KINDS.length, 23);
   assert.strictEqual(actor.KINDS[0], "hero");
   assert.strictEqual(actor.KINDS[1], "bat");
-  assert.strictEqual(actor.KINDS[18], "golem");
+  assert.strictEqual(actor.KINDS[22], "serpent");
 
   assert.throws(() => actor.of({ id: 0, kind: "dragon", pos: point.of(1, 2), stats: s }), TypeError);
   assert.throws(() => actor.of({ id: -1, kind: "hero", pos: point.of(1, 2), stats: s }), TypeError);
@@ -443,9 +463,9 @@ test("actor/covers", () => {
 });
 
 test("bestiary/valid", () => {
-  assert.strictEqual(bestiary.KINDS.length, 18);
+  assert.strictEqual(bestiary.KINDS.length, 22);
   assert.strictEqual(bestiary.KINDS[0], "bat");
-  assert.strictEqual(bestiary.KINDS[17], "golem");
+  assert.strictEqual(bestiary.KINDS[21], "serpent");
   assert.ok(Object.isFrozen(bestiary.KINDS));
 
   const archerEntry = bestiary.entry("archer");
@@ -453,6 +473,7 @@ test("bestiary/valid", () => {
   assert.ok(Object.isFrozen(archerEntry));
 
   assert.strictEqual(bestiary.entry("blue-snake").slows, true);
+  assert.strictEqual(bestiary.entry("blue-spider").slows, true);
   assert.strictEqual(bestiary.entry("golem").size, 3);
   assert.strictEqual(bestiary.entry("golem").step, 1600);
   assert.strictEqual(bestiary.entry("golem").defense, 12);
@@ -461,6 +482,26 @@ test("bestiary/valid", () => {
   assert.strictEqual(bestiary.entry("golem").magicPower, 2);
   assert.strictEqual(bestiary.entry("cultist").range, 4);
   assert.strictEqual(bestiary.entry("cultist").magic, 8);
+  assert.strictEqual(bestiary.entry("bat").step, 133);
+  assert.strictEqual(bestiary.entry("bat").strike, 200);
+
+  const serpentEntry = bestiary.entry("serpent");
+  assert.strictEqual(serpentEntry.group, "vermin");
+  assert.strictEqual(serpentEntry.hp, 60);
+  assert.strictEqual(serpentEntry.attack, 10);
+  assert.strictEqual(serpentEntry.defense, 6);
+  assert.strictEqual(serpentEntry.slows, true);
+  assert.strictEqual(serpentEntry.size, 3);
+
+  const mageEntry = bestiary.entry("mage");
+  assert.deepStrictEqual(mageEntry, { kind: "mage", group: "undead", hp: 8, attack: 2, defense: 1, magic: 4, magicPower: 1, range: 4, slows: false, reach: 7, step: 400, strike: 700, size: 1 });
+
+  const swordsmanEntry = bestiary.entry("swordsman");
+  assert.strictEqual(swordsmanEntry.group, "undead");
+  assert.strictEqual(swordsmanEntry.hp, 11);
+  assert.strictEqual(swordsmanEntry.attack, 5);
+  assert.strictEqual(swordsmanEntry.defense, 2);
+  assert.strictEqual(swordsmanEntry.range, 1);
 
   assert.strictEqual(bestiary.group("hero"), "human");
   assert.strictEqual(bestiary.group("imp"), "demon");
