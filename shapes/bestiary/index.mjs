@@ -1,13 +1,16 @@
 // bestiary: an API Shape, the monster kinds' table and groups.
 
 const TABLE = [
-  { kind: 'bat', group: 'vermin', hp: 3, attack: 2, defense: 0, magic: 0, magicPower: 1, range: 1, slows: false, reach: 9, step: 400, strike: 600, size: 1 },
+  { kind: 'bat', group: 'vermin', hp: 3, attack: 2, defense: 0, magic: 0, magicPower: 1, range: 1, slows: false, reach: 9, step: 133, strike: 200, size: 1 },
   { kind: 'slime', group: 'vermin', hp: 6, attack: 2, defense: 1, magic: 0, magicPower: 1, range: 1, slows: false, reach: 6, step: 400, strike: 600, size: 1 },
   { kind: 'snake', group: 'vermin', hp: 5, attack: 3, defense: 0, magic: 0, magicPower: 1, range: 1, slows: false, reach: 6, step: 400, strike: 600, size: 1 },
   { kind: 'skeleton', group: 'undead', hp: 9, attack: 4, defense: 2, magic: 0, magicPower: 1, range: 1, slows: false, reach: 6, step: 400, strike: 600, size: 1 },
   { kind: 'archer', group: 'undead', hp: 7, attack: 3, defense: 1, magic: 0, magicPower: 1, range: 4, slows: false, reach: 7, step: 400, strike: 700, size: 1 },
+  { kind: 'mage', group: 'undead', hp: 8, attack: 2, defense: 1, magic: 4, magicPower: 1, range: 4, slows: false, reach: 7, step: 400, strike: 700, size: 1 },
+  { kind: 'swordsman', group: 'undead', hp: 11, attack: 5, defense: 2, magic: 0, magicPower: 1, range: 1, slows: false, reach: 6, step: 400, strike: 600, size: 1 },
   { kind: 'blue-slime', group: 'vermin', hp: 6, attack: 2, defense: 1, magic: 0, magicPower: 1, range: 1, slows: true, reach: 6, step: 400, strike: 600, size: 1 },
   { kind: 'blue-snake', group: 'vermin', hp: 5, attack: 3, defense: 0, magic: 0, magicPower: 1, range: 1, slows: true, reach: 6, step: 400, strike: 600, size: 1 },
+  { kind: 'blue-spider', group: 'vermin', hp: 7, attack: 3, defense: 1, magic: 0, magicPower: 1, range: 1, slows: true, reach: 7, step: 300, strike: 600, size: 1 },
   { kind: 'beetle', group: 'vermin', hp: 8, attack: 4, defense: 3, magic: 0, magicPower: 1, range: 1, slows: false, reach: 6, step: 400, strike: 600, size: 1 },
   { kind: 'mummy', group: 'undead', hp: 12, attack: 5, defense: 2, magic: 0, magicPower: 1, range: 1, slows: false, reach: 6, step: 600, strike: 600, size: 1 },
   { kind: 'cultist', group: 'human', hp: 7, attack: 5, defense: 1, magic: 8, magicPower: 1, range: 4, slows: false, reach: 7, step: 400, strike: 700, size: 1 },
@@ -19,6 +22,7 @@ const TABLE = [
   { kind: 'imp', group: 'demon', hp: 12, attack: 6, defense: 3, magic: 0, magicPower: 1, range: 1, slows: false, reach: 7, step: 300, strike: 600, size: 1 },
   { kind: 'demon', group: 'demon', hp: 16, attack: 7, defense: 4, magic: 0, magicPower: 1, range: 1, slows: false, reach: 7, step: 400, strike: 600, size: 1 },
   { kind: 'golem', group: 'construct', hp: 40, attack: 12, defense: 12, magic: 6, magicPower: 2, range: 1, slows: false, reach: 30, step: 1600, strike: 1000, size: 3 },
+  { kind: 'serpent', group: 'vermin', hp: 60, attack: 10, defense: 6, magic: 0, magicPower: 1, range: 1, slows: true, reach: 30, step: 1200, strike: 900, size: 3 },
 ];
 
 export const KINDS = Object.freeze(TABLE.map((row) => row.kind));
