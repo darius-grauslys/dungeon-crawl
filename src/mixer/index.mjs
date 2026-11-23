@@ -24,6 +24,10 @@ const MUSIC_PATHS = {
   3: 'music/dungeon-3.mp3',
   4: 'music/dungeon-4.mp3',
   5: 'music/dungeon-5.mp3',
+  6: 'music/dark-comical.mp3',
+  7: 'music/desert-dungeon.mp3',
+  8: 'music/shop.mp3',
+  9: 'music/boss.mp3',
 };
 
 export function create({ context, fetch: fetcher, base, random }) {
@@ -126,8 +130,8 @@ export function create({ context, fetch: fetcher, base, random }) {
   }
 
   function music(track) {
-    if (typeof track !== 'number' || !Number.isInteger(track) || track < 0 || track > 5) {
-      throw new TypeError('track must be an integer from 0 to 5');
+    if (typeof track !== 'number' || !Number.isInteger(track) || track < 0 || track > 9) {
+      throw new TypeError('track must be an integer from 0 to 9');
     }
     if (track === state.currentTrack) return;
 
