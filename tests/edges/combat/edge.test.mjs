@@ -137,6 +137,36 @@ test("ward", () => {
   assert.equal(s.magic, 0);
 });
 
+test("casters", () => {
+  const attacker = stats.of({ hp: 5, maxHp: 5, attack: 0, defense: 0, magic: 1 });
+  const defender = stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 });
+
+  let s = resolve(attacker, defender, 11, 50);
+  assert.equal(s.hit, true);
+  assert.equal(s.critical, false);
+  assert.equal(s.damage, 1);
+  assert.equal(s.magic, 1);
+
+  s = resolve(attacker, defender, 20, 50);
+  assert.equal(s.hit, true);
+  assert.equal(s.critical, true);
+  assert.equal(s.damage, 1);
+  assert.equal(s.magic, 1);
+
+  s = resolve(attacker, defender, 10, 50);
+  assert.equal(s.hit, false);
+  assert.equal(s.critical, false);
+  assert.equal(s.damage, 0);
+  assert.equal(s.magic, 0);
+
+  const attacker0 = stats.of({ hp: 5, maxHp: 5, attack: 0, defense: 0, magic: 0 });
+  s = resolve(attacker0, defender, 20, 50);
+  assert.equal(s.hit, false);
+  assert.equal(s.critical, false);
+  assert.equal(s.damage, 0);
+  assert.equal(s.magic, 0);
+});
+
 test("refuses", () => {
   const attacker = stats.of({ hp: 10, maxHp: 10, attack: 4, defense: 0 });
   const defender = stats.of({ hp: 10, maxHp: 10, attack: 0, defense: 1 });
