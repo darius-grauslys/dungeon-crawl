@@ -56,8 +56,11 @@ test("entry('golem'): size 3, step 1600, attack 12, defense 12, magic 6, magicPo
   assert.equal(e.magicPower, 2);
 });
 
-test("entry('cultist').range is 4", () => {
-  assert.equal(entry("cultist").range, 4);
+test("entry('cultist').range is 4, magic 8, magicPower 1", () => {
+  const e = entry("cultist");
+  assert.equal(e.range, 4);
+  assert.equal(e.magic, 8);
+  assert.equal(e.magicPower, 1);
 });
 
 test("group: hero is human, imp is demon, golem is construct", () => {
