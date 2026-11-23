@@ -18,20 +18,26 @@ list is `list[Math.floor(value * list.length)]`. `newGame(seed)` and
 says what the depth is. On a **dungeon** depth, with `stage =
 level.stage(depth)` and `tier = level.tier(depth)`, place, in order, on
 the plan's `spots` taken from the first onward: `2 + 2 * stage`
-monsters, then the items. Monster kinds by tier, each picked from its
-list with one draw:
+monsters, then the items. Each monster takes one draw first, which may make it a rarer kind (by
+the floor's level, `level.number(depth)`); otherwise a second draw picks
+from the level's list:
 
-| tier (levels) | kinds |
-|---|---|
-| 0, stages 1 to 3 (levels 1 to 3) | bat, slime, snake |
-| 0, stages 4 and 5 (levels 4 and 5) | bat, slime, snake, skeleton; and the archer, rarely (below) |
-| 1 (levels 6 to 10) | blue-slime, blue-snake, skeleton |
-| 2 (levels 11 to 15) | beetle, mummy, cultist |
-| 3 (levels 16 to 20) | spider, ghost, reaper |
-| 4 (levels 21 to 25) | worm, fire-slime, imp, demon |
+| levels | first draw: below ... | else a pick from |
+|---|---|---|
+| 1, 2 | (no first draw) | bat, slime, snake |
+| 3 | 0.08: `swordsman` | bat, slime, snake |
+| 4 | 0.10: `archer`; 0.16: `swordsman`; 0.22: `mage` | bat, slime, snake, skeleton |
+| 5 | 0.10: `archer`; 0.16: `swordsman`; 0.22: `mage` | bat, slime, blue-spider, skeleton |
+| 6 to 10 | 0.25: `mage` | blue-slime, blue-spider, archer, swordsman |
+| 11 to 15 | (no first draw) | beetle, mummy, cultist |
+| 16 to 20 | (no first draw) | spider, ghost, reaper |
+| 21 to 25 | (no first draw) | worm, fire-slime, imp, demon |
 
-On tier 0, stages 4 and 5, each monster takes one draw first: below
-`0.1`, it is an `archer`; otherwise a second draw picks from the list.
+(On levels 4 and 5, a first draw from 0.10 to below 0.16 is a
+swordsman, from 0.16 to below 0.22 a mage. Levels 6 to 10 have no plain
+skeleton, only the armed ones; from level 5 to 10 the blue spider takes
+the snake's place, and no `blue-snake` is placed anywhere: it grew into
+the second lair's serpent.)
 
 Monster stats from `bestiary.entry(kind)` (`hp` = `maxHp`), with the
 tier: `hp` and `maxHp` are `base + Math.floor(base * tier / 2)`,
@@ -40,28 +46,51 @@ tier: `hp` and `maxHp` are `base + Math.floor(base * tier / 2)`,
 entry's, `magicResist` 0. Every monster
 `mode` `roam`, `size` the entry's (1), `ready` as the EED says.
 
-Items: 2 `potion`s and 2 `gold` (amount `level.number(depth) * (3 + d)`
-with `d` a draw from 0 to 7), plus a `sword` on stages 2 and 4 and an
-`armor` on stages 3 and 5, every `price` 0. Ids: heroes 0 to 3; monsters
+Items, in this order, each kind by its draws: 2 food (each one draw,
+a pick from `[cheese, cheese, bread, meat]`), then one draw for a
+`potion` (below 0.25: one potion; else none), 2 `gold` (amount
+`level.number(depth) * (3 + d)` with `d` a draw from 0 to 7), plus a
+sword on stages 2 and 4 and an armor on stages 3 and 5, each of a grade
+drawn from 1 up to the floor's **band** (one draw, `1 + Math.floor(value
+* band)`; grade 1 is `sword` or `armor`, grade `g` above 1 `sword-<g>`
+or `armor-<g>`), every `price` 0. The band: levels 1 to 5, 1; 6 to 10,
+2; 11 to 15, 3; 16 to 25, 4 (`Math.min(4, tier + 1)`). Ids: heroes 0 to 3; monsters
 and items count up from 10, fresh on each floor (monsters first).
 
 On a **shop** depth (`level.kind(depth)` is `interior`): no monsters;
-the six wares on the plan's six spots in order, of the kinds `potion`,
-`sword`, `armor`, `ring`, `necklace`, `potion`, each with a `price` drawn
-in that order: with `round = level.round(depth)` and the kind's base `B`
-and spread `S` (`potion` 20 and 12, `sword` 30 and 6, `armor` 40 and 6,
-`ring` 35 and 6, `necklace` 35 and 6),
+with `round = level.round(depth)`, `6 + [0, 3, 6, 12][round - 1]` wares
+on the plan's spots in order (6, 9, 12, 18), each ware's kind drawn and
+then its price, in order:
+- the first two: food, one draw each from `[cheese, bread, meat]`;
+- each other: one draw from `[potion, food, sword, armor, ring,
+  necklace]`; a `food` takes one more draw from `[cheese, bread, meat]`;
+  a `sword` or an `armor` one more for its grade, from 1 to
+  `Math.min(4, round + 1)` (as on a floor).
+The price, one draw: with the kind's base `B` and spread `S` below,
 `Math.round(B * 1.25 ** (round - 1)) - S + Math.floor(value * (2 * S +
-1))`, `value` one draw. So the base prices of the first shop are 20, 30
-and 40 gold, and each next shop's are a quarter more than the last's.
+1))`.
+
+| kind | `B` | `S` | | kind | `B` | `S` |
+|---|---|---|---|---|---|---|
+| `cheese` | 6 | 2 | | `sword` | 30 | 6 |
+| `bread` | 10 | 3 | | `sword-2` | 45 | 6 |
+| `meat` | 16 | 4 | | `sword-3` | 60 | 6 |
+| `potion` | 30 | 6 | | `sword-4` | 80 | 6 |
+| `ring` | 35 | 6 | | `armor` | 40 | 6 |
+| `necklace` | 35 | 6 | | `armor-2` | 55 | 6 |
+| | | | | `armor-3` | 70 | 6 |
+| | | | | `armor-4` | 90 | 6 |
+
+So each shop's prices are a quarter more than the last's.
 `visible` and `explored` are every cell (`mask.of` with every cell
 true), on arrival and after every `advance`.
 
-On a **lair** depth (`boss`): when the plan has a `boss`, the golem (id
-10; stats from its entry, untiered; `size` 3, `mode` `dormant`,
-`facing` `left`) at `plan.boss`; the grid made again with `tile-grid`'s
+On a **lair** depth (`boss`): when the plan has a `boss`, the boss (id
+10; the `golem` on round 1, the `serpent` on round 2; stats from its
+entry, untiered; `size` 3, `mode` `dormant`, `facing` `left`) at
+`plan.boss`; the grid made again with `tile-grid`'s
 `of`, the `plan.stairs` cell `floor`; the levers (ids 11 onward) on
-`plan.levers` in order; a guard `slime` (`mode` `guard`, stats of tier
+`plan.levers` in order (round 1 only: the serpent's plan has none); a guard `slime` (`mode` `guard`, stats of tier
 0) on every spot in order (ids after the levers). Without a `boss`:
 nothing. No draws on a lair.
 
@@ -106,8 +135,8 @@ it (alive heroes in order, then monsters, each once), and run the same
 melee strike helper on each in turn (two draws each, threaded). Its
 `ready` and `last` are set once.
 
-**The golem's gold.** When the golem dies, at time `t`, two draws: the
-total `25 + Math.floor(value * 51)`, then the count `n = 1 +
+**The golem's gold** (a boss's). When a boss dies, at time `t`, two draws: the
+total `(25 + Math.floor(value * 51)) * level.round(depth)`, then the count `n = 1 +
 Math.floor(value * 5)`. The candidate cells: every `floor` cell (not
 `stairs`) at distance 1 or 2 from the golem's last square, outside it (the
 square is the dying golem actor's own: from its `pos`, `size` cells
@@ -142,10 +171,13 @@ Exactly these lines (`<h>` the hero's name, `<m>` the monster's kind):
 - `The <m> awakens!` / `<h> pulls a lever. The golem weakens!` /
   `<h> pulls a lever.` / `The golem is slain.` / `The guardians crumble.` /
   `The way down opens!` / `Gold spills from the golem!`
-- `<h> drinks a potion (+<healed> HP).` / `<h> picks up <n> gold.` /
-  `<h> picks up a sword (+2 attack).` / `<h> puts on armor (+1 defense).` /
+- `<h> drinks a potion (+5 max HP).` / `<h> eats <name> (+<n> HP).` /
+  `<h> picks up <n> gold.` / `<h> picks up <name> (+1 attack).` /
+  `<h> puts on <name> (+1 defense).` /
   `<h> puts on a ring (+1 magic power).` /
   `<h> puts on a cross necklace (+1 magic resist).`
+- `<h>: your <stat> is too high for <name>. Use it (e) to trade it for gold.` /
+  `<h> trades <name> for <g> gold.` / `<h>: your <stat> is too high for <ware>.`
 - `<h> looks at <ware>: <p> gold. Bump it again to buy.` /
   `<h> buys <ware> for <p> gold.` /
   `Not enough gold for <ware>: <p> needed, the party has <g>.`

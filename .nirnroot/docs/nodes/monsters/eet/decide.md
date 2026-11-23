@@ -45,7 +45,7 @@ As the EED states.
 As the EED states.
 
 ## Intrinsic - kites:
-As the EED states (`blocked` `[]`: the foe's own cell is not in it).
+As the EED states (`blocked` `[]`: the foe's own cell is not in it; set `last` with `actor`'s `of` or `with`).
 
 ## Intrinsic - no-path:
 As the EED states.

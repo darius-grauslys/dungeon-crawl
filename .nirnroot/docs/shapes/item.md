@@ -4,19 +4,22 @@ A thing lying on the floor that a hero picks up by stepping on it; in a
 shop, a **ware**: a thing for sale, with a price; or, in a lair, a
 **lever**. Immutable.
 
-| kind | what picking it up does |
+| kind | what it is |
 |---|---|
-| `potion` | heals 8 hit points, never above `maxHp` |
-| `gold` | adds `amount` to the party's gold |
-| `sword` | adds 2 to that hero's `attack` |
-| `armor` | adds 1 to that hero's `defense` |
-| `ring` | adds 1 to that hero's `magicPower` |
-| `necklace` | a cross necklace: adds 1 to that hero's `magicResist` |
+| `potion` | a potion: drinking it raises `maxHp` for good |
+| `gold` | the party's money (`amount`) |
+| `sword`, `sword-2`, `sword-3`, `sword-4` | a weapon, in four grades: a sword, a fine sword, an axe, a great axe |
+| `armor`, `armor-2`, `armor-3`, `armor-4` | armor, in four grades: armor, chainmail, bronze mail, jade mail |
+| `ring` | a ring (magic power) |
+| `necklace` | a cross necklace (magic resist) |
 | `lever` | never picked up: a hero pulls it (`rules` says how) |
+| `bread`, `meat`, `cheese` | food: eating it heals |
+
+What picking each up does is `rules`'s.
 
 An item with a `price` above 0 is a ware: it is never picked up by
-stepping on it, but bought (`rules` says how), and its effect is then the
-table's. A `gold` is never a ware, nor is a `lever`. A lever is `pulled`
+stepping on it, but bought (`rules` says how), and its effect is then what picking it
+up does. A `gold` is never a ware, nor is a `lever`. A lever is `pulled`
 or not; no other item is ever `pulled`.
 
 An item can have been **flung**: thrown onto its cell from another, at a
@@ -25,14 +28,17 @@ when, so the screen can draw it flying.
 
 The module (`shapes/item/index.mjs`) exports `of({id, kind, pos, amount,
 price, pulled, flung})`: `id` an integer of 0 or more; `kind` one of the
-seven; `pos` a `point`; `amount` an integer, at least 1 for `gold` and
+sixteen; `pos` a `point`; `amount` an integer, at least 1 for `gold` and
 exactly 0 for the others (left out: 0); `price` an integer of 0 or more,
 0 for a `gold` and a `lever` (left out: 0); `pulled` a boolean, `false`
 for any kind but `lever` (left out: `false`); `flung` `null` or `{x, y,
 at}`, the cell it was thrown from and the world time it was thrown, all
 integers of 0 or more (left out: `null`; the item keeps a frozen copy
 with those three keys). Any other input is refused with a `TypeError`.
-`KINDS` is the seven kind names, in the table's order (a frozen array).
+`KINDS` is the sixteen kind names (a frozen array), in this order:
+`potion`, `gold`, `sword`, `armor`, `ring`, `necklace`, `lever`,
+`bread`, `meat`, `cheese`, `sword-2`, `sword-3`, `sword-4`, `armor-2`,
+`armor-3`, `armor-4`.
 
 # Fields:
 ## Field - id:
@@ -71,8 +77,13 @@ of `price` 5, a `lever` of `price` 5, a `potion` that is `pulled`,
 `pulled: 'yes'`, and `flung` of `{x: 1, y: 1}` or `{x: -1, y: 1, at: 0}`
 each throw a `TypeError`. `of({id: 9, kind: 'ring', pos: point.of(1, 1),
 price: 35})` and `of({id: 10, kind: 'necklace', pos: point.of(1, 1)})`
-are accepted. `KINDS` is `['potion', 'gold', 'sword', 'armor', 'ring',
-'necklace', 'lever']`.
+are accepted. `of({id: 11, kind: 'cheese', pos: point.of(1, 1)})`, `of({id: 12, kind:
+'armor-3', pos: point.of(1, 1), price: 70})` and `of({id: 13, kind:
+'sword-4', pos: point.of(1, 1)})` are accepted; a `meat` of `amount` 2
+and an `armor-5` throw a `TypeError`. `KINDS` is `['potion', 'gold',
+'sword', 'armor', 'ring', 'necklace', 'lever', 'bread', 'meat',
+'cheese', 'sword-2', 'sword-3', 'sword-4', 'armor-2', 'armor-3',
+'armor-4']`.
 
 # Callbacks:
 None
