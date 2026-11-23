@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { init, load, camera, draw } from "../../../edges/edge_to_view.mjs";
+import { init, load, camera, draw, cellAt } from "../../../edges/edge_to_view.mjs";
 import * as world from "../../../shapes/world/index.mjs";
 import * as point from "../../../shapes/point/index.mjs";
 import * as hero from "../../../shapes/hero/index.mjs";
@@ -97,6 +97,44 @@ test("camera", () => {
   });
   c = camera(h10x5, "Ann", 16, 10);
   assert.deepEqual(c, point.of(0, 0));
+});
+
+test("cell-at", () => {
+  const canvas = document.querySelector("canvas");
+  init(canvas);
+
+  const makeGrid48x32 = () => {
+    const tiles = Array(48 * 32).fill("floor");
+    return tileGrid.of(48, 32, tiles);
+  };
+  const g48x32 = makeGrid48x32();
+
+  const heroAt = (name, px, py, alive) => world.of({
+    seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+    grid: g48x32, heroes: [makeHero(name, 0, px, py, alive !== false)], monsters: [], items: [],
+    visible: mask.empty(48, 32), explored: mask.empty(48, 32), gold: 0, log: ["hello"], entry: makeEntry()
+  });
+
+  const w48x32 = heroAt("Ann", 20, 15, true);
+  assert.deepEqual(cellAt(w48x32, "Ann", 100, 60), point.of(14, 11));
+  assert.deepEqual(cellAt(w48x32, "Ann", 0, 0), point.of(12, 10));
+  assert.deepEqual(cellAt(w48x32, "Ann", 767, 479), point.of(27, 19));
+  assert.equal(cellAt(w48x32, "Ann", 768, 10), null);
+  assert.equal(cellAt(w48x32, "Ann", 10, 480), null);
+  assert.equal(cellAt(w48x32, "Ann", -1, 10), null);
+
+  const makeGrid10x5 = () => {
+    const tiles = Array(10 * 5).fill("floor");
+    return tileGrid.of(10, 5, tiles);
+  };
+  const g10x5 = makeGrid10x5();
+  const w10x5 = world.of({
+    seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+    grid: g10x5, heroes: [makeHero("Ann", 0, 5, 2, true)], monsters: [], items: [],
+    visible: mask.empty(10, 5), explored: mask.empty(10, 5), gold: 0, log: ["hello"], entry: makeEntry()
+  });
+  assert.deepEqual(cellAt(w10x5, "Ann", 100, 60), point.of(2, 1));
+  assert.equal(cellAt(w10x5, "Ann", 600, 100), null);
 });
 
 test("flat-colours", async () => {
