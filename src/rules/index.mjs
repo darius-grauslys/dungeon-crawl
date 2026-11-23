@@ -291,7 +291,7 @@ function makeFloor(seed, depth, rngIn) {
         );
       }
     }
-    return { plan, monsters, items, rng, grid };
+    return { plan, monsters, items, rng, grid, spikes: plan.spikes || [] };
   }
 
   if (isShopDepth(depth)) {
@@ -320,7 +320,7 @@ function makeFloor(seed, depth, rngIn) {
       const price = Math.round(cfg.base * Math.pow(1.25, round - 1)) - spread + Math.floor(value * (2 * spread + 1));
       items.push(itemShape.of({ id: idCounter++, kind, pos: spots[i], amount: 0, price, pulled: false }));
     }
-    return { plan, monsters, items, rng, grid };
+    return { plan, monsters, items, rng, grid, spikes: plan.spikes || [] };
   }
 
   const stage = levelShape.stage(depth);
@@ -442,7 +442,7 @@ function makeFloor(seed, depth, rngIn) {
     items.push(itemShape.of({ id: idCounter++, kind, pos: spots[spotIdx++], amount: 0, price: 0, pulled: false }));
   }
 
-  return { plan, monsters, items, rng, grid };
+  return { plan, monsters, items, rng, grid, spikes: plan.spikes || [] };
 }
 
 function newGame(seed, depth = 1) {
@@ -457,7 +457,7 @@ function newGame(seed, depth = 1) {
   return worldShape.of({
     seed, rng, depth: d, time: 0, state: "playing", grid,
     heroes: [], monsters, items, visible, explored, gold: 0,
-    log: ["Welcome to the dungeon. Find the stairs (>)."], entry,
+    log: ["Welcome to the dungeon. Find the stairs (>)."], entry, spikes: plan.spikes || [],
   });
 }
 
@@ -493,7 +493,7 @@ function fromSave(save) {
   return worldShape.of({
     seed: save.seed, rng, depth: save.depth, time: 0, state: "playing", grid,
     heroes: newHeroes, monsters, items, visible, explored, gold: 0,
-    log, entry: save,
+    log, entry: save, spikes: plan.spikes || [],
   });
 }
 
@@ -1914,6 +1914,32 @@ function advance(world, ms) {
   }
   heroes = updatedHeroes;
 
+  // 2c. Spikes
+  const raisedSpikes = [];
+  for (const s of (world.spikes || [])) {
+    const idx = ((((Math.floor(newTime / 400)) + s.shift) % 6) + 6) % 6;
+    const fv = [0, 1, 0, 1, 0, 2][idx];
+    if (fv > 0) raisedSpikes.push({ x: s.x, y: s.y, fv });
+  }
+  for (const h of heroes) {
+    if (!h.alive) continue;
+    for (const rs of raisedSpikes) {
+      if (h.actor.covers(rs.x, rs.y)) {
+        let dmg = rs.fv === 1 ? 4 : rs.fv === 2 ? 16 : 0;
+        dmg = Math.max(1, dmg - h.actor.stats.defense);
+        const nhp = h.actor.stats.hp - dmg;
+        if (nhp <= 0) {
+          log.push(`${h.name} falls to a spike.`);
+          heroes = heroes.map((hh) => hh.actor.id === h.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: statsShape.of({ hp: 0, maxHp: hh.actor.stats.maxHp, attack: hh.actor.stats.attack, defense: hh.actor.stats.defense, range: hh.actor.stats.range, magic: hh.actor.stats.magic, magicPower: hh.actor.stats.magicPower, magicResist: hh.actor.stats.magicResist }) }), pending: hh.pending, alive: false, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+        } else {
+          log.push(`${h.name} takes ${dmg} from a spike.`);
+          const nstats = statsShape.of({ hp: nhp, maxHp: h.actor.stats.maxHp, attack: h.actor.stats.attack, defense: h.actor.stats.defense, range: h.actor.stats.range, magic: h.actor.stats.magic, magicPower: h.actor.stats.magicPower, magicResist: h.actor.stats.magicResist });
+          heroes = heroes.map((hh) => hh.actor.id === h.actor.id ? heroShape.of({ name: hh.name, actor: hh.actor.with({ stats: nstats }), pending: hh.pending, alive: hh.alive, offer: hh.offer, colour: hh.colour, group: hh.group }) : hh);
+        }
+      }
+    }
+  }
+
   // 3. Wipe
   const aliveHeroes = heroes.filter((h) => h.alive);
   if (aliveHeroes.length === 0 && heroes.length > 0) {
@@ -1945,7 +1971,7 @@ function advance(world, ms) {
       return worldShape.of({ ...world, time: newTime, heroes, monsters: monstersList, items, visible: fv, explored: fe, state: "won", log: log.slice(-50), gold, grid: currentGrid, rng, effects: eff });
     }
     const newDepth = world.depth + 1;
-    const { plan, monsters: newMonsters, items: newItems, rng: newRng, grid: newGrid } = makeFloor(world.seed, newDepth, rng);
+    const { plan, monsters: newMonsters, items: newItems, rng: newRng, grid: newGrid, spikes: newSpikes } = makeFloor(world.seed, newDepth, rng);
     const startList = startCells(plan);
     const newHeroes = [];
     for (const h of heroes) {
@@ -1979,7 +2005,7 @@ function advance(world, ms) {
       seed: world.seed, rng: newRng, depth: newDepth, time: newTime, state: "playing", grid: newGrid,
       heroes: newHeroes, monsters: newMonsters, items: newItems, visible: finalVisible, explored: finalExplored, gold,
       log: log.slice(-50), entry: saveShape.of({ seed: world.seed, depth: newDepth, players: newHeroes.map((nh) => ({ name: nh.name, stats: { hp: nh.actor.stats.hp, maxHp: nh.actor.stats.maxHp, attack: nh.actor.stats.attack, defense: nh.actor.stats.defense, range: nh.actor.stats.range, magic: nh.actor.stats.magic, magicPower: nh.actor.stats.magicPower, magicResist: nh.actor.stats.magicResist } })) }),
-      effects: eff,
+      effects: eff, spikes: newSpikes,
     });
   } else if (descendFired) {
     log.push("All party members must be within 5 units of the exit!");
