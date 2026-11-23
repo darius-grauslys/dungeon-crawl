@@ -531,7 +531,7 @@ function leapWorld(air) {
   const grid = tileGrid.fromRows(["#############", "#...#####...#", "#...........#", "#...#####...#", "#############"]);
   const visible = mask.of(15, 5, Array(75).fill(true));
   const explored = mask.of(15, 5, Array(75).fill(true));
-  const monster = monsterShape.of({ id: 1, kind: "spider", pos: point.of(4, 1), size: 1, small: false, facing: "right", air, last: null, chant: null, fuse: null });
+  const monster = actor.of({ id: 1, kind: "spider", pos: point.of(4, 1), stats: stats.of({ hp: 10, maxHp: 10, attack: 2, defense: 2 }), size: 1, small: false, facing: "right", air, last: null, chant: null, fuse: null });
   const heroes = [heroShape.of({ name: "Bob", actor: actor.of({ id: 2, kind: "hero", pos: point.of(2, 2), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }), alive: true })];
   const entry = saveShape.of({ seed: 1, depth: 1, players: [{ name: "Ann", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }] });
   return world.of({ seed: 1, rng: 2, depth: 1, time: 0, state: "playing", grid, heroes, monsters: [monster], items: [], visible, explored, gold: 5, log: [], entry });
@@ -590,7 +590,7 @@ test("glides: lunge slides from cell left onto own", async () => {
   const canvas = document.querySelector("canvas");
   const ctx = canvas.getContext("2d");
   view.init(canvas);
-  const monster = monsterShape.of({ id: 1, kind: "snake", pos: point.of(4, 1), size: 1, small: false, facing: "right", last: { kind: "lunge", dx: 1, dy: 0, at: 0, reach: 2 }, chant: null, fuse: null });
+  const monster = actor.of({ id: 1, kind: "snake", pos: point.of(4, 1), stats: stats.of({ hp: 10, maxHp: 10, attack: 2, defense: 2 }), size: 1, small: false, facing: "right", last: { kind: "lunge", dx: 1, dy: 0, at: 0, reach: 2 }, chant: null, fuse: null });
   const heroes = [heroShape.of({ name: "Bob", actor: actor.of({ id: 2, kind: "hero", pos: point.of(2, 2), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }), alive: true })];
   const grid = tileGrid.fromRows(["#############", "#...#####...#", "#...........#", "#...#####...#", "#############"]);
   const visible = mask.of(15, 5, Array(75).fill(true));
@@ -617,7 +617,7 @@ test("glides: flung flies from x,y to pos", async () => {
   const canvas = document.querySelector("canvas");
   const ctx = canvas.getContext("2d");
   view.init(canvas);
-  const monster = monsterShape.of({ id: 1, kind: "snake", pos: point.of(4, 1), size: 1, small: false, facing: "right", last: null, flung: { x: 2, y: 1, at: 0 }, chant: null, fuse: null });
+  const monster = actor.of({ id: 1, kind: "snake", pos: point.of(4, 1), stats: stats.of({ hp: 10, maxHp: 10, attack: 2, defense: 2 }), size: 1, small: false, facing: "right", last: null, flung: { x: 2, y: 1, at: 0 }, chant: null, fuse: null });
   const heroes = [heroShape.of({ name: "Bob", actor: actor.of({ id: 2, kind: "hero", pos: point.of(2, 2), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }), alive: true })];
   const grid = tileGrid.fromRows(["#############", "#...#####...#", "#...........#", "#...#####...#", "#############"]);
   const visible = mask.of(15, 5, Array(75).fill(true));
