@@ -91,69 +91,6 @@ function tileTheme(world, cx, cy) {
   return level.theme(world.depth);
 }
 
-const floorTileCache = new Map(); // grid -> (seed -> (depth -> 2D array of indices))
-
-function valueNoisePoint(world, i, j) {
-  const v = (world.seed ^ Math.imul(world.depth, 0x9E3779B1) ^ Math.imul(i, 0x85EBCA6B) ^ Math.imul(j, 0xC2B2AE35)) >>> 0;
-  let t = (v + 0x6D2B79F5) >>> 0;
-  t = Math.imul(t ^ (t >>> 15), t | 1);
-  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-}
-
-function cellDist(grid, x, y) {
-  const kind = grid.at(x, y);
-  if (kind !== "floor" && kind !== "stairs") return 0;
-  for (let d = 1; d <= 6; d++) {
-    for (let dy = -d; dy <= d; dy++) {
-      for (let dx = -d; dx <= d; dx++) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) !== d) continue;
-        const nk = grid.at(x + dx, y + dy);
-        if (nk !== "floor" && nk !== "stairs") return d;
-      }
-    }
-  }
-  return 6;
-}
-
-function floorTileIndex(world, theme, x, y) {
-  let seedMap = floorTileCache.get(world.grid);
-  if (!seedMap) { seedMap = new Map(); floorTileCache.set(world.grid, seedMap); }
-  let depthMap = seedMap.get(world.seed);
-  if (!depthMap) { depthMap = new Map(); seedMap.set(world.seed, depthMap); }
-  let indices = depthMap.get(world.depth);
-  if (indices === undefined) {
-    const floors = atlas.floors(theme);
-    const N = floors.length;
-    indices = new Array(world.grid.width * world.grid.height);
-    for (let cy = 0; cy < world.grid.height; cy++) {
-      for (let cx = 0; cx < world.grid.width; cx++) {
-        const kind = world.grid.at(cx, cy);
-        if (kind !== "floor") { indices[cy * world.grid.width + cx] = -1; continue; }
-        let sum = 0;
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            const w = (dx === 0 && dy === 0) ? 4 : (Math.abs(dx) === Math.abs(dy)) ? 1 : 2;
-            sum += cellDist(world.grid, cx + dx, cy + dy) * w;
-          }
-        }
-        const b = sum / 16;
-        const gx = cx / 4, gy = cy / 4;
-        const i = Math.floor(gx), j = Math.floor(gy);
-        const fx = gx - i, fy = gy - j;
-        const n = valueNoisePoint(world, i, j) * (1 - fx) * (1 - fy)
-          + valueNoisePoint(world, i + 1, j) * fx * (1 - fy)
-          + valueNoisePoint(world, i, j + 1) * (1 - fx) * fy
-          + valueNoisePoint(world, i + 1, j + 1) * fx * fy;
-        const e = Math.min(0.999, Math.max(0, 1 - (b - 1) / 3 + (n - 0.5) * 0.6));
-        indices[cy * world.grid.width + cx] = Math.floor(e * N);
-      }
-    }
-    depthMap.set(world.depth, indices);
-  }
-  return indices[y * world.grid.width + x];
-}
-
 function drawTileFlat(ctx, kind, px, py) {
   const [r, g, b] = tileColor(kind);
   ctx.fillStyle = `rgb(${r},${g},${b})`;
@@ -261,25 +198,9 @@ function drawTile(world, px, py, cx, cy) {
     }
     return;
   }
-  if (kind === "stairs") {
-    if (loaded_) {
-      const s = atlas.tile(theme, "stairs");
-      if (s) ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, px, py, 48, 48);
-    } else {
-      drawTileFlat(ctx_, kind, px, py);
-    }
-    return;
-  }
   if (loaded_) {
-    if (kind === "floor") {
-      const floors = atlas.floors(theme);
-      const idx = floorTileIndex(world, theme, cx, cy);
-      const s = floors[idx];
-      if (s) ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, px, py, 48, 48);
-    } else {
-      const s = atlas.tile(theme, kind);
-      if (s) ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, px, py, 48, 48);
-    }
+    const s = atlas.tile(theme, kind);
+    if (s) ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, px, py, 48, 48);
   } else {
     drawTileFlat(ctx_, kind, px, py);
   }
@@ -392,126 +313,6 @@ function drawProjectiles(world, now, cam) {
     const py = py0 + (py1 - py0) * p;
     ctx_.fillStyle = "rgb(255,160,40)";
     ctx_.fillRect(px - 4, py - 4, 8, 8);
-  }
-}
-
-function drawFuseAndChant(world, now, cam) {
-  for (const m of world.monsters) {
-    const px = (m.pos.x - cam.x) * 48;
-    const py = (m.pos.y - cam.y) * 48;
-    const anim = animate(m.last, now);
-    // fuse
-    const fuse = m.fuse;
-    if (fuse) {
-      const t = now - fuse.at;
-      if (t >= 0) {
-        const lit = t < 2400 ? (t % 400 < 100) : (t % 400 < 300);
-        if (lit && !loaded_) {
-          const hw = (24 * m.size - 8) * anim.k;
-          const hh = (24 * m.size - 8) * anim.k;
-          const cx = px + 24 * m.size + anim.ox;
-          const cy = py + 24 * m.size + anim.oy;
-          ctx_.fillStyle = "rgba(255,220,120,0.45)";
-          ctx_.fillRect(cx - hw, cy - hh, 2 * hw, 2 * hh);
-        }
-      }
-    }
-    // chant
-    const chant = m.chant;
-    if (chant && now >= chant.at && now < chant.until) {
-      const f = Math.floor((now - chant.at) / 150) % 3;
-      if (loaded_) {
-        const s = atlas.sprite(`sparkle-${f}`);
-        if (s) {
-          const sq = 48 * m.size;
-          const cx = px + 24 * m.size + anim.ox;
-          const cy = py + 24 * m.size + anim.oy;
-          ctx_.save();
-          ctx_.translate(cx, cy);
-          ctx_.scale(m.facing === "left" ? -anim.k : anim.k, anim.k);
-          ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, -sq / 2, -sq / 2, sq, sq);
-          ctx_.restore();
-        }
-      } else {
-        const cx = px + 24 * m.size + anim.ox;
-        const cy = py + 24 * m.size + anim.oy;
-        ctx_.fillStyle = "rgb(255,240,180)";
-        const hw = 6 * m.size;
-        ctx_.fillRect(cx - hw, cy - hw, 2 * hw, 2 * hw);
-      }
-    }
-  }
-  for (const h of world.heroes) {
-    if (!h.alive) continue;
-    const actor = h.actor;
-    const px = (actor.pos.x - cam.x) * 48;
-    const py = (actor.pos.y - cam.y) * 48;
-    const anim = animate(actor.last, now);
-    const fuse = actor.fuse;
-    if (fuse) {
-      const t = now - fuse.at;
-      if (t >= 0) {
-        const lit = t < 2400 ? (t % 400 < 100) : (t % 400 < 300);
-        if (lit && !loaded_) {
-          const hw = (24 * actor.size - 8) * anim.k;
-          const hh = (24 * actor.size - 8) * anim.k;
-          const cx = px + 24 * actor.size + anim.ox;
-          const cy = py + 24 * actor.size + anim.oy;
-          ctx_.fillStyle = "rgba(255,220,120,0.45)";
-          ctx_.fillRect(cx - hw, cy - hh, 2 * hw, 2 * hh);
-        }
-      }
-    }
-    const chant = actor.chant;
-    if (chant && now >= chant.at && now < chant.until) {
-      const f = Math.floor((now - chant.at) / 150) % 3;
-      if (loaded_) {
-        const s = atlas.sprite(`sparkle-${f}`);
-        if (s) {
-          const sq = 48 * actor.size;
-          const cx = px + 24 * actor.size + anim.ox;
-          const cy = py + 24 * actor.size + anim.oy;
-          ctx_.save();
-          ctx_.translate(cx, cy);
-          ctx_.scale(actor.facing === "left" ? -anim.k : anim.k, anim.k);
-          ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, -sq / 2, -sq / 2, sq, sq);
-          ctx_.restore();
-        }
-      } else {
-        const cx = px + 24 * actor.size + anim.ox;
-        const cy = py + 24 * actor.size + anim.oy;
-        ctx_.fillStyle = "rgb(255,240,180)";
-        const hw = 6 * actor.size;
-        ctx_.fillRect(cx - hw, cy - hw, 2 * hw, 2 * hw);
-      }
-    }
-  }
-}
-
-function drawBlasts(world, now, cam) {
-  for (const e of world.effects) {
-    if (e.kind !== "blast") continue;
-    const t = now - e.at;
-    if (t < 0 || t >= 450) continue;
-    const x = e.x, y = e.y, size = e.size || 1;
-    for (let cy = y - 2; cy <= y + size + 1; cy++) {
-      for (let cx = x - 2; cx <= x + size + 1; cx++) {
-        if (!world.visible.at(cx, cy)) continue;
-        if (loaded_) {
-          const s = atlas.sprite(`sparkle-${Math.floor(t / 150)}`);
-          if (s) {
-            const px = (cx - cam.x) * 48;
-            const py = (cy - cam.y) * 48;
-            ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, px, py, 48, 48);
-          }
-        } else {
-          const px = (cx - cam.x) * 48 + 24;
-          const py = (cy - cam.y) * 48 + 24;
-          ctx_.fillStyle = "rgb(255,240,180)";
-          ctx_.fillRect(px - 6, py - 6, 12, 12);
-        }
-      }
-    }
   }
 }
 
@@ -671,19 +472,13 @@ export function draw(world, me, paused, nowIn, aiming = false) {
     }
   }
 
-  // Pass 4c: the fuse blink and the chant sparkles over creatures.
-  drawFuseAndChant(world, now, cam);
-
-  // Pass 5: the blasts of the world's effects.
-  drawBlasts(world, now, cam);
-
-  // Pass 6: the projectiles of ranged attacks in flight.
+  // Pass 5: the projectiles of ranged attacks in flight.
   drawProjectiles(world, now, cam);
 
-  // Pass 7: the aim dot of me's hero.
+  // Pass 6: the aim dot of me's hero.
   if (aiming) drawAimDot(world, me, now, cam);
 
-  // Pass 8: the prices of wares on visible cells.
+  // Pass 7: the prices of wares on visible cells.
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const cx = cam.x + c;
