@@ -23,11 +23,13 @@ row above them is left free for the price shown over each ware). No
 - `boss` is (32, 15): the boss's 3 by 3 square covers `x` 32 to 34 and
   `y` 15 to 17, the stairs (33, 16) at its centre (the way out forms
   there when the boss dies);
-- `levers` are (12, 8), (12, 24) and (22, 16), in that order;
+- `levers` are (39, 7), (39, 25) and (39, 16), in that order: behind
+  the golem, on the hall's far (east) side, so the party must pass it
+  to reach them;
 - `spots` are the guards' cells: for each lever in order, the 24 cells
   within 2 of it (`max(|dx|, |dy|) <= 2`) other than the lever itself,
   row by row (top row first, left to right): 72 points, the first
-  (10, 6), the 24th (14, 10), the 25th (10, 22), the last (24, 18).
+  (37, 5), the 24th (41, 9), the 25th (37, 23), the last (41, 18).
 On the other lairs (14, 21 and 28): `boss` `null`, no `levers`, no
 `spots` (an empty hall, its stairs open).
 
@@ -56,7 +58,7 @@ For seeds 0 to 19 and the depths of `bounded`: `spots` has from 12 to 40 points;
 `generate(s, d)` for `s` in 0, 1 and 4294967295 and `d` in 6, 13, 20 and 27: the grid is 48 by 32, `at(14, 10)`, `at(33, 21)` and `at(16, 12)` are `floor`, `at(13, 10)`, `at(34, 15)` and `at(20, 9)` `wall`, `at(31, 19)` `stairs`, and the plan's `stairs` (31, 19); `start` is (16, 19); `spots` are the six cells above, in order; `boss` is `null`; every `tiles()` is deep equal to `generate(0, 6)`'s.
 
 ## Intrinsic - lair:
-`generate(s, 7)` for `s` in 0 and 4294967295: the grid is 48 by 32, `at(6, 4)`, `at(41, 27)` and `at(20, 20)` are `floor`, `at(5, 4)`, `at(42, 16)` and `at(20, 3)` `wall`, `at(33, 16)` `stairs`; `stairs` is (33, 16), `start` (8, 16), `boss` (32, 15); `levers` are (12, 8), (12, 24) and (22, 16) in order; `spots` has 72 points, the first (10, 6), the 24th (14, 10), the 25th (10, 22) and the last (24, 18), none of them a lever. `generate(s, d)` for `d` in 14, 21 and 28: `tiles()` deep equal to `generate(0, 7)`'s, `stairs` (33, 16), `start` (8, 16), `boss` `null`, `levers` and `spots` empty.
+`generate(s, 7)` for `s` in 0 and 4294967295: the grid is 48 by 32, `at(6, 4)`, `at(41, 27)` and `at(20, 20)` are `floor`, `at(5, 4)`, `at(42, 16)` and `at(20, 3)` `wall`, `at(33, 16)` `stairs`; `stairs` is (33, 16), `start` (8, 16), `boss` (32, 15); `levers` are (39, 7), (39, 25) and (39, 16) in order; `spots` has 72 points, the first (37, 5), the 24th (41, 9), the 25th (37, 23) and the last (41, 18), none of them a lever, and none within 2 of the boss's square (`x` 32 to 34, `y` 15 to 17). `generate(s, d)` for `d` in 14, 21 and 28: `tiles()` deep equal to `generate(0, 7)`'s, `stairs` (33, 16), `start` (8, 16), `boss` `null`, `levers` and `spots` empty.
 
 ## Intrinsic - refuses:
 `generate(-1, 1)`, `generate(1.5, 1)`, `generate(4294967296, 1)`, `generate(1, 0)`, `generate(1, 34)` and `generate('1', 1)` throw a `TypeError`.

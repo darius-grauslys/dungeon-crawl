@@ -16,6 +16,7 @@
   "atlas": {"parent": "view"},
   "hud": {"parent": "view"},
   "input": {"parent": "play"},
+  "travel": {"parent": "play"},
   "audio": {"parent": "play"},
   "cues": {"parent": "audio"},
   "mixer": {"parent": "audio"}

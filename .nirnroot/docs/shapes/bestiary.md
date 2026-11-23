@@ -23,7 +23,7 @@ ranged attack passes through friends). A `vermin` **flees** a `demon`.
 | `blue-snake` | `vermin` | 5 | 3 | 0 | 0 | 1 | 1 | yes | 6 | 400 | 600 | 1 |
 | `beetle` | `vermin` | 8 | 4 | 3 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
 | `mummy` | `undead` | 12 | 5 | 2 | 0 | 1 | 1 | no | 6 | 600 | 600 | 1 |
-| `cultist` | `human` | 7 | 5 | 1 | 0 | 1 | 4 | no | 7 | 400 | 700 | 1 |
+| `cultist` | `human` | 7 | 5 | 1 | 8 | 1 | 4 | no | 7 | 400 | 700 | 1 |
 | `spider` | `vermin` | 9 | 5 | 1 | 0 | 1 | 1 | no | 8 | 300 | 600 | 1 |
 | `ghost` | `undead` | 10 | 6 | 3 | 0 | 1 | 1 | no | 7 | 400 | 600 | 1 |
 | `reaper` | `undead` | 14 | 7 | 3 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
@@ -98,7 +98,7 @@ attack: 3, defense: 1, magic: 0, magicPower: 1, range: 4, slows: false,
 reach: 7, step: 400, strike: 700, size: 1}` and frozen;
 `entry('blue-snake').slows` is true; `entry('golem')` has `size` 3,
 `step` 1600, `attack` 12, `defense` 12, `magic` 6 and `magicPower` 2;
-`entry('cultist').range` is 4. `group('hero')` is `'human'`,
+`entry('cultist').range` is 4 and its `magic` 8 (`magicPower` 1). `group('hero')` is `'human'`,
 `group('imp')` `'demon'`, `group('golem')` `'construct'`.
 `hostile('hero', 'bat')` and `hostile('skeleton', 'hero')` are true;
 `hostile('hero', 'hero')`, `hostile('bat', 'skeleton')` and

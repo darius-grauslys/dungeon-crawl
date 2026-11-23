@@ -21,6 +21,7 @@
     "serve": "server",
     "server": "crawl",
     "sessions": "server",
+    "travel": "play",
     "view": "play"
   },
   "project-files": true,
@@ -44,6 +45,7 @@
     "serve",
     "server",
     "sessions",
+    "travel",
     "view"
   ],
   "shapes": [

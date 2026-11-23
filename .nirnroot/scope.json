@@ -1,5 +1,5 @@
 {
-  "digest": "e961df75df896a6ce575449414a0d5bd2604a1bfb11112c2056f62db0e47bebe",
+  "digest": "81af45ad884d41fe7f252cd4d96953e6408fa87e87dfd41b9425893baa2800bf",
   "fixtures": {},
   "nodes": {
     "atlas": {
@@ -524,6 +524,7 @@
         "landing",
         "menu",
         "net",
+        "travel",
         "view"
       ],
       "code": [
@@ -736,6 +737,56 @@
         "tests/internal/sessions/"
       ],
       "parent": "server"
+    },
+    "travel": {
+      "children": [],
+      "code": [
+        "src/travel/"
+      ],
+      "edge": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "bestiary",
+          "hero",
+          "intent",
+          "item",
+          "level",
+          "mask",
+          "point",
+          "save",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "edge-tests": [
+        "tests/edges/travel/"
+      ],
+      "forwarder": [
+        "edges/edge_to_travel.mjs"
+      ],
+      "impl": {
+        "fixtures": [],
+        "shapes": [
+          "actor",
+          "bestiary",
+          "hero",
+          "intent",
+          "item",
+          "level",
+          "mask",
+          "point",
+          "save",
+          "stats",
+          "tile-grid",
+          "world"
+        ]
+      },
+      "internal-tests": [
+        "tests/internal/travel/"
+      ],
+      "parent": "play"
     },
     "view": {
       "children": [

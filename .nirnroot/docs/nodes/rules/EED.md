@@ -125,7 +125,11 @@ plan's `boss` square, 3 by
 A `lever` item stands on each of the plan's `levers`, and on every one
 of the plan's `spots` a `slime` **guard** (`mode` `guard`, the slime's
 stats of tier 0: 6/6/2/1): guards never move, but attack any foe next to
-them. The other lairs are empty halls with their stairs open: no
+them. A guard takes its turns as every monster does (step 2 of
+`advance`: `monsters.decide`, whose guard rule keeps it where it
+stands): it is never skipped, so a hero who comes next to a guard is
+attacked, and a guard with no foe next to it waits (its `ready` moves on
+by its `step`). The other lairs are empty halls with their stairs open: no
 monsters, no items.
 - **Waking.** When a `dormant` monster's `ready` is reached, if an alive
   hero is within 4 of it (`max(|dx|, |dy|) <= 4` to a cell it covers),
@@ -142,15 +146,37 @@ monsters, no items.
   (with no golem alive, `<h> pulls a lever.`). A pulled lever bumped
   again: it fires as an attack, and nothing else happens. A lever is
   never picked up, and blocks a step like a ware.
+- **The golem's cleave.** The golem's melee attack (a `move` whose
+  moved square reaches a cell a hostile creature covers) strikes not
+  one creature but a block of cells **in front** of it: as wide as its
+  `size` and `depth` deep, where `depth` is 2 at `size` 3 and 1 at
+  `size` 2 or 1 (3 by 2 cells, then 2 by 1, then 1 by 1; a `small`
+  golem: its one cell's front, 1 by 1). For an orthogonal direction
+  `(dx, dy)` the block is the cells just past its square's edge on that
+  side: for `(1, 0)` the columns `pos.x + size` to `pos.x + size +
+  depth - 1`, rows `pos.y` to `pos.y + size - 1` (and likewise for the
+  other three sides). For a diagonal, the cells its square would cover
+  moved `k * (dx, dy)` for `k` from 1 to `depth` that it does not cover
+  now. Every creature hostile to it covering a cell of the block is
+  struck, each once (the alive heroes in their order, then the
+  monsters), each its own `combat` attack (its own two draws, its own
+  log line, its own `held`); friends are untouched. It fires once, with
+  the golem's `strike` latency and one `last` (`{kind: 'attack', dx, dy,
+  at, reach: 1}`). Every other monster's melee attack strikes the one
+  creature it reaches, as before.
 - **The golem's death.** When the `golem` is brought to 0 hit points:
   it is removed, with the line `The golem is slain.`; every `guard`
   monster is removed too (`The guardians crumble.`); the plan's `stairs`
   cell (of `dungeon.generate(seed, depth)`) becomes `stairs` (`The way
   down opens!`); and gold spills from it (`Gold spills from the
   golem!`): from 25 to 75 gold in all, in 1 to 5 `gold` items (the ISD
-  says how many and where), each on a `floor` cell within 2 of the
-  golem's last square and outside it, holding no item and no creature,
-  each `flung` from the cell at the centre of its square (`pos` plus
+  says how many and where), around **where the golem died**: its
+  square as it stood at that moment (its `pos` then and its `size`,
+  however far it had walked from the plan's `boss` and however much it
+  had shrunk; a `small` golem's square is its one cell), never the
+  plan's `boss` square nor the stairs. Each on a `floor` cell within 2
+  of that square and outside it, holding no item and no creature, each
+  `flung` from the cell at the centre of that square (`pos` plus
   `Math.floor(size / 2)` each way) at the time it died.
 
 # API Shapes:
@@ -249,7 +275,7 @@ In a world on `['##########', '#.>......#', '##########']` at depth 1 with `Ann`
 In a world on `['#######', '#.....#', '#######']` with `Ann` (24/24/4/1) at (1, 1), gold 50, and a `sword` ware of `id` 12 and `price` 30 at (2, 1): `advance(intend(w, 'Ann', move(1, 0)), 50)` leaves Ann at (1, 1) with `offer` 12, `ready` 400, `facing` `right`, `last` `null` (as it was), `gesture` `{kind: 'use', at: 50}`, the ware still there, gold 50, and the log's last line `Ann looks at a sword: 30 gold. Bump it again to buy.` Then her `move(1, 0)` again, advanced by 350 (time 400): her `attack` is 6, `offer` null, `gesture` `{kind: 'power', at: 400}`, the ware gone, gold 20, the log's last line `Ann buys a sword for 30 gold.` With gold 10 instead, the second bump leaves the ware there, gold 10, `offer` null, and the line `Not enough gold for a sword: 30 needed, the party has 10.` With a `wait()` fired between the two bumps, the second is a first again (`offer` 12, the ware there, gold 50); a `face(1, 0)` between them changes nothing (the second still buys). An `attack(1, 0)` bumps as the `move` does. An `armor` ware bought gives `defense` 2; a `potion` ware, with Ann at 10 of 24, `hp` 18; a `ring` ware (price 35) bought, with gold 50, gives `magicPower` 2 and the line `Ann buys a ring for 35 gold.`; a `necklace` ware, `magicResist` 1 and `Ann buys a cross necklace for 35 gold.`
 
 ## Intrinsic - lair:
-`w = fromSave(save.of({seed: 4, depth: 7, players: [{name: 'Ann', stats: 24/24/4/1}]}))`: depth 7, Ann at (8, 16), the grid `at(33, 16)` `floor` (no stairs anywhere); 73 monsters: the first a `golem` at (32, 15), `size` 3, `mode` `dormant`, stats deep equal to `{hp: 40, maxHp: 40, attack: 12, defense: 12, range: 1, magic: 6, magicPower: 2, magicResist: 0}`, `facing` `left`; the other 72 each a `slime` of `mode` `guard` and stats 6/6/2/1 (`range` 1, `magic` 0, `magicPower` 1, `magicResist` 0), on the plan's 72 spots; 3 items, each a `lever` not `pulled`, on (12, 8), (12, 24) and (22, 16). `fromSave` at depth 14: no monsters, no items, `at(33, 16)` `stairs`.
+`w = fromSave(save.of({seed: 4, depth: 7, players: [{name: 'Ann', stats: 24/24/4/1}]}))`: depth 7, Ann at (8, 16), the grid `at(33, 16)` `floor` (no stairs anywhere); 73 monsters: the first a `golem` at (32, 15), `size` 3, `mode` `dormant`, stats deep equal to `{hp: 40, maxHp: 40, attack: 12, defense: 12, range: 1, magic: 6, magicPower: 2, magicResist: 0}`, `facing` `left`; the other 72 each a `slime` of `mode` `guard` and stats 6/6/2/1 (`range` 1, `magic` 0, `magicPower` 1, `magicResist` 0), on the plan's 72 spots; 3 items, each a `lever` not `pulled`, on (39, 7), (39, 25) and (39, 16) (behind the golem). `fromSave` at depth 14: no monsters, no items, `at(33, 16)` `stairs`.
 
 ## Intrinsic - levers:
 In a world on `['##########', '#........#', '#........#', '#........#', '#........#', '##########']` with `Ann` (24/24/4/1) at (1, 1), `lever`s (ids 20, 21, 22) at (2, 1), (1, 2) and (2, 2), and a `golem` (id 10, stats 40/40/12/12 with `magic` 6 and `magicPower` 2, `size` 3, `mode` `dormant`, `ready` 10000) at (5, 2): Ann's `move(1, 0)` advanced by 50 leaves her at (1, 1), `ready` 400, `last` `null` (as it was), `gesture` `{kind: 'use', at: 50}`, the lever (2, 1) `pulled`, the golem's `attack` 6, `defense` 6, `magic` 3, `size` 2, `small` false, and the log's last line `Ann pulls a lever. The golem weakens!`. Then her `move(0, 1)` at time 400: the golem's `attack` 3, `defense` 3, `magic` 1, `size` 1; then her `move(1, 1)` at time 750: `attack` 1, `defense` 1, `magic` 0, `size` 1, `small` true, `pos` still (5, 2), `magicPower` still 2. A pulled lever bumped again changes nothing but Ann's `ready`, `aim`, `facing` and `gesture` (`{kind: 'use', at}` again). Ann never stands on a lever.
@@ -259,6 +285,15 @@ In a world on `['##########', '#........#', '#........#', '#........#', '#######
 
 ## Intrinsic - golem-dies:
 `w` the `lair` world, with Ann's stats 24/24/40/1 and her at (31, 16), and the golem's `hp` 1, `defense` 0 and `ready` 10000: for `rng` from 0 to 39, Ann's `move(1, 0)` advanced by 50, in at least one: no monster left (the golem and every guard gone), `at(33, 16)` `stairs`, the log holding `The golem is slain.`, `The guardians crumble.`, `The way down opens!` and `Gold spills from the golem!`; from 1 to 5 new `gold` items, of amounts adding up to 25 to 75, each on a `floor` cell from 1 to 2 cells (`max(|dx|, |dy|)`) outside the golem's 3 by 3 square at (32, 15), no two on one cell, each `flung` `{x: 33, y: 16, at: 50}`. Ann's `descend()` then takes the party to depth 8.
+
+## Intrinsic - golem-gold:
+`w` the `lair` world, with Ann's stats 24/24/40/1 and her at (19, 10), and the golem moved and shrunk: `pos` (20, 10), `size` 1, `small` true, `hp` 1, `defense` 0, `ready` 10000: for `rng` from 0 to 39, Ann's `move(1, 0)` advanced by 50, in at least one the golem is gone and: from 1 to 5 new `gold` items, of amounts adding up to 25 to 75, each on a `floor` cell at a distance (`max(|dx|, |dy|)`) of 1 or 2 from (20, 10), none on (19, 10) (Ann's cell), no two on one cell, each `flung` `{x: 20, y: 10, at: 50}`; none of them within 2 of the plan's `boss` square (`x` 32 to 34, `y` 15 to 17); `at(33, 16)` is `stairs`. With the golem of `size` 2 (not `small`) at (20, 10) and Ann at (19, 10): each gold within 1 or 2 of the square `x` 20 to 21, `y` 10 to 11 and outside it, `flung` from (21, 11).
+
+## Intrinsic - cleaves:
+In a world on `['##########', '#........#', '#........#', '#........#', '#........#', '##########']` with a `golem` (`mode` `roam`, `size` 3, stats 40/40/12/12, `magic` 6, `magicPower` 2, `ready` 0) at (2, 1) (covering `x` 2 to 4, `y` 1 to 3), `Ann` at (5, 2) (next to it), `Bob` at (6, 3) (in the 3 by 2 block, `x` 5 to 6, `y` 1 to 3) and `Cy` at (7, 2) (three deep: outside it), each 24/24/4/1: for `rng` from 0 to 39, `advance(w, 50)` leaves the golem at (2, 1) with `ready` 1050 and `last` `{kind: 'attack', dx: 1, dy: 0, at: 50, reach: 1}`, Ann's and Bob's `held` 350 (each struck, hit or missed), Cy's `held` 0 and hit points 24; the log's last two lines are about Ann, then Bob (each `The golem hits <h> for <n>.`, `Critical! The golem hits <h> for <n>.`, `The golem misses <h>.` or `<h> falls.`); the world's `rng` is `(rng + 4 * 0x6D2B79F5) >>> 0`. With the golem of `size` 2 at (2, 1) (covering `x` 2 to 3, `y` 1 to 2), Ann at (4, 1) and Bob at (5, 1): Ann's `held` 350 and Bob's 0 (the block is 2 by 1: `x` 4, `y` 1 to 2). With a guard `slime` (a friend of the golem: both are not heroes and neither is a demon) at (5, 1) beside Ann at (5, 2) in the first world, the slime is untouched.
+
+## Intrinsic - guards:
+In a world on `['#######', '#.....#', '#######']` with `Ann` (24/24/4/1) at (2, 1) and a guard `slime` (`mode` `guard`, stats 6/6/2/1, `ready` 0) at (3, 1): `advance(w, 50)` (time 50, `turn` 0) leaves the slime at (3, 1) with `ready` 650, `facing` `left` and `last` `{kind: 'attack', dx: -1, dy: 0, at: 50, reach: 1}`, Ann's `held` 350 (hit or missed), and the log's last line one of `The slime hits Ann for <n>.`, `Critical! The slime hits Ann for <n>.`, `Ann falls.` or `The slime misses Ann.`. With Ann at (1, 1) instead (2 away), the slime stays at (3, 1) with `ready` 450 and `last` `null`, and Ann's `held` is 0.
 
 ## Intrinsic - misses:
 In a world on `['######', '#....#', '######']` with `Ann` (24/24/4/1) at (1, 1) and a `skeleton` of stats 30/30/4/2 (`ready` 10000) at (2, 1): for `rng` from 0 to 39, Ann's `attack(1, 0)` advanced by 50 leaves the log's last line, in every one, either `Ann misses the skeleton.` with the skeleton at 30 hit points, or `Ann hits the skeleton for <n>.` with `<n>` at least 1 and the skeleton at `30 - <n>`, or `Critical! Ann hits the skeleton for <n>.` likewise; at least one of the 40 is a miss and at least one a hit; no line ends `for 0.`. With the skeleton (`ready` 0) attacking Ann instead (Ann's `ready` 10000), every last line is `The skeleton misses Ann.`, `The skeleton hits Ann for <n>.` or `Critical! The skeleton hits Ann for <n>.` with `<n>` at least 1 and Ann at `24 - <n>`.
@@ -270,7 +305,7 @@ Every attack takes its two draws from the world's `rng` and stores the state the
 In a world on `['######', '#....#', '######']` with `Ann` (24/24/4/1) at (1, 1) and a `golem` of `size` 1, `mode` `roam`, stats 40/40/12/12 with `magic` 6 and `magicPower` 2, `ready` 0, at (2, 1): for `rng` from 0 to 39, after `advance(w, 50)` Ann has 24 hit points (a miss), 7 (a hit: 11 physical and 6 magic), or none and not alive (a critical: 28); at least one is 7. With Ann's `magicResist` 1 instead (ward chance 50%): her hit points after a hit are 7 (the magic not warded) or 12 (warded: 11 and 1); among the 40, at least one 7 and at least one 12.
 
 ## Intrinsic - themes:
-`fromSave(save.of({seed: 3, depth: 8, players: [{name: 'Ann', stats: 24/24/4/1}]}))` has 4 monsters, each a `blue-slime` of 9/9/3/1, a `blue-snake` of 7/7/4/0 or a `skeleton` of 13/13/5/2 (`hp`/`maxHp`/`attack`/`defense`); at depth 33, 12 monsters, each a `worm` of 27/27/9/4, a `fire-slime` of 30/30/9/5, an `imp` of 36/36/10/5 or a `demon` of 48/48/11/6; at depth 15, 4 monsters, each a `beetle`, `mummy` or `cultist`, every `cultist` of `range` 4; at depth 22, each a `spider`, `ghost` or `reaper`; at depth 3, 8 monsters, each a `bat` of 3/3/2/0, a `slime` of 6/6/2/1 or a `snake` of 5/5/3/0. Over the seeds 0 to 19 at depth 5 (12 monsters each), every monster is a `bat`, `slime`, `snake`, `skeleton` (9/9/4/2) or `archer` (7/7/3/1, `range` 4), at least one is an `archer`, and the archers are at most a fifth of them all.
+`fromSave(save.of({seed: 3, depth: 8, players: [{name: 'Ann', stats: 24/24/4/1}]}))` has 4 monsters, each a `blue-slime` of 9/9/3/1, a `blue-snake` of 7/7/4/0 or a `skeleton` of 13/13/5/2 (`hp`/`maxHp`/`attack`/`defense`); at depth 33, 12 monsters, each a `worm` of 27/27/9/4, a `fire-slime` of 30/30/9/5, an `imp` of 36/36/10/5 or a `demon` of 48/48/11/6; at depth 15, 4 monsters, each a `beetle`, `mummy` or `cultist`, every `cultist` of `range` 4 and `magic` 8 (`magicPower` 1); at depth 22, each a `spider`, `ghost` or `reaper`; at depth 3, 8 monsters, each a `bat` of 3/3/2/0, a `slime` of 6/6/2/1 or a `snake` of 5/5/3/0. Over the seeds 0 to 19 at depth 5 (12 monsters each), every monster is a `bat`, `slime`, `snake`, `skeleton` (9/9/4/2) or `archer` (7/7/3/1, `range` 4), at least one is an `archer`, and the archers are at most a fifth of them all.
 
 ## Intrinsic - saves:
 `toSave` of the `descends` world is `{seed, depth: 1, players: [Ann at 20 of 24, Bob at 1 of 24]}`. For `s = save.of({seed: 9, depth: 3, players: [{name: 'Cy', stats: 10/30/6/2}]})`, `fromSave(s)` is at depth 3, time 0, state `playing`, on a 48 by 32 grid, with the one hero `Cy` alive at those stats on an open cell, its `entry` deep equal to `s`; `fromSave(s)` twice gives deep-equal worlds; a player saved at 0 hit points comes back at 1.

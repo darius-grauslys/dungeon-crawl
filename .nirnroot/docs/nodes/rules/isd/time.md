@@ -92,24 +92,35 @@ cell covered by every other alive creature and every ware's and lever's
 cell, all as they stand at that moment (monsters already moved count
 where they now are), `turn` `Math.floor(time / 400)` with `time` the new
 time. Before deciding, a `dormant` monster wakes as the EED says, or
-waits. Every attack is `combat.resolve(attacker.stats, defender.stats,
+waits. A `guard` is decided like any other monster (never skipped):
+`decide`'s own guard rule keeps it in place. Every attack is `combat.resolve(attacker.stats, defender.stats,
 roll, ward)`: two draws, the d20 `roll` first, then `ward`, `1 +
 Math.floor(value * 100)`. The log line follows the strike: `hit` false
 is a miss line, `critical` true the `Critical!` line, `damage` the
 `<n>`.
 
+**The golem's cleave.** When a golem's `move` reaches a hostile
+creature, work out the EED's block from its `pos`, `size` (`small`: 1)
+and the direction, collect every hostile creature covering a cell of
+it (alive heroes in order, then monsters, each once), and run the same
+melee strike helper on each in turn (two draws each, threaded). Its
+`ready` and `last` are set once.
+
 **The golem's gold.** When the golem dies, at time `t`, two draws: the
 total `25 + Math.floor(value * 51)`, then the count `n = 1 +
 Math.floor(value * 5)`. The candidate cells: every `floor` cell (not
-`stairs`) at distance 1 or 2 (`max(|dx|, |dy|)`) from the golem's last
-square, outside it, holding no item and no alive creature, row by row
+`stairs`) at distance 1 or 2 from the golem's last square, outside it (the
+square is the dying golem actor's own: from its `pos`, `size` cells
+each way, or its one cell when `small`; never `plan.boss`; a cell's
+distance to it is the least `max(|dx|, |dy|)` to any cell it covers), holding no item and no alive creature, row by row
 (top first, left to right). `n` becomes at most the number of
 candidates. Each of the `n` amounts is `Math.floor(total / n)`, the
 first also takes the rest (`total - n * Math.floor(total / n)` more);
 each gold in turn takes one more draw, picking `candidates[Math.floor(value
 * candidates.length)]` and removing it from the candidates. Ids count on
 from the largest id of the world's monsters and items, plus 1. Each
-`flung` `{x, y, at: t}` from the square's centre cell.
+`flung` `{x, y, at: t}` from that square's centre cell (`pos` plus
+`Math.floor(size / 2)` each way; a `small` golem's own cell).
 
 Visibility is the `mask.union` of `fov.compute(grid, pos, 7)` over the
 alive heroes (all false with none), on a shop every cell; `explored` is
