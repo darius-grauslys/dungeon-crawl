@@ -226,9 +226,20 @@ test("generate: lair", () => {
     assert.deepStrictEqual(plan.levers, []);
     assert.deepStrictEqual(plan.spots, []);
   }
-  // depths 21, 28: empty hall, no boss, no levers, no spots
-  for (const d of [21, 28]) {
-    const plan = generate(0, d);
+  // depth 21: reaper's lair, boss (32, 15), no levers, no spots
+  {
+    const plan = generate(0, 21);
+    const g = plan.grid;
+    assert.deepStrictEqual(g.tiles(), s7Tiles);
+    assert.ok(point.equals(plan.stairs, point.of(33, 16)));
+    assert.ok(point.equals(plan.start, point.of(8, 16)));
+    assert.ok(point.equals(plan.boss, point.of(32, 15)));
+    assert.deepStrictEqual(plan.levers, []);
+    assert.deepStrictEqual(plan.spots, []);
+  }
+  // depth 28: empty hall, no boss, no levers, no spots
+  {
+    const plan = generate(0, 28);
     const g = plan.grid;
     assert.deepStrictEqual(g.tiles(), s7Tiles);
     assert.ok(point.equals(plan.stairs, point.of(33, 16)));
@@ -236,6 +247,60 @@ test("generate: lair", () => {
     assert.strictEqual(plan.boss, null);
     assert.deepStrictEqual(plan.levers, []);
     assert.deepStrictEqual(plan.spots, []);
+  }
+});
+
+// Intrinsic - wide-halls:
+test("generate: wide-halls", () => {
+  // For seeds 0 to 19 at the depths 22 to 26: every floor or stairs cell lies in at least one 2 by 2 block of four open cells.
+  for (let s = 0; s <= 19; s++) {
+    for (const d of [22, 23, 24, 25, 26]) {
+      const plan = generate(s, d);
+      const g = plan.grid;
+      for (let y = 0; y < g.height; y++) {
+        for (let x = 0; x < g.width; x++) {
+          if (g.open(x, y)) {
+            let inBlock = false;
+            for (const [bx, by] of [[0, 0], [-1, 0], [0, -1], [-1, -1]]) {
+              const cx = x + bx;
+              const cy = y + by;
+              if (g.open(cx, cy) && g.open(cx + 1, cy) && g.open(cx, cy + 1) && g.open(cx + 1, cy + 1)) {
+                inBlock = true;
+                break;
+              }
+            }
+            assert.ok(inBlock, `cell (${x},${y}) at seed ${s} depth ${d} not in any 2x2 block`);
+          }
+        }
+      }
+    }
+  }
+  // For seeds 0 to 19 at depth 2, at least one floor has a cell in no such block.
+  for (let s = 0; s <= 19; s++) {
+    const plan = generate(s, 2);
+    const g = plan.grid;
+    let hasNarrow = false;
+    outer:
+    for (let y = 0; y < g.height; y++) {
+      for (let x = 0; x < g.width; x++) {
+        if (g.open(x, y)) {
+          let inBlock = false;
+          for (const [bx, by] of [[0, 0], [-1, 0], [0, -1], [-1, -1]]) {
+            const cx = x + bx;
+            const cy = y + by;
+            if (g.open(cx, cy) && g.open(cx + 1, cy) && g.open(cx, cy + 1) && g.open(cx + 1, cy + 1)) {
+              inBlock = true;
+              break;
+            }
+          }
+          if (!inBlock) {
+            hasNarrow = true;
+            break outer;
+          }
+        }
+      }
+    }
+    assert.ok(hasNarrow, `seed ${s} depth 2 has no narrow cell`);
   }
 });
 
