@@ -1492,6 +1492,40 @@ function advance(world, ms) {
       for (let i = 0; i < size; i++) for (let j = 0; j < size; j++) { const c = pointShape.of(m.pos.x + dx + i, m.pos.y + dy + j); movedCells.push(c); if (blockedSet.has(`${c.x},${c.y}`) || !currentGrid.open(c.x, c.y)) free = false; }
       const isDiag = dx !== 0 && dy !== 0;
       if (isDiag && (!currentGrid.open(m.pos.x + dx, m.pos.y) || !currentGrid.open(m.pos.x, m.pos.y + dy))) free = false;
+      let lunge = false;
+      if ((m.kind === "snake" || m.kind === "blue-snake") && free) {
+        const fx = m.pos.x + dx * 3, fy = m.pos.y + dy * 3;
+        let foe3 = false;
+        for (const h of heroes) {
+          if (!h.alive) continue;
+          if (h.actor.covers(fx, fy) && bestiary.hostile(m.kind, 'hero')) { foe3 = true; break; }
+        }
+        if (!foe3) {
+          for (const mm of monsterMap.values()) {
+            if (mm.id === m.id) continue;
+            if (mm.covers(fx, fy) && bestiary.hostile(m.kind, mm.kind)) { foe3 = true; break; }
+          }
+        }
+        if (foe3) {
+          let clear = true;
+          for (let k = 1; k <= 2; k++) {
+            const cx = m.pos.x + dx * k, cy = m.pos.y + dy * k;
+            if (!currentGrid.open(cx, cy)) { clear = false; break; }
+            if (k === 1 && isDiag && (!currentGrid.open(m.pos.x + dx, m.pos.y) || !currentGrid.open(m.pos.x, m.pos.y + dy))) { clear = false; break; }
+            for (const h of heroes) { if (h.alive && h.actor.covers(cx, cy)) { clear = false; break; } }
+            for (const mm of monsterMap.values()) { if (mm.id !== m.id && mm.covers(cx, cy)) { clear = false; break; } }
+            if (!clear) break;
+          }
+          if (clear) lunge = true;
+        }
+      }
+      if (lunge) {
+        let updatedM = m.with({ mode, pos: pointShape.of(m.pos.x + dx * 2, m.pos.y + dy * 2), ready: newTime + 150, cooldown: newTime + 5 * monsterLatency(m, "step"), facing: actorShape.facingFor(dx, dy), last: { kind: "lunge", dx, dy, at: newTime, reach: 2 } });
+        if (m.slow > 0) updatedM = updatedM.with({ slow: m.slow - 1 });
+        if (m.haste > 0) updatedM = updatedM.with({ haste: m.haste - 1 });
+        monsterMap.set(m.id, updatedM);
+        acted = true; continue;
+      }
       let meleeTarget = null;
       for (const h of heroes) {
         if (!h.alive) continue;
