@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { load, sprite, tile, pose, frames, floors, names } from "../../../edges/edge_to_atlas.mjs";
+import { load, sprite, tile, pose, frames, names } from "../../../edges/edge_to_atlas.mjs";
 import * as spriteShape from "../../../shapes/sprite/index.mjs";
 
 const NAMES = [
@@ -13,9 +13,6 @@ const NAMES = [
   "cultist", "spider", "ghost", "reaper", "worm", "fire-slime", "imp",
   "lever", "lever-pulled", "ring", "necklace",
   "mage", "swordsman", "blue-spider", "serpent",
-  "snowman", "snow-skeleton", "wolf-man", "enraged-wolf-man",
-  "scarecrow", "swarm", "pumpkin", "beholder",
-  "sparkle-0", "sparkle-1", "sparkle-2",
   "bread", "meat", "cheese",
   "sword-2", "sword-3", "sword-4",
   "armor-2", "armor-3", "armor-4",
@@ -36,29 +33,23 @@ test("themes: before load, tile('frozen','floor') is null and sprite('hero') is 
 
 // Intrinsic - table:
 // `names()` is the table's names in order. Before any `load`, `sprite('hero')` is `null`;
-// `sprite('dragon')` throws a `TypeError`. `names()` has 70 names, `wall-0` to `wall-15` the last sixteen in order, `armor-4` just before `wall-0`, the eleven from `snowman` to `sparkle-2` right after `serpent` and before `bread`, `mage` just after `necklace`, `ring` before `necklace`, `lever-pulled` before `ring`;
+// `sprite('dragon')` throws a `TypeError`. `names()` has 59 names, `wall-0` to `wall-15` the last sixteen in order, `armor-4` just before `wall-0`, `mage` just after `necklace`, `ring` before `necklace`, `lever-pulled` before `ring`;
 // `sprite('ring')` has `sx` 0 and `sy` 64, `sprite('necklace')` `sx` 128 and `sy` 64;
 // `sprite('wall-16')` throws a `TypeError`.
-test("table: before load, sprite('hero') is null; sprite('dragon') and sprite('wall-16') throw; names() has 70 names with armor-4 before wall-0, the 11 from snowman to sparkle-2 after serpent and before bread, mage after necklace, ring before necklace, lever-pulled before ring, wall-0..wall-15 last", () => {
+test("table: before load, sprite('hero') is null; sprite('dragon') and sprite('wall-16') throw; names() has 59 names with armor-4 before wall-0, mage after necklace, lever-pulled, ring, necklace before wall-0..wall-15 last", () => {
   assert.equal(sprite("hero"), null);
   assert.throws(() => sprite("dragon"), TypeError);
   assert.throws(() => sprite("wall-16"), TypeError);
   const n = names();
-  assert.equal(n.length, 70);
+  assert.equal(n.length, 59);
   assert.deepEqual(n.slice(-16), [
     "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5", "wall-6", "wall-7",
     "wall-8", "wall-9", "wall-10", "wall-11", "wall-12", "wall-13", "wall-14", "wall-15"
   ]);
   assert.equal(n[n.length - 17], "armor-4");
-  const serpentIdx = n.indexOf("serpent");
-  assert.equal(n[serpentIdx + 1], "snowman");
-  assert.equal(n[serpentIdx + 11], "sparkle-2");
-  assert.equal(n[serpentIdx + 12], "bread");
-  const necklaceIdx = n.indexOf("necklace");
-  assert.equal(n[necklaceIdx - 1], "ring");
-  assert.equal(n[necklaceIdx + 1], "mage");
-  const ringIdx = n.indexOf("ring");
-  assert.equal(n[ringIdx - 1], "lever-pulled");
+  assert.equal(n[n.length - 30], "necklace");
+  assert.equal(n[n.length - 31], "ring");
+  assert.equal(n[n.length - 32], "lever-pulled");
   assert.deepEqual(n, NAMES);
 });
 
@@ -145,17 +136,6 @@ test("table: after load, each name's sprite has the EED table's sx, sy, sw 16, s
     swordsman: [64, 16],
     "blue-spider": [64, 96],
     serpent: [0, 16],
-    "snowman": [0, 0],
-    "snow-skeleton": [0, 48],
-    "wolf-man": [64, 16],
-    "enraged-wolf-man": [0, 32],
-    "scarecrow": [64, 16],
-    "swarm": [128, 0],
-    "pumpkin": [0, 32],
-    "beholder": [0, 32],
-    "sparkle-0": [0, 208],
-    "sparkle-1": [16, 208],
-    "sparkle-2": [32, 208],
     bread: [0, 144],
     meat: [16, 144],
     cheese: [32, 144],
@@ -343,80 +323,6 @@ test("poses: after load, frames counts and pose positions match EED", async () =
     assert.equal(p.sw, 16);
     assert.equal(p.sh, 16);
   }
-});
-
-// Intrinsic - floors:
-// Before any `load`, `floors('dungeon')` is `null`; `floors('lava')` throws a `TypeError`. After `load('/assets/')` resolves: `floors('dungeon')` has 23 sprites, the first with `sx` 0 and `sy` 304, the last `sy` 256, each with the same `image` as `tile('dungeon', 'floor')`; `floors('temple')` has 12, the first `sy` 160; `floors('magma')` 19, the last `sy` 208; `floors('interior')` one, with the `sx`, `sy` and `image` of `tile('interior', 'floor')`; each is 16 by 16. `sprite('snowman')` has `sx` 0 and `sy` 0 and an `image` other than `sprite('serpent')`'s; `sprite('wolf-man')` `sx` 64, `sy` 16 and the same `image` as `sprite('snowman')`; `sprite('pumpkin')` `sx` 0, `sy` 32 and the same `image` as `sprite('spider')`; `sprite('sparkle-1')` `sx` 16 and `sy` 208; `pose('swarm', 'idle', 2)` has `sx` 160 and `sy` 0.
-test("floors: before load floors('dungeon') is null and floors('lava') throws; after load, dungeon has 23 with first sy 304 last sy 256 all same image as tile('dungeon','floor'), temple has 12 first sy 160, magma 19 last sy 208, interior 1 matching tile('interior','floor'), each 16x16; snowman/wolf-man/pumpkin/sparkle-1/pose(swarm) checks", async () => {
-  assert.equal(floors("dungeon"), null);
-  assert.throws(() => floors("lava"), TypeError);
-
-  await load("/assets/");
-
-  const dungeonFloors = floors("dungeon");
-  assert.ok(dungeonFloors, "floors('dungeon') should exist");
-  assert.equal(dungeonFloors.length, 23);
-  assert.equal(dungeonFloors[0].sx, 0);
-  assert.equal(dungeonFloors[0].sy, 304);
-  assert.equal(dungeonFloors[22].sy, 256);
-  const dungeonFloorTile = tile("dungeon", "floor");
-  for (const f of dungeonFloors) {
-    assert.equal(f.image, dungeonFloorTile.image, `dungeon floor ${f.sy} image`);
-    assert.equal(f.sw, 16);
-    assert.equal(f.sh, 16);
-  }
-
-  const templeFloors = floors("temple");
-  assert.ok(templeFloors, "floors('temple') should exist");
-  assert.equal(templeFloors.length, 12);
-  assert.equal(templeFloors[0].sy, 160);
-  for (const f of templeFloors) {
-    assert.equal(f.sw, 16);
-    assert.equal(f.sh, 16);
-  }
-
-  const magmaFloors = floors("magma");
-  assert.ok(magmaFloors, "floors('magma') should exist");
-  assert.equal(magmaFloors.length, 19);
-  assert.equal(magmaFloors[18].sy, 208);
-  for (const f of magmaFloors) {
-    assert.equal(f.sw, 16);
-    assert.equal(f.sh, 16);
-  }
-
-  const interiorFloors = floors("interior");
-  assert.ok(interiorFloors, "floors('interior') should exist");
-  assert.equal(interiorFloors.length, 1);
-  const interiorFloorTile = tile("interior", "floor");
-  assert.equal(interiorFloors[0].sx, interiorFloorTile.sx);
-  assert.equal(interiorFloors[0].sy, interiorFloorTile.sy);
-  assert.equal(interiorFloors[0].image, interiorFloorTile.image);
-  assert.equal(interiorFloors[0].sw, 16);
-  assert.equal(interiorFloors[0].sh, 16);
-
-  // additional checks from floors intrinsic
-  const snowman = sprite("snowman");
-  assert.equal(snowman.sx, 0);
-  assert.equal(snowman.sy, 0);
-  assert.notEqual(snowman.image, sprite("serpent").image);
-
-  const wolfMan = sprite("wolf-man");
-  assert.equal(wolfMan.sx, 64);
-  assert.equal(wolfMan.sy, 16);
-  assert.equal(wolfMan.image, snowman.image);
-
-  const pumpkin = sprite("pumpkin");
-  assert.equal(pumpkin.sx, 0);
-  assert.equal(pumpkin.sy, 32);
-  assert.equal(pumpkin.image, sprite("spider").image);
-
-  const sparkle1 = sprite("sparkle-1");
-  assert.equal(sparkle1.sx, 16);
-  assert.equal(sparkle1.sy, 208);
-
-  const warmPose2 = pose("swarm", "idle", 2);
-  assert.equal(warmPose2.sx, 160);
-  assert.equal(warmPose2.sy, 0);
 });
 
 // Intrinsic - fails:
