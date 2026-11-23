@@ -72,6 +72,7 @@ export function show(document, { create, join }, options = {}) {
     debugDepthInput.value = "1";
 
     const buffStats = ["hp", "attack", "defense", "range", "magic", "magicPower", "magicResist"];
+    const buffLabels = {};
     for (const stat of buffStats) {
       const buffInput = document.createElement("input");
       buffInput.id = `landing-debug-${stat}`;
@@ -85,8 +86,7 @@ export function show(document, { create, join }, options = {}) {
       const label = document.createElement("label");
       label.htmlFor = buffInput.id;
       label.textContent = stat;
-      debugDiv.appendChild(label);
-      debugDiv.appendChild(buffInput);
+      buffLabels[stat] = label;
       buffInputs[stat] = buffInput;
     }
 
@@ -106,7 +106,8 @@ export function show(document, { create, join }, options = {}) {
 
     debugDiv.appendChild(debugHeading);
     debugDiv.appendChild(debugDepthInput);
-    for (const stat of ["hp", "attack", "defense", "range", "magic", "magicPower", "magicResist"]) {
+    for (const stat of buffStats) {
+      debugDiv.appendChild(buffLabels[stat]);
       debugDiv.appendChild(buffInputs[stat]);
     }
     debugDiv.appendChild(debugCreateButton);
