@@ -57,6 +57,7 @@ const TABLE = [
   { name: "armor-2", sheet: "sheets/items.png", sx: 0, sy: 48 },
   { name: "armor-3", sheet: "sheets/items.png", sx: 16, sy: 48 },
   { name: "armor-4", sheet: "sheets/items.png", sx: 32, sy: 48 },
+  { name: "web", sheet: "sheets/cave.png", sx: 0, sy: 208 },
   { name: "wall-0", sheet: "sheets/dungeon.png", sx: 48, sy: 0 },
   { name: "wall-1", sheet: "sheets/dungeon.png", sx: 0, sy: 32 },
   { name: "wall-2", sheet: "sheets/dungeon.png", sx: 48, sy: 32 },
@@ -77,18 +78,18 @@ const TABLE = [
 
 const _names = TABLE.map((r) => r.name);
 
-/** `names() -> array`. The seventy names, in the table's order, a fresh array each call. */
+/** `names() -> array`. The seventy-one names, in the table's order, a fresh array each call. */
 export function names() {
   return [..._names];
 }
 
 const THEMES = [
-  { theme: "dungeon", wallSheet: "sheets/dungeon.png", floorSheet: "sheets/floor.png", floorSx: 0, floorSy: 48, stairsSheet: "sheets/dungeon.png", stairsSx: 0, stairsSy: 96 },
-  { theme: "frozen", wallSheet: "sheets/frozen.png", floorSheet: "sheets/frozen-floor.png", floorSx: 0, floorSy: 48, stairsSheet: "sheets/frozen.png", stairsSx: 16, stairsSy: 256 },
-  { theme: "arid", wallSheet: "sheets/arid.png", floorSheet: "sheets/arid-floor.png", floorSx: 0, floorSy: 0, stairsSheet: "sheets/arid.png", stairsSx: 0, stairsSy: 352 },
-  { theme: "temple", wallSheet: "sheets/temple.png", floorSheet: "sheets/temple-floor.png", floorSx: 0, floorSy: 0, stairsSheet: "sheets/temple.png", stairsSx: 16, stairsSy: 256 },
-  { theme: "magma", wallSheet: "sheets/magma.png", floorSheet: "sheets/magma-floor.png", floorSx: 0, floorSy: 0, stairsSheet: "sheets/magma.png", stairsSx: 0, stairsSy: 112 },
-  { theme: "interior", wallSheet: "sheets/interior.png", floorSheet: "sheets/interior-floor.png", floorSx: 224, floorSy: 112, stairsSheet: "sheets/dungeon.png", stairsSx: 32, stairsSy: 96 },
+  { theme: "dungeon", wallSheet: "sheets/dungeon.png", floorSheet: "sheets/floor.png", floorSx: 0, floorSy: 48, stairsSheet: "sheets/dungeon.png", stairsSx: 0, stairsSy: 96, spikesSheet: "sheets/generics.png" },
+  { theme: "frozen", wallSheet: "sheets/frozen.png", floorSheet: "sheets/frozen-floor.png", floorSx: 0, floorSy: 48, stairsSheet: "sheets/frozen.png", stairsSx: 16, stairsSy: 256, spikesSheet: "sheets/frozen-generics.png" },
+  { theme: "arid", wallSheet: "sheets/arid.png", floorSheet: "sheets/arid-floor.png", floorSx: 0, floorSy: 0, stairsSheet: "sheets/arid.png", stairsSx: 0, stairsSy: 352, spikesSheet: "sheets/generics.png" },
+  { theme: "temple", wallSheet: "sheets/temple.png", floorSheet: "sheets/temple-floor.png", floorSx: 0, floorSy: 0, stairsSheet: "sheets/temple.png", stairsSx: 16, stairsSy: 256, spikesSheet: "sheets/generics.png" },
+  { theme: "magma", wallSheet: "sheets/magma.png", floorSheet: "sheets/magma-floor.png", floorSx: 0, floorSy: 0, stairsSheet: "sheets/magma.png", stairsSx: 0, stairsSy: 112, spikesSheet: "sheets/magma-generics.png" },
+  { theme: "interior", wallSheet: "sheets/interior.png", floorSheet: "sheets/interior-floor.png", floorSx: 224, floorSy: 112, stairsSheet: "sheets/dungeon.png", stairsSx: 32, stairsSy: 96, spikesSheet: "sheets/generics.png" },
 ];
 
 const _themeIndex = new Map(THEMES.map((t) => [t.theme, t]));
@@ -106,6 +107,7 @@ const _tileNames = ["floor", "stairs"];
 for (let m = 0; m <= 15; m++) {
   _tileNames.push("wall-" + m);
 }
+_tileNames.push("spikes-0", "spikes-1", "spikes-2");
 
 const _SHEETS = [
   "sheets/dungeon.png",
@@ -129,6 +131,9 @@ const _SHEETS = [
   "sheets/arid-monsters.png",
   "sheets/temple-monsters.png",
   "sheets/magma-monsters.png",
+  "sheets/cave.png",
+  "sheets/frozen-generics.png",
+  "sheets/magma-generics.png",
 ];
 
 const MONSTERS = new Set([
@@ -165,7 +170,7 @@ let _loadId = 0;
 let _sprites = null;
 let _tiles = null;
 
-/** `load(base) -> promise`. `base` a URL prefix ending in `/`; each sheet is fetched from `base` plus its path in the table. Resolves, with nothing, once all twenty-one are loaded and keyed; rejects, with an `Error` whose message contains the sheet's path, as soon as one fails to load. A later `load` replaces what an earlier one loaded once it resolves. */
+/** `load(base) -> promise`. `base` a URL prefix ending in `/`; each sheet is fetched from `base` plus its path in the table. Resolves, with nothing, once all twenty-four are loaded and keyed; rejects, with an `Error` whose message contains the sheet's path, as soon as one fails to load. A later `load` replaces what an earlier one loaded once it resolves. */
 export async function load(base) {
   const myId = ++_loadId;
 
@@ -222,12 +227,17 @@ export async function load(base) {
     const wallCanvas = sheets.get(t.wallSheet);
     const floorCanvas = sheets.get(t.floorSheet);
     const stairsCanvas = sheets.get(t.stairsSheet);
+    const spikesCanvas = sheets.get(t.spikesSheet);
     tiles.set(t.theme + "/floor", of({ image: floorCanvas, sx: t.floorSx, sy: t.floorSy, sw: 16, sh: 16 }));
     tiles.set(t.theme + "/stairs", of({ image: stairsCanvas, sx: t.stairsSx, sy: t.stairsSy, sw: 16, sh: 16 }));
     for (let m = 0; m <= 15; m++) {
       const wname = "wall-" + m;
       const wrow = TABLE.find((r) => r.name === wname);
       tiles.set(t.theme + "/" + wname, of({ image: wallCanvas, sx: wrow.sx, sy: wrow.sy, sw: 16, sh: 16 }));
+    }
+    for (let s = 0; s <= 2; s++) {
+      const sname = "spikes-" + s;
+      tiles.set(t.theme + "/" + sname, of({ image: spikesCanvas, sx: s * 16, sy: 0, sw: 16, sh: 16 }));
     }
   }
   _sprites = sprites;
@@ -247,7 +257,7 @@ export function sprite(name) {
   return _sprites.get(name);
 }
 
-/** `tile(theme, name) -> sprite`. The `sprite` of the terrain tile `name` (`floor`, `stairs`, or `wall-0` to `wall-15`) of the theme `theme` (one of the six of the themes' table), as that table says: its `image` the keyed sheet, 16 by 16. Before a `load` has resolved, answers `null`. A theme or a name not of those throws a `TypeError`, loaded or not. */
+/** `tile(theme, name) -> sprite`. The `sprite` of the terrain tile `name` (`floor`, `stairs`, `wall-0` to `wall-15`, or `spikes-0` to `spikes-2`) of the theme `theme` (one of the six of the themes' table), as that table says: its `image` the keyed sheet, 16 by 16. Before a `load` has resolved, answers `null`. A theme or a name not of those throws a `TypeError`, loaded or not. */
 export function tile(theme, name) {
   if (!_themeIndex.has(theme)) {
     throw new TypeError(`atlas: no theme named ${theme}`);
