@@ -184,18 +184,22 @@ test("generate: lair", () => {
     assert.ok(point.equals(plan.start, point.of(8, 16)));
     assert.ok(point.equals(plan.boss, point.of(32, 15)));
     assert.strictEqual(plan.levers.length, 3);
-    assert.ok(point.equals(plan.levers[0], point.of(12, 8)));
-    assert.ok(point.equals(plan.levers[1], point.of(12, 24)));
-    assert.ok(point.equals(plan.levers[2], point.of(22, 16)));
+    assert.ok(point.equals(plan.levers[0], point.of(39, 7)));
+    assert.ok(point.equals(plan.levers[1], point.of(39, 25)));
+    assert.ok(point.equals(plan.levers[2], point.of(39, 16)));
     assert.strictEqual(plan.spots.length, 72);
-    assert.ok(point.equals(plan.spots[0], point.of(10, 6)));
-    assert.ok(point.equals(plan.spots[23], point.of(14, 10)));
-    assert.ok(point.equals(plan.spots[24], point.of(10, 22)));
-    assert.ok(point.equals(plan.spots[71], point.of(24, 18)));
+    assert.ok(point.equals(plan.spots[0], point.of(37, 5)));
+    assert.ok(point.equals(plan.spots[23], point.of(41, 9)));
+    assert.ok(point.equals(plan.spots[24], point.of(37, 23)));
+    assert.ok(point.equals(plan.spots[71], point.of(41, 18)));
     for (const sp of plan.spots) {
       for (const lever of plan.levers) {
         assert.ok(!point.equals(sp, lever));
       }
+      // no spot within 2 of the boss's square (x 32 to 34, y 15 to 17)
+      const dx = Math.max(32 - sp.x, 0, sp.x - 34);
+      const dy = Math.max(15 - sp.y, 0, sp.y - 17);
+      assert.ok(Math.max(dx, dy) > 2);
     }
     assert.deepStrictEqual(g.tiles(), s7Tiles);
   }
