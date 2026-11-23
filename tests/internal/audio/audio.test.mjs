@@ -111,8 +111,24 @@ test("create: context left out uses instance when AudioContext exists", () => {
       this.currentTime = 0;
       this.state = "running";
     }
-    createGain() { return { value: 1, set value(v) {} }; }
-    createBufferSource() { return { set loop(v) {}, set start(t) {} }; }
+    createGain() {
+      let v = 1;
+      return {
+        get value() { return v; },
+        set value(x) { v = x; },
+        connect() {},
+        disconnect() {}
+      };
+    }
+    createBufferSource() {
+      return {
+        set loop(x) {},
+        set start(x) {},
+        set end(x) {},
+        start() {},
+        stop() {}
+      };
+    }
     decodeAudioData() { return Promise.resolve({}); }
     resume() { return Promise.resolve(); }
   }
