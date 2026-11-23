@@ -9,7 +9,6 @@ import * as landingEdge from "../../edges/edge_to_landing.mjs";
 import * as menuEdge from "../../edges/edge_to_menu.mjs";
 import * as viewEdge from "../../edges/edge_to_view.mjs";
 import * as inputEdge from "../../edges/edge_to_input.mjs";
-import * as audioEdge from "../../edges/edge_to_audio.mjs";
 
 const REASON_TEXT = {
   "full": "The server already has 4 sessions.",
@@ -63,16 +62,6 @@ export function start(document, options = {}) {
   viewEdge.load("/assets/").catch((err) => {
     console.error(err);
   });
-
-  const audioOptions = options.audioContext === undefined ? {} : { context: options.audioContext };
-  const sound = audioEdge.create(audioOptions);
-  sound.load();
-
-  function resumeOnInteraction() {
-    sound.resume();
-  }
-  document.addEventListener("keydown", resumeOnInteraction);
-  document.addEventListener("pointerdown", resumeOnInteraction);
 
   const conn = netEdge.connect(url, open);
 
@@ -136,17 +125,8 @@ export function start(document, options = {}) {
         menu.open();
         menuOpenFlag = true;
       }
-      return;
-    }
-    if (menuOpenFlag) return;
-    if (command === "pause") {
+    } else if (command === "pause") {
       conn.send(messageShape.pause(!paused));
-    } else if (command === "mute") {
-      sound.toggleMute();
-    } else if (command === "quieter") {
-      sound.quieter();
-    } else if (command === "louder") {
-      sound.louder();
     }
   }
 
@@ -202,11 +182,9 @@ export function start(document, options = {}) {
         break;
       }
       case "state": {
-        const previousWorld = latestWorld;
         latestWorld = msg.world;
         paused = msg.paused;
         menu.setPaused(paused);
-        sound.update(previousWorld, latestWorld, me);
         stateArrivalTime = performance.now();
         break;
       }
@@ -237,8 +215,6 @@ export function start(document, options = {}) {
         stopKeys();
         stopKeys = null;
       }
-      document.removeEventListener("keydown", resumeOnInteraction);
-      document.removeEventListener("pointerdown", resumeOnInteraction);
       conn.close();
       if (landing.shown()) {
         landing.hide();
