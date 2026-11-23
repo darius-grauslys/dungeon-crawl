@@ -65,6 +65,7 @@ const SOUND_PATHS = [
   'sfx/step-1.mp3', 'sfx/step-2.mp3', 'sfx/step-3.mp3', 'sfx/step-4.mp3',
   'sfx/swing.mp3', 'sfx/shot.mp3', 'sfx/hit.mp3', 'sfx/death.mp3',
   'sfx/coin.mp3', 'sfx/powerup.mp3', 'sfx/use.mp3', 'sfx/stairs.mp3',
+  'sfx/hiss.mp3', 'sfx/boom.mp3',
 ];
 
 test('create throws when context is missing', () => {
@@ -72,7 +73,7 @@ test('create throws when context is missing', () => {
   assert.throws(() => create({ context: {} }), TypeError);
 });
 
-test('load fetches and decodes the twelve sound files', async () => {
+test('load fetches and decodes the fourteen sound files', async () => {
   const fake = makeFakeContext();
   const urls = [];
   const fetcher = async (url) => {
@@ -81,8 +82,8 @@ test('load fetches and decodes the twelve sound files', async () => {
   };
   const mixer = create({ context: fake.ctx, fetch: fetcher });
   await mixer.load();
-  assert.equal(urls.length, 12);
-  assert.equal(fake.decodeCalls.length, 12);
+  assert.equal(urls.length, 14);
+  assert.equal(fake.decodeCalls.length, 14);
   for (const p of SOUND_PATHS) {
     assert.ok(urls.includes(`/assets/${p}`), `expected fetch of /assets/${p}`);
   }
@@ -120,7 +121,7 @@ test('load works with a fetch that enforces this is undefined or global', async 
   };
   const mixer = create({ context: fake.ctx, fetch: strictFetch });
   await mixer.load();
-  assert.equal(fake.decodeCalls.length, 12);
+  assert.equal(fake.decodeCalls.length, 14);
   assert.equal(calledThis, undefined);
 });
 

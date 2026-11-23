@@ -122,10 +122,43 @@ function isGesture(v) {
 }
 
 /**
+ * Validate that a value is a chant object or null.
+ * @param {*} v
+ * @returns {boolean}
+ */
+function isChant(v) {
+  if (v === null) return true;
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  if (v.kind !== 'haste' && v.kind !== 'summon') return false;
+  const { at, until } = v;
+  if (typeof at !== 'number' || !Number.isInteger(at) || at < 0) return false;
+  if (typeof until !== 'number' || !Number.isInteger(until) || until < 0) return false;
+  if (until < at) return false;
+  const keys = Object.keys(v);
+  if (keys.length !== 3 || !keys.includes('kind') || !keys.includes('at') || !keys.includes('until')) return false;
+  return true;
+}
+
+/**
+ * Validate that a value is a fuse object or null.
+ * @param {*} v
+ * @returns {boolean}
+ */
+function isFuse(v) {
+  if (v === null) return true;
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  const { at } = v;
+  if (typeof at !== 'number' || !Number.isInteger(at) || at < 0) return false;
+  const keys = Object.keys(v);
+  if (keys.length !== 1 || !keys.includes('at')) return false;
+  return true;
+}
+
+/**
  * Actor class: a creature on the floor: the hero or a monster. Immutable.
  */
 class Actor {
-  constructor({ id, kind, pos, stats, ready, held, facing, last, aim, slow, mode, size, small, gesture }) {
+  constructor({ id, kind, pos, stats, ready, held, facing, last, aim, slow, mode, size, small, gesture, curse, haste, chant, cooldown, fuse }) {
     this.id = id;
     this.kind = kind;
     this.pos = pos;
@@ -140,6 +173,11 @@ class Actor {
     this.size = size;
     this.small = small;
     this.gesture = gesture;
+    this.curse = curse;
+    this.haste = haste;
+    this.chant = chant;
+    this.cooldown = cooldown;
+    this.fuse = fuse;
   }
 
   covers(x, y) {
@@ -167,9 +205,19 @@ class Actor {
 
   with(changes) {
     const c = changes || {};
+    // kind: never to or from hero
+    if ('kind' in c) {
+      const newKind = c.kind;
+      if (this.kind === 'hero' || newKind === 'hero') {
+        throw new TypeError('with kind cannot be or be to hero');
+      }
+      if (!bestiaryShape.KINDS.includes(newKind)) {
+        throw new TypeError('with kind must be a monster kind');
+      }
+    }
     return of({
       id: this.id,
-      kind: this.kind,
+      kind: 'kind' in c ? c.kind : this.kind,
       pos: 'pos' in c ? c.pos : this.pos,
       stats: 'stats' in c ? c.stats : this.stats,
       ready: 'ready' in c ? c.ready : this.ready,
@@ -182,16 +230,21 @@ class Actor {
       size: 'size' in c ? c.size : this.size,
       small: 'small' in c ? c.small : this.small,
       gesture: 'gesture' in c ? c.gesture : this.gesture,
+      curse: 'curse' in c ? c.curse : this.curse,
+      haste: 'haste' in c ? c.haste : this.haste,
+      chant: 'chant' in c ? c.chant : this.chant,
+      cooldown: 'cooldown' in c ? c.cooldown : this.cooldown,
+      fuse: 'fuse' in c ? c.fuse : this.fuse,
     });
   }
 }
 
 /**
  * Create an actor.
- * @param {{id: number, kind: string, pos: point, stats: stats, ready?: number, held?: number, facing?: string, last?: object, aim?: {dx: number, dy: number}, slow?: number, mode?: string, size?: number, small?: boolean}} input
+ * @param {{id: number, kind: string, pos: point, stats: stats, ready?: number, held?: number, facing?: string, last?: object, aim?: {dx: number, dy: number}, slow?: number, mode?: string, size?: number, small?: boolean, curse?: number, haste?: number, chant?: object|null, cooldown?: number, fuse?: object|null}} input
  * @returns {object} a frozen actor
  */
-export function of({ id, kind, pos, stats, ready = 0, held = 0, facing = FACING_RIGHT, last = null, aim = {dx: 1, dy: 0}, slow = 0, mode = MODE_ROAM, size = 1, small = false, gesture = null }) {
+export function of({ id, kind, pos, stats, ready = 0, held = 0, facing = FACING_RIGHT, last = null, aim = {dx: 1, dy: 0}, slow = 0, mode = MODE_ROAM, size = 1, small = false, gesture = null, curse = 0, haste = 0, chant = null, cooldown = 0, fuse = null }) {
   if (typeof id !== 'number' || !Number.isInteger(id) || id < 0) {
     throw new TypeError('actor id must be an integer of 0 or more');
   }
@@ -234,6 +287,21 @@ export function of({ id, kind, pos, stats, ready = 0, held = 0, facing = FACING_
   if (!isGesture(gesture)) {
     throw new TypeError('actor gesture must be null or a {kind, at} with kind use or power and at an integer of 0 or more');
   }
+  if (typeof curse !== 'number' || !Number.isInteger(curse) || curse < 0 || curse > 3) {
+    throw new TypeError('actor curse must be an integer from 0 to 3');
+  }
+  if (typeof haste !== 'number' || !Number.isInteger(haste) || haste < 0 || haste > 3) {
+    throw new TypeError('actor haste must be an integer from 0 to 3');
+  }
+  if (!isChant(chant)) {
+    throw new TypeError('actor chant must be null or a frozen {kind, at, until} with kind haste or summmon and until at least at');
+  }
+  if (typeof cooldown !== 'number' || !Number.isInteger(cooldown) || cooldown < 0) {
+    throw new TypeError('actor cooldown must be an integer of 0 or more');
+  }
+  if (!isFuse(fuse)) {
+    throw new TypeError('actor fuse must be null or a frozen {at} with at an integer of 0 or more');
+  }
 
   // hero-only limits
   if (kind === 'hero') {
@@ -243,12 +311,26 @@ export function of({ id, kind, pos, stats, ready = 0, held = 0, facing = FACING_
     if (mode !== MODE_ROAM) {
       throw new TypeError('hero mode must be roam');
     }
+    if (haste !== 0) {
+      throw new TypeError('hero haste must be 0');
+    }
+    if (cooldown !== 0) {
+      throw new TypeError('hero cooldown must be 0');
+    }
+    if (chant !== null) {
+      throw new TypeError('hero chant must be null');
+    }
+    if (fuse !== null) {
+      throw new TypeError('hero fuse must be null');
+    }
   }
 
   const frozenLast = last === null ? null : Object.freeze({ kind: last.kind, dx: last.dx, dy: last.dy, at: last.at, reach: last.reach !== undefined ? last.reach : 1 });
   const frozenAim = Object.freeze({ dx: aim.dx, dy: aim.dy });
   const frozenGesture = gesture === null ? null : Object.freeze({ kind: gesture.kind, at: gesture.at });
-  const actor = new Actor({ id, kind, pos, stats, ready, held, facing, last: frozenLast, aim: frozenAim, slow, mode, size, small, gesture: frozenGesture });
+  const frozenChant = chant === null ? null : Object.freeze({ kind: chant.kind, at: chant.at, until: chant.until });
+  const frozenFuse = fuse === null ? null : Object.freeze({ at: fuse.at });
+  const actor = new Actor({ id, kind, pos, stats, ready, held, facing, last: frozenLast, aim: frozenAim, slow, mode, size, small, gesture: frozenGesture, curse, haste, chant: frozenChant, cooldown, fuse: frozenFuse });
   return Object.freeze(actor);
 }
 
