@@ -55,7 +55,7 @@ export async function start({ port = 0, root, idle = 1800000, host }) {
       try {
         switch (msg.kind) {
           case "list": {
-            const sessions = t.ids().map((id) => ({
+            const sessions = t.ids().filter((id) => worlds.has(id)).map((id) => ({
               session: id,
               players: t.members(id).map((m) => m.name),
               depth: worlds.get(id).depth,
@@ -64,12 +64,19 @@ export async function start({ port = 0, root, idle = 1800000, host }) {
             break;
           }
           case "create": {
+            let w;
+            try {
+              const seed = randomSeed();
+              w = msg.save ? fromSave(msg.save) : newGame(seed);
+            } catch (err) {
+              console.error(err);
+              handle.send(connection, messageShape.refused("malformed").text());
+              break;
+            }
             const id = t.create(now);
             if (id === null) {
               handle.send(connection, messageShape.refused("full").text());
             } else {
-              const seed = randomSeed();
-              const w = msg.save ? fromSave(msg.save) : newGame(seed);
               worlds.set(id, w);
               handle.send(connection, JSON.stringify({ kind: "created", session: id }));
             }
@@ -139,6 +146,7 @@ export async function start({ port = 0, root, idle = 1800000, host }) {
     // 2. Advance.
     for (const id of t.ids()) {
       if (t.paused(id)) continue;
+      if (!worlds.has(id)) continue;
       try {
         worlds.set(id, advance(worlds.get(id), 50));
       } catch (err) {
@@ -153,6 +161,7 @@ export async function start({ port = 0, root, idle = 1800000, host }) {
 
     // 4. Send.
     for (const id of t.ids()) {
+      if (!worlds.has(id)) continue;
       const paused = t.paused(id);
       for (const { connection } of t.members(id)) {
         const w = worlds.get(id);
