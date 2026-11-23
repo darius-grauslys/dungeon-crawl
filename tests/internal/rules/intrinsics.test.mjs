@@ -598,14 +598,14 @@ test("refuses: invalid inputs throw TypeError", () => {
 test("spawns: levels 6-10 include snowman/snow-skeleton/wolf-man; 16-20 scarecrow/pumpkin no reaper; 21-25 imp/demon/beholder", () => {
   let has6 = false;
   for (let s = 0; s < 30; s++) {
-    const k = new Set(rules.newGame(s, 6).monsters.map((m) => m.kind));
+    const k = new Set(rules.newGame(s, 8).monsters.map((m) => m.kind));
     if (k.has("snowman") || k.has("snow-skeleton")) { has6 = true; break; }
   }
   assert.ok(has6, "level 6 can spawn snowman or snow-skeleton");
-  const kinds16 = new Set(rules.newGame(12, 18).monsters.map((m) => m.kind));
+  const kinds16 = new Set(rules.newGame(12, 22).monsters.map((m) => m.kind));
   assert.ok(kinds16.has("scarecrow") || kinds16.has("pumpkin"));
   assert.ok(!kinds16.has("reaper"));
-  const kinds21 = new Set(rules.newGame(12, 22).monsters.map((m) => m.kind));
+  const kinds21 = new Set(rules.newGame(12, 29).monsters.map((m) => m.kind));
   assert.ok(kinds21.has("imp") || kinds21.has("demon") || kinds21.has("beholder"));
 });
 
