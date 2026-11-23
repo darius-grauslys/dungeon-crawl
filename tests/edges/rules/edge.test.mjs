@@ -821,6 +821,21 @@ test("descends", () => {
   assert.strictEqual(w14after.depth, 15);
   assert.strictEqual(w14after.log[w14after.log.length - 1], "The party descends to level 11.");
 
+  const heroAnn20 = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(2, 1), stats: stats.of({ hp: 20, maxHp: 24, attack: 4, defense: 1, range: 1 }), ready: 0 }), pending: null, alive: true });
+  const w20 = makeWorld({
+    grid,
+    heroes: [heroAnn20],
+    monsters: [],
+    items: [],
+    depth: 20,
+    gold: 7,
+    entry: save.of({ seed: 1, depth: 20, players: [{ name: "Ann", stats: stats.of({ hp: 20, maxHp: 24, attack: 4, defense: 1, range: 1 }) }] }),
+  });
+  const w20after = advance(intend(w20, "Ann", intent.descend()), 50);
+  assert.strictEqual(w20after.depth, 21);
+  assert.strictEqual(w20after.log[w20after.log.length - 2], "The party descends into a lair.");
+  assert.strictEqual(w20after.log[w20after.log.length - 1], "A reaper guards the way down!");
+
   const heroAnn33 = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(2, 1), stats: stats.of({ hp: 20, maxHp: 24, attack: 4, defense: 1, range: 1 }), ready: 0 }), pending: null, alive: true });
   const w33 = makeWorld({
     grid,
@@ -1064,6 +1079,22 @@ test("lair", () => {
   assert.deepStrictEqual(serpent.stats, { hp: 60, maxHp: 60, attack: 10, defense: 6, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
   assert.strictEqual(w14.items.length, 0);
   assert.strictEqual(w14.grid.at(33, 16), "floor");
+
+  const w21 = fromSave(save.of({ seed: 4, depth: 21, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
+  assert.strictEqual(w21.monsters.length, 1);
+  const reaper = w21.monsters[0];
+  assert.strictEqual(reaper.kind, "reaper");
+  assert.strictEqual(reaper.pos.x, 32);
+  assert.strictEqual(reaper.pos.y, 15);
+  assert.strictEqual(reaper.size, 2);
+  assert.strictEqual(reaper.mode, "dormant");
+  assert.deepStrictEqual(reaper.stats, { hp: 90, maxHp: 90, attack: 14, defense: 8, range: 1, magic: 4, magicPower: 2, magicResist: 0 });
+  assert.strictEqual(w21.items.length, 0);
+
+  const w28 = fromSave(save.of({ seed: 4, depth: 28, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
+  assert.strictEqual(w28.monsters.length, 0);
+  assert.strictEqual(w28.items.length, 0);
+  assert.strictEqual(w28.grid.at(33, 16), "floor");
 });
 
 test("levers", () => {
@@ -1479,7 +1510,7 @@ test("themes", () => {
   const w8 = fromSave(save.of({ seed: 3, depth: 8, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
   assert.strictEqual(w8.monsters.length, 4);
   for (const m of w8.monsters) {
-    assert.ok(["blue-slime", "blue-spider", "archer", "swordsman", "mage"].includes(m.kind));
+    assert.ok(["blue-slime", "blue-spider", "archer", "swordsman", "mage", "snowman", "snow-skeleton"].includes(m.kind));
     if (m.kind === "blue-slime") {
       assert.deepStrictEqual(m.stats, { hp: 9, maxHp: 9, attack: 3, defense: 1, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
     } else if (m.kind === "blue-spider") {
@@ -1488,21 +1519,47 @@ test("themes", () => {
       assert.deepStrictEqual(m.stats, { hp: 10, maxHp: 10, attack: 4, defense: 1, range: 4, magic: 0, magicPower: 1, magicResist: 0 });
     } else if (m.kind === "swordsman") {
       assert.deepStrictEqual(m.stats, { hp: 16, maxHp: 16, attack: 6, defense: 2, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
+    } else if (m.kind === "snowman") {
+      assert.deepStrictEqual(m.stats, { hp: 7, maxHp: 7, attack: 0, defense: 0, range: 4, magic: 1, magicPower: 1, magicResist: 0 });
+    } else if (m.kind === "snow-skeleton") {
+      assert.deepStrictEqual(m.stats, { hp: 16, maxHp: 16, attack: 6, defense: 2, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
     } else {
       assert.strictEqual(m.kind, "mage");
       assert.deepStrictEqual(m.stats, { hp: 12, maxHp: 12, attack: 3, defense: 1, range: 4, magic: 4, magicPower: 1, magicResist: 0 });
     }
   }
 
+  // seeds 0 to 19 at depths 9 to 12
+  let wolfCount = 0;
+  let snowSkCount = 0;
+  let snowManCount = 0;
+  let mageCount = 0;
+  for (let seed = 0; seed <= 19; seed++) {
+    for (let depth = 9; depth <= 12; depth++) {
+      const w9 = fromSave(save.of({ seed, depth, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
+      for (const m of w9.monsters) {
+        assert.ok(["blue-slime", "blue-spider", "archer", "swordsman", "mage", "snowman", "snow-skeleton", "wolf-man"].includes(m.kind));
+        if (m.kind === "wolf-man") {
+          assert.deepStrictEqual(m.stats, { hp: 21, maxHp: 21, attack: 6, defense: 2, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
+          wolfCount++;
+        } else if (m.kind === "snow-skeleton") snowSkCount++;
+        else if (m.kind === "snowman") snowManCount++;
+        else if (m.kind === "mage") mageCount++;
+      }
+    }
+  }
+  assert.ok(wolfCount >= 1);
+  assert.ok(snowSkCount >= 1);
+  assert.ok(snowManCount >= 1);
+  assert.ok(mageCount >= 1);
+
   const w33 = fromSave(save.of({ seed: 3, depth: 33, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
   assert.strictEqual(w33.monsters.length, 12);
   for (const m of w33.monsters) {
-    if (m.kind === "worm") {
-      assert.deepStrictEqual(m.stats, { hp: 27, maxHp: 27, attack: 9, defense: 4, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
-    } else if (m.kind === "fire-slime") {
-      assert.deepStrictEqual(m.stats, { hp: 30, maxHp: 30, attack: 9, defense: 5, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
-    } else if (m.kind === "imp") {
+    if (m.kind === "imp") {
       assert.deepStrictEqual(m.stats, { hp: 36, maxHp: 36, attack: 10, defense: 5, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
+    } else if (m.kind === "beholder") {
+      assert.deepStrictEqual(m.stats, { hp: 60, maxHp: 60, attack: 10, defense: 6, range: 5, magic: 6, magicPower: 2, magicResist: 0 });
     } else {
       assert.strictEqual(m.kind, "demon");
       assert.deepStrictEqual(m.stats, { hp: 48, maxHp: 48, attack: 11, defense: 6, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
@@ -1513,7 +1570,9 @@ test("themes", () => {
   assert.strictEqual(w15.monsters.length, 4);
   for (const m of w15.monsters) {
     assert.ok(["beetle", "mummy", "cultist"].includes(m.kind));
-    if (m.kind === "cultist") {
+    if (m.kind === "beetle") {
+      assert.deepStrictEqual(m.stats, { hp: 16, maxHp: 16, attack: 6, defense: 9, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
+    } else if (m.kind === "cultist") {
       assert.strictEqual(m.stats.range, 4);
       assert.strictEqual(m.stats.magic, 8);
     }
@@ -1521,7 +1580,7 @@ test("themes", () => {
 
   const w22 = fromSave(save.of({ seed: 3, depth: 22, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
   for (const m of w22.monsters) {
-    assert.ok(["spider", "ghost", "reaper"].includes(m.kind));
+    assert.ok(["spider", "ghost", "scarecrow", "pumpkin"].includes(m.kind));
   }
 
   const w3 = fromSave(save.of({ seed: 3, depth: 3, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
@@ -2008,23 +2067,63 @@ test("save/valid", () => {
 });
 
 test("bestiary/valid", () => {
-  assert.strictEqual(bestiary.KINDS.length, 22);
+  assert.strictEqual(bestiary.KINDS.length, 30);
   assert.strictEqual(bestiary.KINDS[0], "bat");
   assert.strictEqual(bestiary.KINDS[21], "serpent");
+  assert.deepStrictEqual(bestiary.KINDS.slice(22, 30), ["snowman", "snow-skeleton", "wolf-man", "enraged-wolf-man", "scarecrow", "swarm", "pumpkin", "beholder"]);
   assert.ok(Object.isFrozen(bestiary.KINDS));
 
-  assert.deepStrictEqual(bestiary.entry("archer"), { kind: "archer", group: "undead", hp: 7, attack: 3, defense: 1, magic: 0, magicPower: 1, range: 4, slows: false, reach: 7, step: 400, strike: 700, size: 1 });
+  assert.deepStrictEqual(bestiary.entry("archer"), { kind: "archer", group: "undead", hp: 7, attack: 3, defense: 1, magic: 0, magicPower: 1, range: 4, slows: false, reach: 7, step: 400, strike: 700, size: 1, ability: "none" });
   assert.ok(Object.isFrozen(bestiary.entry("archer")));
   assert.strictEqual(bestiary.entry("blue-snake").slows, true);
+  assert.strictEqual(bestiary.entry("blue-spider").slows, true);
   assert.strictEqual(bestiary.entry("golem").size, 3);
   assert.strictEqual(bestiary.entry("golem").step, 1600);
   assert.strictEqual(bestiary.entry("golem").defense, 12);
+  assert.strictEqual(bestiary.entry("golem").magic, 6);
+  assert.strictEqual(bestiary.entry("golem").magicPower, 2);
   assert.strictEqual(bestiary.entry("cultist").range, 4);
   assert.strictEqual(bestiary.entry("cultist").magic, 8);
+  assert.deepStrictEqual(bestiary.entry("mage"), { kind: "mage", group: "undead", hp: 8, attack: 2, defense: 1, magic: 4, magicPower: 1, range: 4, slows: false, reach: 7, step: 400, strike: 700, size: 1, ability: "none" });
+  assert.strictEqual(bestiary.entry("bat").step, 133);
+  assert.strictEqual(bestiary.entry("bat").strike, 200);
+  assert.strictEqual(bestiary.entry("serpent").group, "vermin");
+  assert.strictEqual(bestiary.entry("serpent").hp, 60);
+  assert.strictEqual(bestiary.entry("serpent").attack, 10);
+  assert.strictEqual(bestiary.entry("serpent").defense, 6);
+  assert.strictEqual(bestiary.entry("serpent").slows, true);
+  assert.strictEqual(bestiary.entry("serpent").size, 3);
+  assert.strictEqual(bestiary.entry("beetle").defense, 8);
+  assert.strictEqual(bestiary.entry("beetle").strike, 1200);
+  assert.strictEqual(bestiary.entry("beetle").ability, "push");
+  assert.strictEqual(bestiary.entry("mummy").ability, "curse");
+  assert.strictEqual(bestiary.entry("cultist").ability, "chant");
+  assert.strictEqual(bestiary.entry("snowman").attack, 0);
+  assert.strictEqual(bestiary.entry("snowman").magic, 1);
+  assert.strictEqual(bestiary.entry("snowman").range, 4);
+  assert.strictEqual(bestiary.entry("snowman").slows, true);
+  assert.strictEqual(bestiary.entry("snowman").step, 133);
+  assert.strictEqual(bestiary.entry("enraged-wolf-man").step, 200);
+  assert.strictEqual(bestiary.entry("enraged-wolf-man").strike, 300);
+  assert.strictEqual(bestiary.entry("swarm").hp, 3);
+  assert.strictEqual(bestiary.entry("swarm").step, 80);
+  assert.strictEqual(bestiary.entry("swarm").strike, 300);
+  assert.strictEqual(bestiary.entry("swarm").ability, "split");
+  assert.strictEqual(bestiary.entry("pumpkin").size, 2);
+  assert.strictEqual(bestiary.entry("pumpkin").step, 800);
+  assert.strictEqual(bestiary.entry("pumpkin").ability, "fuse");
+  assert.strictEqual(bestiary.entry("reaper").size, 2);
+  assert.strictEqual(bestiary.entry("reaper").hp, 90);
+  assert.strictEqual(bestiary.entry("swordsman").group, "undead");
+  assert.strictEqual(bestiary.entry("swordsman").hp, 11);
+  assert.strictEqual(bestiary.entry("swordsman").attack, 5);
+  assert.strictEqual(bestiary.entry("swordsman").defense, 2);
+  assert.strictEqual(bestiary.entry("swordsman").range, 1);
 
   assert.strictEqual(bestiary.group("hero"), "human");
   assert.strictEqual(bestiary.group("imp"), "demon");
   assert.strictEqual(bestiary.group("golem"), "construct");
+  assert.strictEqual(bestiary.group("beholder"), "demon");
 
   assert.strictEqual(bestiary.hostile("hero", "bat"), true);
   assert.strictEqual(bestiary.hostile("skeleton", "hero"), true);
@@ -2116,4 +2215,308 @@ test("level/valid", () => {
   assert.throws(() => level.blend(40), TypeError);
   assert.throws(() => level.number("3"), TypeError);
   assert.throws(() => level.label(null), TypeError);
+});
+
+test("pushes", () => {
+  const grid = tileGrid.fromRows(["########", "#......#", "########"]);
+
+  let pushedCount = 0;
+  let stayCount = 0;
+  for (let rng = 0; rng <= 39; rng++) {
+    const heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(3, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+    const beetle = actor.of({ id: 10, kind: "beetle", pos: point.of(2, 1), stats: stats.of({ hp: 8, maxHp: 8, attack: 4, defense: 8, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 0 });
+    const w = makeWorld({ grid, heroes: [heroAnn], monsters: [beetle], rng });
+    const w1 = advance(w, 50);
+    assert.strictEqual(w1.monsters[0].ready, 1250);
+    const ann = w1.heroes[0];
+    if (ann.actor.stats.hp < 24 && ann.alive && ann.actor.pos.x === 4) {
+      pushedCount++;
+    } else if (ann.actor.stats.hp === 24 && ann.alive && ann.actor.pos.x === 3) {
+      stayCount++;
+    } else {
+      throw new Error("unexpected pushes state");
+    }
+  }
+  assert.ok(pushedCount >= 1);
+  assert.ok(stayCount >= 1);
+
+  // With a bat (ready 10000) at (4, 1), Ann stays at (3, 1) in every one.
+  for (let rng = 0; rng <= 39; rng++) {
+    const heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(3, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+    const bat = actor.of({ id: 10, kind: "bat", pos: point.of(4, 1), stats: stats.of({ hp: 3, maxHp: 3, attack: 2, defense: 0, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 10000 });
+    const w = makeWorld({ grid, heroes: [heroAnn], monsters: [bat], rng });
+    const w1 = advance(w, 50);
+    assert.strictEqual(w1.heroes[0].actor.pos.x, 3);
+  }
+});
+
+test("curses", () => {
+  const grid = tileGrid.fromRows(["#######", "#.....#", "#######"]);
+
+  let cursedCount = 0;
+  for (let rng = 0; rng <= 39; rng++) {
+    const heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(2, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+    const mummy = actor.of({ id: 10, kind: "mummy", pos: point.of(3, 1), stats: stats.of({ hp: 12, maxHp: 12, attack: 5, defense: 2, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 0 });
+    const w = makeWorld({ grid, heroes: [heroAnn], monsters: [mummy], rng });
+    const w1 = advance(w, 50);
+    const ann = w1.heroes[0];
+    if (ann.alive && ann.actor.stats.hp < 24 && ann.actor.curse === 3 && w1.log.includes("Ann is cursed!")) {
+      cursedCount++;
+    }
+  }
+  assert.ok(cursedCount >= 1);
+
+  // curse latency
+  const heroAnnC = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 10, maxHp: 24, attack: 4, defense: 1, range: 1 }), ready: 0, curse: 3 }), pending: null, alive: true });
+  const wC = makeWorld({ grid, heroes: [heroAnnC], monsters: [], items: [] });
+  let wC1 = advance(intend(wC, "Ann", intent.move(1, 0)), 50);
+  assert.strictEqual(wC1.heroes[0].actor.pos.x, 2);
+  assert.strictEqual(wC1.heroes[0].actor.stats.hp, 9);
+  assert.strictEqual(wC1.heroes[0].actor.curse, 2);
+  assert.strictEqual(wC1.heroes[0].actor.ready, 250);
+  wC1 = intend(wC1, "Ann", intent.wait());
+  wC1 = advance(wC1, 250);
+  assert.strictEqual(wC1.heroes[0].actor.stats.hp, 8);
+  assert.strictEqual(wC1.heroes[0].actor.curse, 1);
+  wC1 = intend(wC1, "Ann", intent.face(0, 1));
+  wC1 = advance(wC1, 50);
+  assert.strictEqual(wC1.heroes[0].actor.stats.hp, 8);
+  assert.strictEqual(wC1.heroes[0].actor.curse, 1);
+
+  // Ann at 1 hit point and curse 1
+  const heroAnnF = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 1, maxHp: 24, attack: 4, defense: 1, range: 1 }), ready: 0, curse: 1 }), pending: null, alive: true });
+  const wF = makeWorld({ grid, heroes: [heroAnnF], monsters: [], items: [] });
+  const wF1 = advance(intend(wF, "Ann", intent.move(1, 0)), 50);
+  assert.strictEqual(wF1.heroes[0].alive, false);
+  assert.strictEqual(wF1.heroes[0].actor.pos.x, 1);
+  assert.strictEqual(wF1.log[wF1.log.length - 1], "Ann falls.");
+});
+
+test("enrages", () => {
+  const grid = tileGrid.fromRows(["#######", "#.....#", "#######"]);
+
+  let enragedCount = 0;
+  let normalCount = 0;
+  for (let rng = 0; rng <= 39; rng++) {
+    const heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 9, defense: 1, range: 1 }), ready: 0 }), pending: null, alive: true });
+    const wolfman = actor.of({ id: 10, kind: "wolf-man", pos: point.of(2, 1), stats: stats.of({ hp: 14, maxHp: 14, attack: 5, defense: 2, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 10000 });
+    let w = makeWorld({ grid, heroes: [heroAnn], monsters: [wolfman], rng });
+    w = intend(w, "Ann", intent.attack(1, 0));
+    w = advance(w, 50);
+    const m = w.monsters[0];
+    if (m && m.kind === "enraged-wolf-man" && m.stats.hp === 7 && w.log.includes("The wolf-man is enraged!")) {
+      enragedCount++;
+    } else if (m && m.kind === "wolf-man" && m.stats.hp === 14) {
+      normalCount++;
+    } else {
+      throw new Error("unexpected enrages state");
+    }
+  }
+  assert.ok(enragedCount >= 1);
+  assert.ok(normalCount >= 1);
+
+  // Ann's attack 5
+  let wolfmanCount = 0;
+  for (let rng = 0; rng <= 39; rng++) {
+    const heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 5, defense: 1, range: 1 }), ready: 0 }), pending: null, alive: true });
+    const wolfman = actor.of({ id: 10, kind: "wolf-man", pos: point.of(2, 1), stats: stats.of({ hp: 14, maxHp: 14, attack: 5, defense: 2, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 10000 });
+    let w = makeWorld({ grid, heroes: [heroAnn], monsters: [wolfman], rng });
+    w = intend(w, "Ann", intent.attack(1, 0));
+    w = advance(w, 50);
+    const m = w.monsters[0];
+    assert.strictEqual(m.kind, "wolf-man");
+    wolfmanCount++;
+  }
+  assert.strictEqual(wolfmanCount, 40);
+
+  // enraged-wolf-man steps
+  const heroAnnE = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  const ewolfman = actor.of({ id: 10, kind: "enraged-wolf-man", pos: point.of(4, 1), stats: stats.of({ hp: 14, maxHp: 14, attack: 5, defense: 2, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 0 });
+  const wE = makeWorld({ grid, heroes: [heroAnnE], monsters: [ewolfman] });
+  const wE1 = advance(wE, 50);
+  assert.strictEqual(wE1.monsters[0].pos.x, 3);
+  assert.strictEqual(wE1.monsters[0].ready, 250);
+});
+
+test("hastes", () => {
+  const grid = tileGrid.fromRows(["#########", "#.......#", "#########"]);
+
+  // haste 2
+  const heroAnnH = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  const skeletonH = actor.of({ id: 10, kind: "skeleton", pos: point.of(4, 1), stats: stats.of({ hp: 5, maxHp: 5, attack: 4, defense: 0, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 0, haste: 2 });
+  const wH = makeWorld({ grid, heroes: [heroAnnH], monsters: [skeletonH] });
+  const wH1 = advance(wH, 50);
+  assert.strictEqual(wH1.monsters[0].pos.x, 3);
+  assert.strictEqual(wH1.monsters[0].ready, 250);
+  assert.strictEqual(wH1.monsters[0].haste, 1);
+
+  // haste 0
+  const skeletonH0 = actor.of({ id: 10, kind: "skeleton", pos: point.of(4, 1), stats: stats.of({ hp: 5, maxHp: 5, attack: 4, defense: 0, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 0, haste: 0 });
+  const wH0 = makeWorld({ grid, heroes: [heroAnnH], monsters: [skeletonH0] });
+  const wH0_1 = advance(wH0, 50);
+  assert.strictEqual(wH0_1.monsters[0].ready, 450);
+});
+
+test("chants", () => {
+  const grid = tileGrid.fromRows(["############", "#..........#", "############"]);
+
+  // cultist chants
+  const heroAnnCh = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  const cultist = actor.of({ id: 10, kind: "cultist", pos: point.of(8, 1), stats: stats.of({ hp: 7, maxHp: 7, attack: 5, defense: 1, range: 4, magic: 8, magicPower: 1, magicResist: 0 }), ready: 0 });
+  const skeleton = actor.of({ id: 11, kind: "skeleton", pos: point.of(10, 1), stats: stats.of({ hp: 5, maxHp: 5, attack: 4, defense: 0, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 10000 });
+  const wCh = makeWorld({ grid, heroes: [heroAnnCh], monsters: [cultist, skeleton] });
+  let wCh1 = advance(wCh, 50);
+  assert.strictEqual(wCh1.monsters[0].pos.x, 8);
+  assert.deepStrictEqual(wCh1.monsters[0].chant, { kind: "haste", at: 50, until: 1250 });
+  assert.strictEqual(wCh1.monsters[0].ready, 1250);
+  assert.strictEqual(wCh1.heroes[0].actor.stats.hp, 24);
+  assert.strictEqual(wCh1.log[wCh1.log.length - 1], "The cultist begins to chant.");
+
+  wCh1 = advance(wCh1, 600);
+  wCh1 = advance(wCh1, 600);
+  assert.strictEqual(wCh1.monsters[0].chant, null);
+  assert.strictEqual(wCh1.monsters[0].haste, 3);
+  assert.strictEqual(wCh1.monsters[1].haste, 3);
+  assert.strictEqual(wCh1.monsters[0].ready, 1650);
+  assert.ok(wCh1.log.includes("The cultist's chant quickens the monsters!"));
+
+  // skeleton haste 1
+  const skeletonH1 = actor.of({ id: 11, kind: "skeleton", pos: point.of(10, 1), stats: stats.of({ hp: 5, maxHp: 5, attack: 4, defense: 0, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 10000, haste: 1 });
+  const wCh2 = makeWorld({ grid, heroes: [heroAnnCh], monsters: [cultist, skeletonH1] });
+  const wCh2_1 = advance(wCh2, 50);
+  assert.strictEqual(wCh2_1.monsters[0].chant, null);
+
+  // no skeleton
+  const wCh3 = makeWorld({ grid, heroes: [heroAnnCh], monsters: [cultist] });
+  const wCh3_1 = advance(wCh3, 50);
+  assert.strictEqual(wCh3_1.monsters[0].chant, null);
+});
+
+test("summons", () => {
+  const grid = tileGrid.fromRows(["############", "#..........#", "#..........#", "#..........#", "############"]);
+
+  const heroAnnS = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  const scarecrow = actor.of({ id: 10, kind: "scarecrow", pos: point.of(8, 2), stats: stats.of({ hp: 10, maxHp: 10, attack: 0, defense: 2, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 0 });
+  const wS = makeWorld({ grid, heroes: [heroAnnS], monsters: [scarecrow] });
+  let wS1 = advance(wS, 50);
+  assert.deepStrictEqual(wS1.monsters[0].chant, { kind: "summon", at: 50, until: 2050 });
+  assert.strictEqual(wS1.monsters[0].ready, 2050);
+  assert.strictEqual(wS1.log[wS1.log.length - 1], "The scarecrow begins to chant.");
+
+  wS1 = advance(wS1, 1000);
+  wS1 = advance(wS1, 1000);
+  assert.strictEqual(wS1.monsters[0].chant, null);
+  assert.strictEqual(wS1.monsters[0].cooldown, 5250);
+  assert.strictEqual(wS1.monsters[0].ready, 2450);
+  assert.strictEqual(wS1.monsters.length, 4);
+  const swarms = wS1.monsters.filter((m) => m.kind === "swarm");
+  assert.strictEqual(swarms.length, 3);
+  for (const s of swarms) {
+    assert.strictEqual(s.pos.y, 1);
+    assert.strictEqual(s.ready, 2130);
+    assert.deepStrictEqual(s.stats, { hp: 3, maxHp: 3, attack: 4, defense: 0, range: 1, magic: 2, magicPower: 1, magicResist: 0 });
+  }
+  assert.ok(wS1.log.includes("The scarecrow calls a swarm!"));
+
+  // with 3 swarms from start
+  const s1 = actor.of({ id: 11, kind: "swarm", pos: point.of(8, 1), stats: stats.of({ hp: 3, maxHp: 3, attack: 4, defense: 0, range: 1, magic: 2, magicPower: 1, magicResist: 0 }), ready: 10000 });
+  const s2 = actor.of({ id: 12, kind: "swarm", pos: point.of(9, 1), stats: stats.of({ hp: 3, maxHp: 3, attack: 4, defense: 0, range: 1, magic: 2, magicPower: 1, magicResist: 0 }), ready: 10000 });
+  const s3 = actor.of({ id: 13, kind: "swarm", pos: point.of(10, 1), stats: stats.of({ hp: 3, maxHp: 3, attack: 4, defense: 0, range: 1, magic: 2, magicPower: 1, magicResist: 0 }), ready: 10000 });
+  const wS2 = makeWorld({ grid, heroes: [heroAnnS], monsters: [scarecrow, s1, s2, s3] });
+  const wS2_1 = advance(wS2, 50);
+  assert.strictEqual(wS2_1.monsters[0].chant, null);
+  assert.strictEqual(wS2_1.monsters[0].ready, 450);
+});
+
+test("splits", () => {
+  const grid = tileGrid.fromRows(["#######", "#.....#", "#######"]);
+
+  let splitCount = 0;
+  for (let rng = 0; rng <= 39; rng++) {
+    const heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 40, defense: 1, range: 1 }), ready: 0 }), pending: null, alive: true });
+    const swarm = actor.of({ id: 10, kind: "swarm", pos: point.of(2, 1), stats: stats.of({ hp: 3, maxHp: 3, attack: 4, defense: 0, range: 1, magic: 2, magicPower: 1, magicResist: 0 }), ready: 10000 });
+    let w = makeWorld({ grid, heroes: [heroAnn], monsters: [swarm], rng });
+    w = intend(w, "Ann", intent.attack(1, 0));
+    w = advance(w, 50);
+    const swarm10 = w.monsters.find((m) => m.id === 10);
+    if (swarm10 && swarm10.stats.hp === 2) {
+      const newSwarm = w.monsters.find((m) => m.id !== 10 && m.kind === "swarm");
+      if (newSwarm && newSwarm.pos.x === 3 && newSwarm.pos.y === 1 && newSwarm.stats.hp === 1 && newSwarm.stats.maxHp === 3) {
+        splitCount++;
+      }
+    }
+  }
+  assert.ok(splitCount >= 1);
+
+  // swarm at 1 hit point
+  let goneCount = 0;
+  for (let rng = 0; rng <= 39; rng++) {
+    const heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 40, defense: 1, range: 1 }), ready: 0 }), pending: null, alive: true });
+    const swarm = actor.of({ id: 10, kind: "swarm", pos: point.of(2, 1), stats: stats.of({ hp: 1, maxHp: 3, attack: 4, defense: 0, range: 1, magic: 2, magicPower: 1, magicResist: 0 }), ready: 10000 });
+    let w = makeWorld({ grid, heroes: [heroAnn], monsters: [swarm], rng });
+    w = intend(w, "Ann", intent.attack(1, 0));
+    w = advance(w, 50);
+    const swarm10 = w.monsters.find((m) => m.id === 10);
+    if (!swarm10) goneCount++;
+  }
+  assert.strictEqual(goneCount, 40);
+});
+
+test("explodes", () => {
+  const grid = tileGrid.fromRows(["#########", "#.......#", "#.......#", "#.......#", "#########"]);
+
+  // fuse lit
+  const heroAnnE = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  const pumpkin = actor.of({ id: 10, kind: "pumpkin", pos: point.of(3, 2), stats: stats.of({ hp: 12, maxHp: 12, attack: 0, defense: 1, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 0, size: 2 });
+  const wE = makeWorld({ grid, heroes: [heroAnnE], monsters: [pumpkin] });
+  const wE1 = advance(wE, 50);
+  assert.deepStrictEqual(wE1.monsters[0].fuse, { at: 50 });
+  assert.ok(wE1.log.includes("The pumpkin's fuse is lit!"));
+
+  // explosion
+  const heroAnnB = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(2, 1), stats: stats.of({ hp: 30, maxHp: 30, attack: 4, defense: 1, range: 1 }), ready: 0 }), pending: null, alive: true });
+  const heroBob = hero.of({ name: "Bob", actor: actor.of({ id: 1, kind: "hero", pos: point.of(7, 3), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1, range: 1 }), ready: 0 }), pending: null, alive: true });
+  const pumpkinB = actor.of({ id: 10, kind: "pumpkin", pos: point.of(4, 1), stats: stats.of({ hp: 12, maxHp: 12, attack: 0, defense: 1, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 4800, size: 2, fuse: { at: 0 } });
+  const skeletonB = actor.of({ id: 11, kind: "skeleton", pos: point.of(4, 3), stats: stats.of({ hp: 9, maxHp: 9, attack: 4, defense: 2, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 10000 });
+  const batB = actor.of({ id: 12, kind: "bat", pos: point.of(1, 3), stats: stats.of({ hp: 3, maxHp: 3, attack: 2, defense: 0, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 10000 });
+  const wB = makeWorld({ grid, heroes: [heroAnnB, heroBob], monsters: [pumpkinB, skeletonB, batB], time: 4790 });
+  const wB1 = advance(wB, 50);
+  assert.strictEqual(wB1.monsters.length, 2);
+  assert.deepStrictEqual(wB1.effects, [{ kind: "blast", x: 4, y: 1, size: 2, at: 4840 }]);
+  assert.strictEqual(wB1.heroes[0].actor.stats.hp, 5);
+  assert.strictEqual(wB1.heroes[1].alive, false);
+  assert.strictEqual(wB1.heroes[1].actor.stats.hp, 24);
+  assert.strictEqual(wB1.monsters.find((m) => m.kind === "bat").stats.hp, 3);
+  assert.ok(wB1.log.includes("The pumpkin explodes!"));
+  assert.ok(wB1.log.includes("The blast hits Ann for 25."));
+  assert.ok(wB1.log.includes("Bob falls."));
+  assert.ok(wB1.log.includes("The skeleton is slain."));
+
+  const wB2 = advance(wB1, 1000);
+  assert.strictEqual(wB2.effects.length, 1);
+  const wB3 = advance(wB2, 1);
+  assert.strictEqual(wB3.effects.length, 0);
+});
+
+test("reaper-dies", () => {
+  let diesCount = 0;
+  for (let rng = 0; rng <= 39; rng++) {
+    const w = fromSave(save.of({ seed: 1, depth: 21, players: [{ name: "Ann", stats: stats.of({ hp: 24, maxHp: 24, attack: 99, defense: 1, range: 1 }) }] }));
+    const heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(31, 16), stats: stats.of({ hp: 24, maxHp: 24, attack: 99, defense: 1, range: 1 }), ready: 0 }), pending: null, alive: true });
+    const reaper = actor.of({ id: 10, kind: "reaper", pos: point.of(32, 15), stats: stats.of({ hp: 1, maxHp: 90, attack: 3, defense: 0, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 10000, held: 0, facing: "left", last: null, aim: { dx: 1, dy: 0 }, slow: 0, mode: "guard", size: 2, small: false, gesture: null, curse: 0, haste: 0, chant: null, cooldown: 0, fuse: null });
+    const nw = world.of({
+      seed: w.seed, rng, depth: w.depth, time: w.time, state: w.state,
+      grid: w.grid, heroes: [heroAnn], monsters: [reaper], items: w.items,
+      visible: w.visible, explored: w.explored, gold: w.gold, log: w.log, entry: w.entry, effects: w.effects
+    });
+    const w1 = advance(intend(nw, "Ann", intent.move(1, 0)), 50);
+    if (w1.monsters.length === 0 && w1.grid.at(33, 16) === "stairs" && w1.log.includes("The reaper is slain.") && w1.log.includes("Gold spills from the reaper!")) {
+      const goldItems = w1.items.filter((it) => it.kind === "gold");
+      const totalGold = goldItems.reduce((sum, it) => sum + it.amount, 0);
+      if (goldItems.length >= 1 && goldItems.length <= 5 && totalGold >= 75 && totalGold <= 225) {
+        diesCount++;
+      }
+    }
+  }
+  assert.ok(diesCount >= 1);
 });
