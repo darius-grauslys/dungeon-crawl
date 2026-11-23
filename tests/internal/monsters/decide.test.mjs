@@ -107,11 +107,11 @@ test("shoots: archer shoots in line", () => {
   const grid = tileGrid.of(9, 9, Array(81).fill("floor"));
   const archer = actor.of({ id: 1, kind: "archer", pos: point.of(1, 1), stats: stats.of({ hp: 7, maxHp: 14, attack: 3, defense: 1, range: 4 }) });
   assert.deepEqual(decide(archer, grid, [point.of(5, 1)], [], [], 0), intent.attack(1, 0));
-  assert.deepEqual(decide(archer, grid, [point.of(4, 4)], [], [], 0), intent.attack(1, 1));
+  assert.deepEqual(decide(archer, grid, [point.of(5, 5)], [], [], 0), intent.attack(1, 1));
   // foe at (6,1): distance 5 > range 4, not in line, chase steps (1,0).
   assert.deepEqual(decide(archer, grid, [point.of(6, 1)], [], [], 0), intent.move(1, 0));
-  // foe at (3,4): not in line (not same row/col/diagonal), chase steps (1,1).
-  assert.deepEqual(decide(archer, grid, [point.of(3, 4)], [], [], 0), intent.move(1, 1));
+  // foe at (3,5): not in line (not same row/col/diagonal), chase steps (1,1).
+  assert.deepEqual(decide(archer, grid, [point.of(3, 5)], [], [], 0), intent.move(1, 1));
 });
 
 test("shoots: wall blocks shot", () => {
@@ -119,6 +119,34 @@ test("shoots: wall blocks shot", () => {
   const archer = actor.of({ id: 1, kind: "archer", pos: point.of(1, 1), stats: stats.of({ hp: 7, maxHp: 14, attack: 3, defense: 1, range: 4 }) });
   // foe at (5,1): wall at (3,1) between, does not shoot, no path, waits.
   assert.deepEqual(decide(archer, grid, [point.of(5, 1)], [], [], 0), intent.wait());
+});
+
+test("kites: ranged monsters back off", () => {
+  const grid = tileGrid.of(12, 12, Array(144).fill("floor"));
+  const archer = actor.of({ id: 1, kind: "archer", pos: point.of(5, 5), stats: stats.of({ hp: 7, maxHp: 14, attack: 3, defense: 1, range: 4 }) });
+  // foe at (5,3): 2 away, backs off to (0,1).
+  assert.deepEqual(decide(archer, grid, [point.of(5, 3)], [], [], 0), intent.move(0, 1));
+  // foe at (5,4): next to it, backs off to (0,1).
+  assert.deepEqual(decide(archer, grid, [point.of(5, 4)], [], [], 0), intent.move(0, 1));
+  // foe at (8,5): 3 away, backs off to (-1,0).
+  assert.deepEqual(decide(archer, grid, [point.of(8, 5)], [], [], 0), intent.move(-1, 0));
+  // foe at (5,1): 4 away, full range, in line, shoots.
+  assert.deepEqual(decide(archer, grid, [point.of(5, 1)], [], [], 0), intent.attack(0, -1));
+  // mode guard with foe at (5,3): rule 3 skipped, guard waits.
+  const archerGuard = actor.of({ id: 2, kind: "archer", pos: point.of(5, 5), stats: stats.of({ hp: 7, maxHp: 14, attack: 3, defense: 1, range: 4 }), mode: "guard" });
+  assert.deepEqual(decide(archerGuard, grid, [point.of(5, 3)], [], [], 0), intent.wait());
+  // skeleton (range 1) with foe at (5,3): rule 3 skipped (range not > 1), chases (0,-1).
+  const skel = actor.of({ id: 3, kind: "skeleton", pos: point.of(5, 5), stats: s });
+  assert.deepEqual(decide(skel, grid, [point.of(5, 3)], [], [], 0), intent.move(0, -1));
+});
+
+test("kites: cornered melee and shoot", () => {
+  const grid = tileGrid.fromRows(["#######", "#.....#", "#######"]);
+  const archer = actor.of({ id: 1, kind: "archer", pos: point.of(5, 1), stats: stats.of({ hp: 7, maxHp: 14, attack: 3, defense: 1, range: 4 }) });
+  // foe at (4,1): next to it; cornered, rule 3 falls through, melee attack move(-1,0).
+  assert.deepEqual(decide(archer, grid, [point.of(4, 1)], [], [], 0), intent.move(-1, 0));
+  // foe at (3,1): 2 away, cornered, rule 3 falls through, shoot attack(-1,0).
+  assert.deepEqual(decide(archer, grid, [point.of(3, 1)], [], [], 0), intent.attack(-1, 0));
 });
 
 test("no-path: waits when blocked", () => {
