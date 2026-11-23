@@ -5,10 +5,10 @@ import assert from "node:assert/strict";
 
 import { KINDS, GROUPS, SLIMES, entry, group, hostile, flees } from "../../../shapes/bestiary/index.mjs";
 
-test("KINDS: 18 kinds, first bat, last golem, frozen", () => {
-  assert.equal(KINDS.length, 18);
+test("KINDS: 22 kinds, first bat, last serpent, frozen", () => {
+  assert.equal(KINDS.length, 22);
   assert.equal(KINDS[0], "bat");
-  assert.equal(KINDS[17], "golem");
+  assert.equal(KINDS[21], "serpent");
   assert.ok(Object.isFrozen(KINDS));
 });
 
@@ -44,6 +44,55 @@ test("entry('archer'): correct row, frozen", () => {
 
 test("entry('blue-snake').slows is true", () => {
   assert.equal(entry("blue-snake").slows, true);
+});
+
+test("entry('blue-spider').slows is true", () => {
+  assert.equal(entry("blue-spider").slows, true);
+});
+
+test("entry('bat'): step 133, strike 200 (three times as fast as most)", () => {
+  const e = entry("bat");
+  assert.equal(e.step, 133);
+  assert.equal(e.strike, 200);
+});
+
+test("entry('mage'): correct row, frozen", () => {
+  const e = entry("mage");
+  assert.deepEqual(e, {
+    kind: "mage",
+    group: "undead",
+    hp: 8,
+    attack: 2,
+    defense: 1,
+    magic: 4,
+    magicPower: 1,
+    range: 4,
+    slows: false,
+    reach: 7,
+    step: 400,
+    strike: 700,
+    size: 1,
+  });
+  assert.ok(Object.isFrozen(e));
+});
+
+test("entry('swordsman'): group undead, hp 11, attack 5, defense 2, range 1", () => {
+  const e = entry("swordsman");
+  assert.equal(e.group, "undead");
+  assert.equal(e.hp, 11);
+  assert.equal(e.attack, 5);
+  assert.equal(e.defense, 2);
+  assert.equal(e.range, 1);
+});
+
+test("entry('serpent'): group vmin, hp 60, attack 10, defense 6, slows true, size 3", () => {
+  const e = entry("serpent");
+  assert.equal(e.group, "vermin");
+  assert.equal(e.hp, 60);
+  assert.equal(e.attack, 10);
+  assert.equal(e.defense, 6);
+  assert.equal(e.slows, true);
+  assert.equal(e.size, 3);
 });
 
 test("entry('golem'): size 3, step 1600, attack 12, defense 12, magic 6, magicPower 2", () => {
