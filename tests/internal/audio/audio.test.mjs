@@ -137,13 +137,7 @@ test("create: context left out uses instance when AudioContext exists", () => {
   const savedWindow = global.window;
   global.window = { AudioContext: StubAudioContext };
   try {
-    let a;
-    try {
-      a = create({});
-    } catch (err) {
-      console.error("STACK:", err.stack);
-      throw err;
-    }
+    const a = create({});
     assert.strictEqual(StubAudioContext.instantiated, true, "AudioContext should be instantiated, not passed as class");
     assert.strictEqual(a.volume(), 0.7);
     assert.strictEqual(a.muted(), false);
