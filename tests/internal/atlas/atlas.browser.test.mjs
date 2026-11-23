@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { load, sprite, names, tile, frames, pose } from "../../../src/atlas/index.mjs";
+import { load, sprite, names, tile, floors, frames, pose } from "../../../src/atlas/index.mjs";
 
 test("names returns the table's names in order, fresh array each call", () => {
   const n = names();
@@ -11,6 +11,9 @@ test("names returns the table's names in order, fresh array each call", () => {
     "spider", "ghost", "reaper", "worm", "fire-slime", "imp", "lever",
     "lever-pulled", "ring", "necklace",
     "mage", "swordsman", "blue-spider", "serpent",
+    "snowman", "snow-skeleton", "wolf-man", "enraged-wolf-man",
+    "scarecrow", "swarm", "pumpkin", "beholder",
+    "sparkle-0", "sparkle-1", "sparkle-2",
     "bread", "meat", "cheese",
     "sword-2", "sword-3", "sword-4",
     "armor-2", "armor-3", "armor-4",
@@ -19,7 +22,7 @@ test("names returns the table's names in order, fresh array each call", () => {
     "wall-13", "wall-14", "wall-15"
   ]);
   assert.notStrictEqual(names(), n);
-  assert.strictEqual(n.length, 59);
+  assert.strictEqual(n.length, 70);
 });
 
 test("before load, sprite('hero') is null and sprite('dragon') throws TypeError", () => {
@@ -27,9 +30,9 @@ test("before load, sprite('hero') is null and sprite('dragon') throws TypeError"
   assert.throws(() => sprite("dragon"), TypeError);
 });
 
-test("wall-0 to wall-15 are the last sixteen names; mage after necklace, armor-4 before wall-0; wall-16 throws TypeError", () => {
+test("wall-0 to wall-15 are the last sixteen names; mage after necklace, sparkle-2 before bread, armor-4 before wall-0; wall-16 throws TypeError", () => {
   const n = names();
-  const last16 = n.slice(43);
+  const last16 = n.slice(54);
   assert.deepStrictEqual(last16, [
     "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5", "wall-6",
     "wall-7", "wall-8", "wall-9", "wall-10", "wall-11", "wall-12",
@@ -39,7 +42,11 @@ test("wall-0 to wall-15 are the last sixteen names; mage after necklace, armor-4
   assert.strictEqual(n[28], "ring");
   assert.strictEqual(n[29], "necklace");
   assert.strictEqual(n[30], "mage");
-  assert.strictEqual(n[42], "armor-4");
+  assert.strictEqual(n[41], "beholder");
+  assert.strictEqual(n[42], "sparkle-0");
+  assert.strictEqual(n[44], "sparkle-2");
+  assert.strictEqual(n[45], "bread");
+  assert.strictEqual(n[53], "armor-4");
   assert.throws(() => sprite("wall-16"), TypeError);
 });
 
@@ -69,6 +76,11 @@ test("before load, pose('hero','idle',0) is null; bad args throw", () => {
   assert.throws(() => pose("hero", "walk", 0), TypeError);
   assert.throws(() => pose("bat", "sleep", 0), TypeError);
   assert.throws(() => pose("hero", "idle", 0, { colour: 4, group: 0 }), TypeError);
+});
+
+test("before load, floors('dungeon') is null; floors('lava') throws TypeError", () => {
+  assert.strictEqual(floors("dungeon"), null);
+  assert.throws(() => floors("lava"), TypeError);
 });
 
 test("after load, wall-6 and wall-9 have correct rects", async () => {
@@ -211,4 +223,54 @@ test("after load, hero pose rects and monster poses", async () => {
     assert.strictEqual(p.sw, 16);
     assert.strictEqual(p.sh, 16);
   }
+});
+
+test("after load, floors counts and rects", async () => {
+  await load("/assets/");
+  const df = floors("dungeon");
+  assert.strictEqual(df.length, 23);
+  assert.strictEqual(df[0].sx, 0);
+  assert.strictEqual(df[0].sy, 304);
+  assert.strictEqual(df[22].sy, 256);
+  const dftile = tile("dungeon", "floor");
+  for (const s of df) {
+    assert.strictEqual(s.image, dftile.image);
+    assert.strictEqual(s.sw, 16);
+    assert.strictEqual(s.sh, 16);
+  }
+  const tf = floors("temple");
+  assert.strictEqual(tf.length, 12);
+  assert.strictEqual(tf[0].sy, 160);
+  const mf = floors("magma");
+  assert.strictEqual(mf.length, 19);
+  assert.strictEqual(mf[18].sy, 208);
+  const ifl = floors("interior");
+  assert.strictEqual(ifl.length, 1);
+  assert.strictEqual(ifl[0].sx, 224);
+  assert.strictEqual(ifl[0].sy, 112);
+  assert.strictEqual(ifl[0].image, tile("interior", "floor").image);
+});
+
+test("after load, new monster sprites and poses", async () => {
+  await load("/assets/");
+  const snowman = sprite("snowman");
+  assert.strictEqual(snowman.sx, 0);
+  assert.strictEqual(snowman.sy, 0);
+  assert.notStrictEqual(snowman.image, sprite("serpent").image);
+  const wolfman = sprite("wolf-man");
+  assert.strictEqual(wolfman.sx, 64);
+  assert.strictEqual(wolfman.sy, 16);
+  assert.strictEqual(wolfman.image, snowman.image);
+  const pumpkin = sprite("pumpkin");
+  assert.strictEqual(pumpkin.sx, 0);
+  assert.strictEqual(pumpkin.sy, 32);
+  assert.strictEqual(pumpkin.image, sprite("spider").image);
+  const sparkle1 = sprite("sparkle-1");
+  assert.strictEqual(sparkle1.sx, 16);
+  assert.strictEqual(sparkle1.sy, 208);
+  const sw2 = pose("swarm", "idle", 2);
+  assert.strictEqual(sw2.sx, 160);
+  assert.strictEqual(sw2.sy, 0);
+  assert.strictEqual(sw2.sw, 16);
+  assert.strictEqual(sw2.sh, 16);
 });
