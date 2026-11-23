@@ -285,3 +285,70 @@ test("generate has one-cell-wide corridors on non-temple depths", () => {
     assert.ok(foundNarrow, `depth 2 should have at least one cell in no 2x2 block`);
   }
 });
+
+test("generate has no spikes on depth 1, shops and lairs", () => {
+  for (const s of [0, 1, 2, 3, 4]) {
+    const p1 = dungeon.generate(s, 1);
+    assert.deepStrictEqual(p1.spikes, []);
+    for (const d of [6, 7, 13, 14, 20, 21, 27, 28]) {
+      const p = dungeon.generate(s, d);
+      assert.deepStrictEqual(p.spikes, []);
+    }
+  }
+});
+
+test("generate has spikes on dungeon floors level 2 and above", () => {
+  const depths = [2, 3, 4, 5, 8, 9, 10, 11, 12, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 29, 30, 31, 32, 33];
+  for (const d of depths) {
+    for (const s of [0, 1, 19]) {
+      const p = dungeon.generate(s, d);
+      assert.ok(p.spikes.length >= 4 && p.spikes.length <= 100, `depth ${d}: spikes length ${p.spikes.length}`);
+      const seen = new Set();
+      for (const sp of p.spikes) {
+        assert.strictEqual(p.grid.at(sp.x, sp.y), 'floor');
+        assert.ok(sp.shift >= 0 && sp.shift <= 5);
+        assert.ok(!(sp.x === p.start.x && sp.y === p.start.y));
+        assert.ok(!(sp.x === p.stairs.x && sp.y === p.stairs.y));
+        const key = sp.x + ',' + sp.y;
+        assert.ok(!seen.has(key), `duplicate spike at ${key} on depth ${d}`);
+        seen.add(key);
+      }
+      const p2 = dungeon.generate(s, d);
+      assert.deepStrictEqual(p.spikes, p2.spikes);
+    }
+  }
+});
+
+test("generate spikes include a hallway pattern for some seed/depth", () => {
+  const depths = [2, 3, 5, 8, 12, 15, 22, 26, 33];
+  let foundHallway = false;
+  for (let s = 0; s <= 19 && !foundHallway; s++) {
+    for (const d of depths) {
+      const p = dungeon.generate(s, d);
+      // check rows and columns for hallway pattern k,k,k+1,k+1,...(mod 6) of length >= 4
+      const shifts = {};
+      for (const sp of p.spikes) shifts[sp.x + ',' + sp.y] = sp.shift;
+      const checkLine = (cells) => {
+        const vals = cells.map(c => shifts[c]).filter(v => v !== undefined);
+        if (vals.length < 4) return false;
+        for (let i = 0; i + 3 < vals.length; i++) {
+          const k = vals[i];
+          if (vals[i] === k && vals[i+1] === k && vals[i+2] === (k+1)%6 && vals[i+3] === (k+1)%6) return true;
+        }
+        return false;
+      };
+      for (let y = 0; y < 32; y++) {
+        const row = [];
+        for (let x = 0; x < 48; x++) row.push(`${x},${y}`);
+        if (checkLine(row)) { foundHallway = true; break; }
+      }
+      for (let x = 0; x < 48; x++) {
+        const col = [];
+        for (let y = 0; y < 32; y++) col.push(`${x},${y}`);
+        if (checkLine(col)) { foundHallway = true; break; }
+      }
+      if (foundHallway) break;
+    }
+  }
+  assert.ok(foundHallway, 'at least one plan should have a hallway spike pattern');
+});
