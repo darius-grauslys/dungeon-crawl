@@ -271,6 +271,32 @@ test("kites", () => {
   assert.strictEqual(i.dy, 0);
 });
 
+test("abilities", () => {
+  const grid = tileGrid.of(9, 9, Array(81).fill("floor"));
+
+  const scarecrow = actor.of({ id: 1, kind: "scarecrow", pos: point.of(4, 4), stats: stats.of(monsterStats) });
+  let i = decide(scarecrow, grid, [point.of(4, 3)], [], [], 0);
+  assert.strictEqual(i.kind, "wait");
+
+  i = decide(scarecrow, grid, [point.of(4, 1)], [], [], 0);
+  assert.strictEqual(i.kind, "wait");
+
+  const pumpkin = actor.of({ id: 1, kind: "pumpkin", pos: point.of(2, 2), stats: stats.of(monsterStats), size: 2 });
+  i = decide(pumpkin, grid, [point.of(4, 2)], [], [], 0);
+  assert.strictEqual(i.kind, "wait");
+
+  i = decide(pumpkin, grid, [point.of(7, 2)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 1);
+  assert.strictEqual(i.dy, 0);
+
+  const swarm = actor.of({ id: 1, kind: "swarm", pos: point.of(4, 4), stats: stats.of(monsterStats) });
+  i = decide(swarm, grid, [point.of(4, 3)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 0);
+  assert.strictEqual(i.dy, -1);
+});
+
 test("no-path", () => {
   const grid = tileGrid.fromRows(["#######", "#..#..#", "#######"]);
   const skeleton = actor.of({ id: 1, kind: "skeleton", pos: point.of(1, 1), stats: stats.of(monsterStats) });
@@ -310,6 +336,12 @@ test("actor/valid", () => {
   assert.strictEqual(a.mode, "roam");
   assert.strictEqual(a.size, 1);
   assert.strictEqual(a.small, false);
+  assert.strictEqual(a.gesture, null);
+  assert.strictEqual(a.curse, 0);
+  assert.strictEqual(a.haste, 0);
+  assert.strictEqual(a.chant, null);
+  assert.strictEqual(a.cooldown, 0);
+  assert.strictEqual(a.fuse, null);
   assert.ok(Object.isFrozen(a));
 
   const a2 = actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, ready: 250 });
@@ -345,15 +377,19 @@ test("actor/valid", () => {
   assert.ok(Object.isFrozen(c.last));
   assert.deepStrictEqual(c.last, { kind: "attack", dx: -1, dy: 1, at: 50, reach: 1 });
 
+  const e = a.with({ gesture: { kind: "power", at: 50 } });
+  assert.ok(Object.isFrozen(e.gesture));
+  assert.deepStrictEqual(e.gesture, { kind: "power", at: 50 });
+
   const d = actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s });
   assert.deepStrictEqual(a, d);
 
   assert.ok(!Object.hasOwn(a, "with"));
 
-  assert.strictEqual(actor.KINDS.length, 23);
+  assert.strictEqual(actor.KINDS.length, 31);
   assert.strictEqual(actor.KINDS[0], "hero");
   assert.strictEqual(actor.KINDS[1], "bat");
-  assert.strictEqual(actor.KINDS[22], "serpent");
+  assert.strictEqual(actor.KINDS[30], "beholder");
 
   assert.throws(() => actor.of({ id: 0, kind: "dragon", pos: point.of(1, 2), stats: s }), TypeError);
   assert.throws(() => actor.of({ id: -1, kind: "hero", pos: point.of(1, 2), stats: s }), TypeError);
@@ -375,6 +411,35 @@ test("actor/valid", () => {
   assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, last: { kind: "move", dx: 0, dy: 0, at: 0 } }), TypeError);
   assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, last: { kind: "move", dx: 1, dy: 0, at: -5 } }), TypeError);
   assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, last: { kind: "attack", dx: 1, dy: 0, at: 0, reach: 0 } }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, gesture: { kind: "wave", at: 0 } }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, gesture: { kind: "use", at: -1 } }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, gesture: { kind: "use" } }), TypeError);
+
+  const cultist = actor.of({ id: 0, kind: "cultist", pos: point.of(0, 0), stats: s, chant: { kind: "haste", at: 100, until: 1300 }, cooldown: 500, haste: 3 });
+  assert.ok(Object.isFrozen(culist.chant));
+  assert.deepStrictEqual(culist.chant, { kind: "haste", at: 100, until: 1300 });
+  assert.strictEqual(culist.cooldown, 500);
+  assert.strictEqual(culist.haste, 3);
+
+  const pumpkin = actor.of({ id: 0, kind: "pumpkin", pos: point.of(0, 0), stats: s, size: 2, fuse: { at: 40 } });
+  assert.ok(Object.isFrozen(pumpkin.fuse));
+  assert.deepStrictEqual(pumpkin.fuse, { at: 40 });
+
+  const heroCurse = actor.of({ id: 0, kind: "hero", pos: point.of(0, 0), stats: s, curse: 3 });
+  assert.strictEqual(heroCurse.curse, 3);
+
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, curse: 4 }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, haste: -1 }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, chant: { kind: "sing", at: 0, until: 1 } }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, chant: { kind: "haste", at: 5, until: 1 } }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, cooldown: 1.5 }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, fuse: { at: -1 } }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, haste: 1 }), TypeError);
+  assert.throws(() => actor.of({ id: 0, kind: "hero", pos: point.of(1, 2), stats: s, fuse: { at: 0 } }), TypeError);
+
+  const wolfMan = actor.of({ id: 0, kind: "wolf-man", pos: point.of(0, 0), stats: s });
+  assert.strictEqual(wolfMan.with({ kind: "enraged-wolf-man" }).kind, "enraged-wolf-man");
+  assert.throws(() => wolfMan.with({ kind: "hero" }), TypeError);
 });
 
 test("actor/facing", () => {
@@ -463,13 +528,15 @@ test("actor/covers", () => {
 });
 
 test("bestiary/valid", () => {
-  assert.strictEqual(bestiary.KINDS.length, 22);
+  assert.strictEqual(bestiary.KINDS.length, 30);
   assert.strictEqual(bestiary.KINDS[0], "bat");
   assert.strictEqual(bestiary.KINDS[21], "serpent");
+  assert.strictEqual(bestiary.KINDS[22], "snowman");
+  assert.strictEqual(bestiary.KINDS[29], "beholder");
   assert.ok(Object.isFrozen(bestiary.KINDS));
 
   const archerEntry = bestiary.entry("archer");
-  assert.deepStrictEqual(archerEntry, { kind: "archer", group: "undead", hp: 7, attack: 3, defense: 1, magic: 0, magicPower: 1, range: 4, slows: false, reach: 7, step: 400, strike: 700, size: 1 });
+  assert.deepStrictEqual(archerEntry, { kind: "archer", group: "undead", hp: 7, attack: 3, defense: 1, magic: 0, magicPower: 1, range: 4, slows: false, reach: 7, step: 400, strike: 700, size: 1, ability: "none" });
   assert.ok(Object.isFrozen(archerEntry));
 
   assert.strictEqual(bestiary.entry("blue-snake").slows, true);
@@ -484,6 +551,27 @@ test("bestiary/valid", () => {
   assert.strictEqual(bestiary.entry("cultist").magic, 8);
   assert.strictEqual(bestiary.entry("bat").step, 133);
   assert.strictEqual(bestiary.entry("bat").strike, 200);
+  assert.strictEqual(bestiary.entry("beetle").defense, 8);
+  assert.strictEqual(bestiary.entry("beetle").strike, 1200);
+  assert.strictEqual(bestiary.entry("beetle").ability, "push");
+  assert.strictEqual(bestiary.entry("mummy").ability, "curse");
+  assert.strictEqual(bestiary.entry("cultist").ability, "chant");
+  assert.strictEqual(bestiary.entry("snowman").attack, 0);
+  assert.strictEqual(bestiary.entry("snowman").magic, 1);
+  assert.strictEqual(bestiary.entry("snowman").range, 4);
+  assert.strictEqual(bestiary.entry("snowman").slows, true);
+  assert.strictEqual(bestiary.entry("snowman").step, 133);
+  assert.strictEqual(bestiary.entry("enraged-wolf-man").step, 200);
+  assert.strictEqual(bestiary.entry("enraged-wolf-man").strike, 300);
+  assert.strictEqual(bestiary.entry("swarm").hp, 3);
+  assert.strictEqual(bestiary.entry("swarm").step, 80);
+  assert.strictEqual(bestiary.entry("swarm").strike, 300);
+  assert.strictEqual(bestiary.entry("swarm").ability, "split");
+  assert.strictEqual(bestiary.entry("pumpkin").size, 2);
+  assert.strictEqual(bestiary.entry("pumpkin").step, 800);
+  assert.strictEqual(bestiary.entry("pumpkin").ability, "fuse");
+  assert.strictEqual(bestiary.entry("reaper").size, 2);
+  assert.strictEqual(bestiary.entry("reaper").hp, 90);
 
   const serpentEntry = bestiary.entry("serpent");
   assert.strictEqual(serpentEntry.group, "vermin");
@@ -494,7 +582,7 @@ test("bestiary/valid", () => {
   assert.strictEqual(serpentEntry.size, 3);
 
   const mageEntry = bestiary.entry("mage");
-  assert.deepStrictEqual(mageEntry, { kind: "mage", group: "undead", hp: 8, attack: 2, defense: 1, magic: 4, magicPower: 1, range: 4, slows: false, reach: 7, step: 400, strike: 700, size: 1 });
+  assert.deepStrictEqual(mageEntry, { kind: "mage", group: "undead", hp: 8, attack: 2, defense: 1, magic: 4, magicPower: 1, range: 4, slows: false, reach: 7, step: 400, strike: 700, size: 1, ability: "none" });
 
   const swordsmanEntry = bestiary.entry("swordsman");
   assert.strictEqual(swordsmanEntry.group, "undead");
@@ -502,6 +590,8 @@ test("bestiary/valid", () => {
   assert.strictEqual(swordsmanEntry.attack, 5);
   assert.strictEqual(swordsmanEntry.defense, 2);
   assert.strictEqual(swordsmanEntry.range, 1);
+
+  assert.strictEqual(bestiary.group("beholder"), "demon");
 
   assert.strictEqual(bestiary.group("hero"), "human");
   assert.strictEqual(bestiary.group("imp"), "demon");
