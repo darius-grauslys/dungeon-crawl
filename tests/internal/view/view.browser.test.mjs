@@ -418,14 +418,45 @@ test("aim: aim dot only while aiming", async () => {
   assert.ok(noAimDotPixels(img), "no aim dot for a player without a hero");
 });
 
+function makeFuseWorld(fuse) {
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const visible = mask.of(7, 3, Array(21).fill(true));
+  const explored = mask.of(7, 3, Array(21).fill(true));
+  const annActor = actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) });
+  const bobActor = actor.of({ id: 1, kind: "hero", pos: point.of(3, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) });
+  const monster = actor.of({ id: 2, kind: "slime", pos: point.of(4, 1), stats: stats.of({ hp: 10, maxHp: 10, attack: 2, defense: 2 }), fuse });
+  const gold = item.of({ id: 0, kind: "gold", pos: point.of(5, 1), amount: 5 });
+  const heroes = [
+    heroShape.of({ name: "Ann", actor: annActor, alive: true }),
+    heroShape.of({ name: "Bob", actor: bobActor, alive: true })
+  ];
+  const entry = saveShape.of({ seed: 1, depth: 2, players: [{ name: "Ann", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }, { name: "Bob", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }] });
+  return world.of({ seed: 1, rng: 2, depth: 2, time: 0, state: "playing", grid, heroes, monsters: [monster], items: [gold], visible, explored, gold: 5, log: ["a", "b", "c", "d"], entry });
+}
+
+function makeChantWorld(chant) {
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const visible = mask.of(7, 3, Array(21).fill(true));
+  const explored = mask.of(7, 3, Array(21).fill(true));
+  const annActor = actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) });
+  const bobActor = actor.of({ id: 1, kind: "hero", pos: point.of(3, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) });
+  const monster = actor.of({ id: 2, kind: "slime", pos: point.of(4, 1), stats: stats.of({ hp: 10, maxHp: 10, attack: 2, defense: 2 }), chant });
+  const gold = item.of({ id: 0, kind: "gold", pos: point.of(5, 1), amount: 5 });
+  const heroes = [
+    heroShape.of({ name: "Ann", actor: annActor, alive: true }),
+    heroShape.of({ name: "Bob", actor: bobActor, alive: true })
+  ];
+  const entry = saveShape.of({ seed: 1, depth: 2, players: [{ name: "Ann", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }, { name: "Bob", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }] });
+  return world.of({ seed: 1, rng: 2, depth: 2, time: 0, state: "playing", grid, heroes, monsters: [monster], items: [gold], visible, explored, gold: 5, log: ["a", "b", "c", "d"], entry });
+}
+
 test("effects: fuse, chant, blasts (flat colours)", async () => {
   const canvas = document.querySelector("canvas");
   const ctx = canvas.getContext("2d");
   view.init(canvas);
 
   // fuse lit at now 50
-  let w = makeWorld();
-  w.monsters[0].actor.fuse = { at: 0 };
+  let w = makeFuseWorld({ at: 0 });
   view.draw(w, "Ann", false, 50);
   let img = ctx.getImageData(0, 0, 800, 600).data;
   let mp = centrePixel(img, 4, 1);
@@ -448,8 +479,7 @@ test("effects: fuse, chant, blasts (flat colours)", async () => {
   assert.deepEqual(centrePixel(img, 4, 1), [220, 50, 50, 255]);
 
   // chant lit at now 100
-  w = makeWorld();
-  w.monsters[0].actor.chant = { kind: "haste", at: 0, until: 1200 };
+  w = makeChantWorld({ kind: "haste", at: 0, until: 1200 });
   view.draw(w, "Ann", false, 100);
   img = ctx.getImageData(0, 0, 800, 600).data;
   assert.deepEqual(centrePixel(img, 4, 1), [255, 240, 180, 255]);

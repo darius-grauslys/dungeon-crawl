@@ -138,7 +138,7 @@ function floorTileIndex(world, theme, x, y) {
           }
         }
         const b = sum / 16;
-        const gx = x / 4, gy = y / 4;
+        const gx = cx / 4, gy = cy / 4;
         const i = Math.floor(gx), j = Math.floor(gy);
         const fx = gx - i, fy = gy - j;
         const n = valueNoisePoint(world, i, j) * (1 - fx) * (1 - fy)
@@ -401,7 +401,7 @@ function drawFuseAndChant(world, now, cam) {
     const py = (m.pos.y - cam.y) * 48;
     const anim = animate(m.last, now);
     // fuse
-    const fuse = m.actor.fuse;
+    const fuse = m.fuse;
     if (fuse) {
       const t = now - fuse.at;
       if (t >= 0) {
@@ -417,7 +417,7 @@ function drawFuseAndChant(world, now, cam) {
       }
     }
     // chant
-    const chant = m.actor.chant;
+    const chant = m.chant;
     if (chant && now >= chant.at && now < chant.until) {
       const f = Math.floor((now - chant.at) / 150) % 3;
       if (loaded_) {
