@@ -247,6 +247,13 @@ test("keys", async () => {
   await waitUntil(() => open.recordedTexts().length === beforeEquals);
   assert.equal(open.recordedTexts().length, beforeEquals);
 
+  ev = new KeyboardEvent("keydown", { key: "Shift", cancelable: true });
+  const preventedShift = !document.dispatchEvent(ev);
+  assert.equal(preventedShift, false);
+  const beforeShift = open.recordedTexts().length;
+  await waitUntil(() => open.recordedTexts().length === beforeShift);
+  assert.equal(open.recordedTexts().length, beforeShift);
+
   h.stop();
 });
 

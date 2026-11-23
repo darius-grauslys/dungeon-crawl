@@ -479,3 +479,128 @@ test("listen: stop removes listener and calling stop again doesn't throw", () =>
   assert.strictEqual(called, 0);
   assert.doesNotThrow(() => stop());
 });
+
+test("listen: Shift keydown calls aiming(true), not prevented, no intent/command", () => {
+  const t = new MockTarget();
+  let aCalled = 0;
+  let aVal = null;
+  let fCalled = 0;
+  let gCalled = 0;
+  const f = () => { fCalled++; };
+  const g = () => { gCalled++; };
+  const a = (val) => { aCalled++; aVal = val; };
+  const stop = listen(t, { intent: f, command: g, aiming: a });
+  const ev = new MockEvent("keydown", { key: "Shift" });
+  t.dispatch(ev);
+  assert.strictEqual(aCalled, 1);
+  assert.strictEqual(aVal, true);
+  assert.strictEqual(fCalled, 0);
+  assert.strictEqual(gCalled, 0);
+  assert.strictEqual(ev.defaultPrevented, false);
+});
+
+test("listen: Shift keydown repeat calls aiming nothing", () => {
+  const t = new MockTarget();
+  let aCalled = 0;
+  const a = () => { aCalled++; };
+  const f = () => {};
+  const g = () => {};
+  const stop = listen(t, { intent: f, command: g, aiming: a });
+  t.dispatch(new MockEvent("keydown", { key: "Shift" }));
+  assert.strictEqual(aCalled, 1);
+  t.dispatch(new MockEvent("keydown", { key: "Shift" }));
+  assert.strictEqual(aCalled, 1);
+  stop();
+});
+
+test("listen: Shift keyup calls aiming(false)", () => {
+  const t = new MockTarget();
+  let aCalled = 0;
+  let aVal = null;
+  const a = (val) => { aCalled++; aVal = val; };
+  const f = () => {};
+  const g = () => {};
+  const stop = listen(t, { intent: f, command: g, aiming: a });
+  t.dispatch(new MockEvent("keydown", { key: "Shift" }));
+  assert.strictEqual(aCalled, 1);
+  assert.strictEqual(aVal, true);
+  t.dispatch(new MockEvent("keyup", { key: "Shift" }));
+  assert.strictEqual(aCalled, 2);
+  assert.strictEqual(aVal, false);
+  stop();
+});
+
+test("listen: Shift keyup without keydown calls aiming nothing", () => {
+  const t = new MockTarget();
+  let aCalled = 0;
+  const a = () => { aCalled++; };
+  const f = () => {};
+  const g = () => {};
+  const stop = listen(t, { intent: f, command: g, aiming: a });
+  t.dispatch(new MockEvent("keyup", { key: "Shift" }));
+  assert.strictEqual(aCalled, 0);
+  stop();
+});
+
+test("listen: blur with shift held calls aiming(false)", () => {
+  const t = new MockTarget();
+  let aCalled = 0;
+  let aVal = null;
+  const a = (val) => { aCalled++; aVal = val; };
+  const f = () => {};
+  const g = () => {};
+  const stop = listen(t, { intent: f, command: g, aiming: a });
+  t.dispatch(new MockEvent("keydown", { key: "Shift" }));
+  assert.strictEqual(aCalled, 1);
+  assert.strictEqual(aVal, true);
+  t.dispatch(new MockEvent("blur"));
+  assert.strictEqual(aCalled, 2);
+  assert.strictEqual(aVal, false);
+  stop();
+});
+
+test("listen: Shift keydown with no aiming handler throws nothing", () => {
+  const t = new MockTarget();
+  const f = () => {};
+  const g = () => {};
+  const stop = listen(t, { intent: f, command: g });
+  assert.doesNotThrow(() => {
+    t.dispatch(new MockEvent("keydown", { key: "Shift" }));
+  });
+  stop();
+});
+
+test("listen: aiming sequence - Shift down, ArrowLeft shiftKey, Shift up, repeat Shift up", () => {
+  const t = new MockTarget();
+  let aCalls = [];
+  let fCalls = [];
+  const f = (intentArg) => { fCalls.push(intentArg); };
+  const g = () => {};
+  const a = (val) => { aCalls.push(val); };
+  const stop = listen(t, { intent: f, command: g, aiming: a });
+
+  // Shift down: a(true)
+  t.dispatch(new MockEvent("keydown", { key: "Shift" }));
+  assert.deepStrictEqual(aCalls, [true]);
+
+  // ArrowLeft with shiftKey true: f with face(-1, 0)
+  t.dispatch(new MockEvent("keydown", { key: "ArrowLeft", shiftKey: true }));
+  assert.strictEqual(fCalls.length, 1);
+  assert.strictEqual(fCalls[0].kind, "face");
+  assert.strictEqual(fCalls[0].dx, -1);
+  assert.strictEqual(fCalls[0].dy, 0);
+
+  // Shift up: a(false)
+  t.dispatch(new MockEvent("keyup", { key: "Shift" }));
+  assert.deepStrictEqual(aCalls, [true, false]);
+
+  // another Shift up: nothing
+  t.dispatch(new MockEvent("keyup", { key: "Shift" }));
+  assert.deepStrictEqual(aCalls, [true, false]);
+
+  // Shift down again: a(true)
+  t.dispatch(new MockEvent("keydown", { key: "Shift" }));
+  assert.deepStrictEqual(aCalls, [true, false, true]);
+
+  stop();
+});
