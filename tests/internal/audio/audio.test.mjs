@@ -93,3 +93,51 @@ test("mute wrapper", () => {
   assert.strictEqual(m.toggle(), true);
   assert.strictEqual(m.get(), true);
 });
+
+test("create: context null makes no mixer, load and resume resolve", async () => {
+  const a = create({ context: null });
+  assert.strictEqual(a.volume(), 0.7);
+  assert.strictEqual(a.muted(), false);
+  await load(a);
+  await resume(a);
+});
+
+test("create: context left out uses instance when AudioContext exists", () => {
+  class StubAudioContext {
+    static instantiated = false;
+    constructor() {
+      StubAudioContext.instantiated = true;
+      this.destination = {};
+      this.currentTime = 0;
+      this.state = "running";
+    }
+    createGain() { return { value: 1, set value(v) {} }; }
+    createBufferSource() { return { set loop(v) {}, set start(t) {} }; }
+    decodeAudioData() { return Promise.resolve({}); }
+    resume() { return Promise.resolve(); }
+  }
+  const savedWindow = global.window;
+  global.window = { AudioContext: StubAudioContext };
+  try {
+    const a = create({});
+    assert.strictEqual(StubAudioContext.instantiated, true, "AudioContext should be instantiated, not passed as class");
+    assert.strictEqual(a.volume(), 0.7);
+    assert.strictEqual(a.muted(), false);
+  } finally {
+    if (savedWindow === undefined) delete global.window; else global.window = savedWindow;
+  }
+});
+
+test("create: context left out with no AudioContext makes no mixer", () => {
+  const savedWindow = global.window;
+  global.window = {};
+  try {
+    const a = create({});
+    assert.strictEqual(a.volume(), 0.7);
+    assert.strictEqual(a.muted(), false);
+    assert.doesNotThrow(() => load(a));
+    assert.doesNotThrow(() => resume(a));
+  } finally {
+    if (savedWindow === undefined) delete global.window; else global.window = savedWindow;
+  }
+});
