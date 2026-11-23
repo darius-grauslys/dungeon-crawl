@@ -183,7 +183,7 @@ test("shoots", () => {
   assert.strictEqual(i.dx, 1);
   assert.strictEqual(i.dy, 0);
 
-  i = decide(archer, grid, [point.of(4, 4)], [], [], 0);
+  i = decide(archer, grid, [point.of(5, 5)], [], [], 0);
   assert.strictEqual(i.kind, "attack");
   assert.strictEqual(i.dx, 1);
   assert.strictEqual(i.dy, 1);
@@ -193,7 +193,7 @@ test("shoots", () => {
   assert.strictEqual(i.dx, 1);
   assert.strictEqual(i.dy, 0);
 
-  i = decide(archer, grid, [point.of(3, 4)], [], [], 0);
+  i = decide(archer, grid, [point.of(3, 5)], [], [], 0);
   assert.strictEqual(i.kind, "move");
   assert.strictEqual(i.dx, 1);
   assert.strictEqual(i.dy, 1);
@@ -201,6 +201,54 @@ test("shoots", () => {
   const g2 = tileGrid.fromRows(["#######", "#..#..#", "#######"]);
   i = decide(archer, g2, [point.of(5, 1)], [], [], 0);
   assert.strictEqual(i.kind, "wait");
+});
+
+test("kites", () => {
+  const grid = tileGrid.of(12, 12, Array(144).fill("floor"));
+  const archerStats = { hp: 7, maxHp: 7, attack: 3, defense: 1, range: 4 };
+  const archer = actor.of({ id: 1, kind: "archer", pos: point.of(5, 5), stats: stats.of(archerStats) });
+
+  let i = decide(archer, grid, [point.of(5, 3)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 0);
+  assert.strictEqual(i.dy, 1);
+
+  i = decide(archer, grid, [point.of(5, 4)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 0);
+  assert.strictEqual(i.dy, 1);
+
+  i = decide(archer, grid, [point.of(8, 5)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, -1);
+  assert.strictEqual(i.dy, 0);
+
+  i = decide(archer, grid, [point.of(5, 1)], [], [], 0);
+  assert.strictEqual(i.kind, "attack");
+  assert.strictEqual(i.dx, 0);
+  assert.strictEqual(i.dy, -1);
+
+  const guardArcher = actor.of({ id: 1, kind: "archer", pos: point.of(5, 5), stats: stats.of(archerStats), mode: "guard" });
+  i = decide(guardArcher, grid, [point.of(5, 3)], [], [], 0);
+  assert.strictEqual(i.kind, "wait");
+
+  const skeleton = actor.of({ id: 1, kind: "skeleton", pos: point.of(5, 5), stats: stats.of(monsterStats) });
+  i = decide(skeleton, grid, [point.of(5, 3)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, 0);
+  assert.strictEqual(i.dy, -1);
+
+  const g2 = tileGrid.fromRows(["#######", "#.....#", "#######"]);
+  const archer2 = actor.of({ id: 1, kind: "archer", pos: point.of(5, 1), stats: stats.of(archerStats) });
+  i = decide(archer2, g2, [point.of(4, 1)], [], [], 0);
+  assert.strictEqual(i.kind, "move");
+  assert.strictEqual(i.dx, -1);
+  assert.strictEqual(i.dy, 0);
+
+  i = decide(archer2, g2, [point.of(3, 1)], [], [], 0);
+  assert.strictEqual(i.kind, "attack");
+  assert.strictEqual(i.dx, -1);
+  assert.strictEqual(i.dy, 0);
 });
 
 test("no-path", () => {
@@ -412,6 +460,7 @@ test("bestiary/valid", () => {
   assert.strictEqual(bestiary.entry("golem").magic, 6);
   assert.strictEqual(bestiary.entry("golem").magicPower, 2);
   assert.strictEqual(bestiary.entry("cultist").range, 4);
+  assert.strictEqual(bestiary.entry("cultist").magic, 8);
 
   assert.strictEqual(bestiary.group("hero"), "human");
   assert.strictEqual(bestiary.group("imp"), "demon");
