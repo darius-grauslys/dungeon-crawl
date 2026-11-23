@@ -74,7 +74,29 @@ function isActor(v) {
     if (typeof v.gesture.at !== 'number' || !Number.isInteger(v.gesture.at) || v.gesture.at < 0) return false;
     if (Object.keys(v.gesture).length !== 2) return false;
   }
-  return Object.keys(v).length === 14;
+  if (typeof v.curse !== 'number' || !Number.isInteger(v.curse) || v.curse < 0 || v.curse > 3) return false;
+  if (typeof v.haste !== 'number' || !Number.isInteger(v.haste) || v.haste < 0 || v.haste > 3) return false;
+  if (v.chant !== null) {
+    if (!v.chant || typeof v.chant !== 'object' || !Object.isFrozen(v.chant)) return false;
+    if (v.chant.kind !== 'haste' && v.chant.kind !== 'summon') return false;
+    if (typeof v.chant.at !== 'number' || !Number.isInteger(v.chant.at) || v.chant.at < 0) return false;
+    if (typeof v.chant.until !== 'number' || !Number.isInteger(v.chant.until) || v.chant.until < 0) return false;
+    if (v.chant.until < v.chant.at) return false;
+    if (Object.keys(v.chant).length !== 3) return false;
+  }
+  if (typeof v.cooldown !== 'number' || !Number.isInteger(v.cooldown) || v.cooldown < 0) return false;
+  if (v.fuse !== null) {
+    if (!v.fuse || typeof v.fuse !== 'object' || !Object.isFrozen(v.fuse)) return false;
+    if (typeof v.fuse.at !== 'number' || !Number.isInteger(v.fuse.at) || v.fuse.at < 0) return false;
+    if (Object.keys(v.fuse).length !== 1) return false;
+  }
+  if (v.kind === 'hero') {
+    if (v.haste !== 0) return false;
+    if (v.cooldown !== 0) return false;
+    if (v.chant !== null) return false;
+    if (v.fuse !== null) return false;
+  }
+  return Object.keys(v).length === 19;
 }
 
 function isItem(v) {
@@ -112,6 +134,16 @@ function isHero(v) {
   return Object.keys(v).length === 7;
 }
 
+function isEffect(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  if (v.kind !== 'blast') return false;
+  if (typeof v.x !== 'number' || !Number.isInteger(v.x) || v.x < 0) return false;
+  if (typeof v.y !== 'number' || !Number.isInteger(v.y) || v.y < 0) return false;
+  if (typeof v.size !== 'number' || !Number.isInteger(v.size) || v.size < 1 || v.size > 3) return false;
+  if (typeof v.at !== 'number' || !Number.isInteger(v.at) || v.at < 0) return false;
+  return Object.keys(v).length === 5;
+}
+
 /**
  * World: the whole state of a game at one moment. Immutable.
  */
@@ -131,6 +163,7 @@ class World {
     this.gold = fields.gold;
     this.log = fields.log;
     this.entry = fields.entry;
+    this.effects = fields.effects;
   }
 
   with(changes) {
@@ -148,7 +181,8 @@ class World {
       explored: this.explored,
       gold: this.gold,
       log: this.log,
-      entry: this.entry
+      entry: this.entry,
+      effects: this.effects
     };
     if (changes) {
       for (const key of Object.keys(changes)) {
@@ -213,6 +247,11 @@ class World {
         size: h.actor.size,
         small: h.actor.small,
         gesture: h.actor.gesture ? { kind: h.actor.gesture.kind, at: h.actor.gesture.at } : null,
+        curse: h.actor.curse,
+        haste: h.actor.haste,
+        chant: h.actor.chant ? { kind: h.actor.chant.kind, at: h.actor.chant.at, until: h.actor.chant.until } : null,
+        cooldown: h.actor.cooldown,
+        fuse: h.actor.fuse ? { at: h.actor.fuse.at } : null,
       };
       const heroData = {
         name: h.name,
@@ -251,6 +290,11 @@ class World {
         size: m.size,
         small: m.small,
         gesture: m.gesture ? { kind: m.gesture.kind, at: m.gesture.at } : null,
+        curse: m.curse,
+        haste: m.haste,
+        chant: m.chant ? { kind: m.chant.kind, at: m.chant.at, until: m.chant.until } : null,
+        cooldown: m.cooldown,
+        fuse: m.fuse ? { at: m.fuse.at } : null,
       };
       return monsterData;
     });
@@ -280,6 +324,7 @@ class World {
       monsters: monstersData,
       items: itemsData,
       entry: this.entry.data(),
+      effects: this.effects ? this.effects.map((e) => ({ kind: e.kind, x: e.x, y: e.y, size: e.size, at: e.at })) : [],
     };
   }
 }
@@ -294,11 +339,12 @@ export function of(fields) {
     throw new TypeError('world: fields must be an object');
   }
 
-  const expectedKeys = [
+  const requiredKeys = [
     'seed', 'rng', 'depth', 'time', 'state', 'grid', 'heroes', 'monsters',
     'items', 'visible', 'explored', 'gold', 'log', 'entry'
   ];
-  for (const k of expectedKeys) {
+  const expectedKeys = [...requiredKeys, 'effects'];
+  for (const k of requiredKeys) {
     if (!(k in fields)) {
       throw new TypeError(`world: missing field ${k}`);
     }
@@ -311,8 +357,18 @@ export function of(fields) {
 
   const {
     seed, rng, depth, time, state, grid, heroes, monsters, items,
-    visible, explored, gold, log, entry
+    visible, explored, gold, log, entry, effects = []
   } = fields;
+
+  if (!Array.isArray(effects)) {
+    throw new TypeError('world: effects must be an array');
+  }
+  const effectsObjs = effects.map((e) => {
+    if (!isEffect(e)) {
+      throw new TypeError('world: effects must be an array of frozen blast effects');
+    }
+    return Object.freeze({ kind: e.kind, x: e.x, y: e.y, size: e.size, at: e.at });
+  });
 
   if (typeof seed !== 'number' || !Number.isInteger(seed) || seed < 0 || seed > MAX_INT) {
     throw new TypeError('world: seed must be an integer from 0 to 4294967295');
@@ -413,7 +469,8 @@ export function of(fields) {
     explored,
     gold,
     log: Object.freeze(log.slice()),
-    entry
+    entry,
+    effects: Object.freeze(effectsObjs)
   });
 
   return Object.freeze(world);
@@ -429,11 +486,12 @@ export function fromData(data) {
     throw new TypeError('world: data must be an object');
   }
 
-  const expectedKeys = [
+  const requiredKeys = [
     'seed', 'rng', 'depth', 'time', 'state', 'gold', 'log', 'grid',
     'visible', 'explored', 'heroes', 'monsters', 'items', 'entry'
   ];
-  for (const k of expectedKeys) {
+  const expectedKeys = [...requiredKeys, 'effects'];
+  for (const k of requiredKeys) {
     if (!(k in data)) {
       throw new TypeError(`world: missing data key ${k}`);
     }
@@ -446,8 +504,15 @@ export function fromData(data) {
 
   const {
     seed, rng, depth, time, state, gold, log, grid, visible, explored,
-    heroes, monsters, items, entry
+    heroes, monsters, items, entry, effects = []
   } = data;
+
+  const effectsObjs = effects.map((e) => {
+    if (!isEffect(e)) {
+      throw new TypeError('world: effects must be an array of frozen blast effects');
+    }
+    return { kind: e.kind, x: e.x, y: e.y, size: e.size, at: e.at };
+  });
 
   if (typeof seed !== 'number' || !Number.isInteger(seed) || seed < 0 || seed > MAX_INT) {
     throw new TypeError('world: seed must be an integer from 0 to 4294967295');
@@ -579,6 +644,11 @@ export function fromData(data) {
       size: actorData.size,
       small: actorData.small,
       gesture: actorData.gesture ? { kind: actorData.gesture.kind, at: actorData.gesture.at } : null,
+      curse: actorData.curse,
+      haste: actorData.haste,
+      chant: actorData.chant ? { kind: actorData.chant.kind, at: actorData.chant.at, until: actorData.chant.until } : null,
+      cooldown: actorData.cooldown,
+      fuse: actorData.fuse ? { at: actorData.fuse.at } : null,
     });
     const heroObj = heroShape.of({ name: h.name, actor: actorObj, pending, alive: h.alive, offer: h.offer, colour: h.colour ?? 0, group: h.group ?? 0 });
     heroObjs.push(heroObj);
@@ -610,6 +680,11 @@ export function fromData(data) {
       size: m.size,
       small: m.small,
       gesture: m.gesture ? { kind: m.gesture.kind, at: m.gesture.at } : null,
+      curse: m.curse,
+      haste: m.haste,
+      chant: m.chant ? { kind: m.chant.kind, at: m.chant.at, until: m.chant.until } : null,
+      cooldown: m.cooldown,
+      fuse: m.fuse ? { at: m.fuse.at } : null,
     });
     if (monsterObj.kind === 'hero') {
       throw new TypeError('world: monsters must not be of kind hero');
@@ -648,5 +723,6 @@ export function fromData(data) {
     gold,
     log,
     entry: entryObj,
+    effects: effectsObjs,
   });
 }
