@@ -261,14 +261,16 @@ test("picks-up", () => {
   let pItem = item.of({ id: 1, kind: "potion", pos: point.of(2, 1), amount: 0 });
   w = makeWorld({ grid, heroes: [heroAnn], monsters: [], items: [pItem] });
   w = advance(intend(w, "Ann", intent.move(1, 0)), 50);
-  assert.strictEqual(w.heroes[0].actor.stats.hp, 18);
+  assert.strictEqual(w.heroes[0].actor.stats.hp, 15);
+  assert.strictEqual(w.heroes[0].actor.stats.maxHp, 29);
   assert.deepStrictEqual(w.heroes[0].actor.gesture, { kind: "power", at: 50 });
   assert.deepStrictEqual(w.heroes[0].actor.last, { kind: "move", dx: 1, dy: 0, at: 50, reach: 1 });
 
   heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 20, maxHp: 24, attack: 4, defense: 1, range: 1 }), ready: 0 }), pending: null, alive: true });
   w = makeWorld({ grid, heroes: [heroAnn], monsters: [], items: [pItem] });
   w = advance(intend(w, "Ann", intent.move(1, 0)), 50);
-  assert.strictEqual(w.heroes[0].actor.stats.hp, 24);
+  assert.strictEqual(w.heroes[0].actor.stats.hp, 25);
+  assert.strictEqual(w.heroes[0].actor.stats.maxHp, 29);
   assert.deepStrictEqual(w.heroes[0].actor.gesture, { kind: "power", at: 50 });
   assert.deepStrictEqual(w.heroes[0].actor.last, { kind: "move", dx: 1, dy: 0, at: 50, reach: 1 });
 
@@ -276,7 +278,7 @@ test("picks-up", () => {
   let sItem = item.of({ id: 1, kind: "sword", pos: point.of(2, 1), amount: 0 });
   w = makeWorld({ grid, heroes: [heroAnn], monsters: [], items: [sItem] });
   w = advance(intend(w, "Ann", intent.move(1, 0)), 50);
-  assert.strictEqual(w.heroes[0].actor.stats.attack, 6);
+  assert.strictEqual(w.heroes[0].actor.stats.attack, 5);
   assert.deepStrictEqual(w.heroes[0].actor.gesture, { kind: "power", at: 50 });
   assert.deepStrictEqual(w.heroes[0].actor.last, { kind: "move", dx: 1, dy: 0, at: 50, reach: 1 });
 
@@ -790,6 +792,21 @@ test("descends", () => {
   assert.strictEqual(w6after.log[w6after.log.length - 2], "The party descends into a lair.");
   assert.strictEqual(w6after.log[w6after.log.length - 1], "A golem guards the way down. Pull the levers to weaken it!");
 
+  const heroAnn13 = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(2, 1), stats: stats.of({ hp: 20, maxHp: 24, attack: 4, defense: 1, range: 1 }), ready: 0 }), pending: null, alive: true });
+  const w13 = makeWorld({
+    grid,
+    heroes: [heroAnn13],
+    monsters: [],
+    items: [],
+    depth: 13,
+    gold: 7,
+    entry: save.of({ seed: 1, depth: 13, players: [{ name: "Ann", stats: stats.of({ hp: 20, maxHp: 24, attack: 4, defense: 1, range: 1 }) }] }),
+  });
+  const w13after = advance(intend(w13, "Ann", intent.descend()), 50);
+  assert.strictEqual(w13after.depth, 14);
+  assert.strictEqual(w13after.log[w13after.log.length - 2], "The party descends into a lair.");
+  assert.strictEqual(w13after.log[w13after.log.length - 1], "A great serpent guards the way down!");
+
   const heroAnn14 = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(2, 1), stats: stats.of({ hp: 20, maxHp: 24, attack: 4, defense: 1, range: 1 }), ready: 0 }), pending: null, alive: true });
   const w14 = makeWorld({
     grid,
@@ -830,32 +847,63 @@ test("shop", () => {
   assert.strictEqual(w.grid.at(14, 10), "floor");
   assert.strictEqual(w.monsters.length, 0);
   assert.strictEqual(w.items.length, 6);
-  const expectedPositions = [[16, 13], [19, 13], [22, 13], [25, 13], [28, 13], [31, 13]];
-  const expectedKinds = ["potion", "sword", "armor", "ring", "necklace", "potion"];
+  const expectedPositions = [[15, 13], [17, 13], [19, 13], [21, 13], [23, 13], [25, 13]];
+  const foodKinds = ["cheese", "bread", "meat"];
+  const validKinds = ["potion", "cheese", "bread", "meat", "sword", "armor", "ring", "necklace", "sword-2", "armor-2", "sword-3", "armor-3", "sword-4", "armor-4"];
   for (let i = 0; i < 6; i++) {
     const it = w.items[i];
     assert.strictEqual(it.pos.x, expectedPositions[i][0]);
     assert.strictEqual(it.pos.y, expectedPositions[i][1]);
-    assert.strictEqual(it.kind, expectedKinds[i]);
     assert.ok(it.price > 0);
+    assert.ok(validKinds.includes(it.kind));
+    assert.notStrictEqual(it.kind, "gold");
+    assert.notStrictEqual(it.kind, "lever");
+    if (i < 2) {
+      assert.ok(foodKinds.includes(it.kind));
+    }
+    if (it.kind.startsWith("sword")) {
+      assert.ok(["sword", "sword-2", "sword-3", "sword-4"].includes(it.kind));
+    }
+    if (it.kind.startsWith("armor")) {
+      assert.ok(["armor", "armor-2", "armor-3", "armor-4"].includes(it.kind));
+    }
   }
-  assert.ok(w.items[0].price >= 8 && w.items[0].price <= 32);
-  assert.ok(w.items[1].price >= 24 && w.items[1].price <= 36);
-  assert.ok(w.items[2].price >= 34 && w.items[2].price <= 46);
-  assert.ok(w.items[3].price >= 29 && w.items[3].price <= 41);
-  assert.ok(w.items[4].price >= 29 && w.items[4].price <= 41);
-  assert.ok(w.items[5].price >= 8 && w.items[5].price <= 32);
+  for (const it of w.items) {
+    if (it.kind === "cheese") assert.ok(it.price >= 4 && it.price <= 8);
+    else if (it.kind === "bread") assert.ok(it.price >= 7 && it.price <= 13);
+    else if (it.kind === "meat") assert.ok(it.price >= 12 && it.price <= 20);
+    else if (it.kind === "potion") assert.ok(it.price >= 24 && it.price <= 36);
+    else if (it.kind === "sword") assert.ok(it.price >= 24 && it.price <= 36);
+    else if (it.kind === "sword-2") assert.ok(it.price >= 24 && it.price <= 36);
+    else if (it.kind === "armor") assert.ok(it.price >= 34 && it.price <= 46);
+    else if (it.kind === "armor-2") assert.ok(it.price >= 34 && it.price <= 46);
+    else if (it.kind === "ring" || it.kind === "necklace") assert.ok(it.price >= 29 && it.price <= 41);
+  }
   assert.strictEqual(w.visible.count(), 1536);
   assert.strictEqual(w.explored.count(), 1536);
 
+  const kindsAfterFirstTwo = new Set();
+  for (let seed = 0; seed <= 19; seed++) {
+    const ws = fromSave(save.of({ seed, depth: 6, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
+    assert.strictEqual(ws.items.length, 6);
+    for (let i = 2; i < 6; i++) {
+      kindsAfterFirstTwo.add(ws.items[i].kind);
+    }
+  }
+  assert.ok(kindsAfterFirstTwo.size >= 4);
+
+  const w13 = fromSave(save.of({ seed: 4, depth: 13, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
+  assert.strictEqual(w13.items.length, 9);
+  const w20 = fromSave(save.of({ seed: 4, depth: 20, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
+  assert.strictEqual(w20.items.length, 12);
   const w27 = fromSave(save.of({ seed: 4, depth: 27, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
   assert.strictEqual(w27.depth, 27);
-  assert.ok(w27.items[0].price >= 27 && w27.items[0].price <= 51);
-  assert.ok(w27.items[1].price >= 53 && w27.items[1].price <= 65);
-  assert.ok(w27.items[2].price >= 72 && w27.items[2].price <= 84);
-  assert.ok(w27.items[3].price >= 62 && w27.items[3].price <= 74);
-  assert.ok(w27.items[4].price >= 62 && w27.items[4].price <= 74);
-  assert.ok(w27.items[5].price >= 27 && w27.items[5].price <= 51);
+  assert.strictEqual(w27.items.length, 18);
+  for (const it of w27.items) {
+    assert.ok(it.price > 0);
+    if (it.kind === "potion") assert.ok(it.price >= 53 && it.price <= 65);
+    else if (it.kind === "cheese") assert.ok(it.price >= 10 && it.price <= 14);
+  }
 });
 
 test("buys", () => {
@@ -879,7 +927,7 @@ test("buys", () => {
 
   w = advance(intend(w, "Ann", intent.move(1, 0)), 350);
   const h2 = w.heroes[0];
-  assert.strictEqual(h2.actor.stats.attack, 6);
+  assert.strictEqual(h2.actor.stats.attack, 5);
   assert.strictEqual(h2.offer, null);
   assert.strictEqual(w.items.length, 0);
   assert.strictEqual(w.gold, 20);
@@ -924,7 +972,30 @@ test("buys", () => {
   const wPotion = makeWorld({ grid, heroes: [heroPotion], monsters: [], items: [potionItem], gold: 50 });
   const wPotionB = advance(intend(wPotion, "Ann", intent.move(1, 0)), 50);
   const wPotionB2 = advance(intend(wPotionB, "Ann", intent.move(1, 0)), 350);
-  assert.strictEqual(wPotionB2.heroes[0].actor.stats.hp, 18);
+  assert.strictEqual(wPotionB2.heroes[0].actor.stats.hp, 15);
+  assert.strictEqual(wPotionB2.heroes[0].actor.stats.maxHp, 29);
+
+  const breadItem = item.of({ id: 17, kind: "bread", pos: point.of(2, 1), price: 10 });
+  const heroBread = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 10, maxHp: 24, attack: 4, defense: 1, range: 1 }), ready: 0 }), pending: null, alive: true });
+  const wBread = makeWorld({ grid, heroes: [heroBread], monsters: [], items: [breadItem], gold: 50 });
+  const wBreadB = advance(intend(wBread, "Ann", intent.move(1, 0)), 50);
+  const wBreadB2 = advance(intend(wBreadB, "Ann", intent.move(1, 0)), 350);
+  assert.strictEqual(wBreadB2.heroes[0].actor.stats.hp, 16);
+  assert.strictEqual(wBreadB2.items.length, 0);
+  assert.strictEqual(wBreadB2.gold, 40);
+  assert.strictEqual(wBreadB2.log[wBreadB2.log.length - 1], "Ann buys bread for 10 gold.");
+
+  const heroAnn8 = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 8, defense: 1, range: 1 }), ready: 0 }), pending: null, alive: true });
+  const w8 = makeWorld({ grid, heroes: [heroAnn8], monsters: [], items: [swordItem], gold: 50 });
+  let w8b = advance(intend(w8, "Ann", intent.move(1, 0)), 50);
+  assert.strictEqual(w8b.heroes[0].offer, null);
+  assert.strictEqual(w8b.gold, 50);
+  assert.strictEqual(w8b.items.length, 1);
+  assert.strictEqual(w8b.log[w8b.log.length - 1], "Ann: your attack is too high for a sword.");
+  w8b = advance(intend(w8b, "Ann", intent.move(1, 0)), 350);
+  assert.strictEqual(w8b.heroes[0].offer, null);
+  assert.strictEqual(w8b.gold, 50);
+  assert.strictEqual(w8b.items.length, 1);
 
   const ringItem = item.of({ id: 15, kind: "ring", pos: point.of(2, 1), price: 35 });
   const heroRing = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
@@ -982,9 +1053,17 @@ test("lair", () => {
   assert.strictEqual(w.items[2].pos.y, 16);
 
   const w14 = fromSave(save.of({ seed: 4, depth: 14, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
-  assert.strictEqual(w14.monsters.length, 0);
+  assert.strictEqual(w14.monsters.length, 1);
+  const serpent = w14.monsters[0];
+  assert.strictEqual(serpent.kind, "serpent");
+  assert.strictEqual(serpent.pos.x, 32);
+  assert.strictEqual(serpent.pos.y, 15);
+  assert.strictEqual(serpent.size, 3);
+  assert.strictEqual(serpent.mode, "dormant");
+  assert.strictEqual(serpent.facing, "left");
+  assert.deepStrictEqual(serpent.stats, { hp: 60, maxHp: 60, attack: 10, defense: 6, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
   assert.strictEqual(w14.items.length, 0);
-  assert.strictEqual(w14.grid.at(33, 16), "stairs");
+  assert.strictEqual(w14.grid.at(33, 16), "floor");
 });
 
 test("levers", () => {
@@ -1400,13 +1479,18 @@ test("themes", () => {
   const w8 = fromSave(save.of({ seed: 3, depth: 8, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
   assert.strictEqual(w8.monsters.length, 4);
   for (const m of w8.monsters) {
+    assert.ok(["blue-slime", "blue-spider", "archer", "swordsman", "mage"].includes(m.kind));
     if (m.kind === "blue-slime") {
       assert.deepStrictEqual(m.stats, { hp: 9, maxHp: 9, attack: 3, defense: 1, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
-    } else if (m.kind === "blue-snake") {
-      assert.deepStrictEqual(m.stats, { hp: 7, maxHp: 7, attack: 4, defense: 0, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
+    } else if (m.kind === "blue-spider") {
+      assert.deepStrictEqual(m.stats, { hp: 10, maxHp: 10, attack: 4, defense: 1, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
+    } else if (m.kind === "archer") {
+      assert.deepStrictEqual(m.stats, { hp: 10, maxHp: 10, attack: 4, defense: 1, range: 4, magic: 0, magicPower: 1, magicResist: 0 });
+    } else if (m.kind === "swordsman") {
+      assert.deepStrictEqual(m.stats, { hp: 16, maxHp: 16, attack: 6, defense: 2, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
     } else {
-      assert.strictEqual(m.kind, "skeleton");
-      assert.deepStrictEqual(m.stats, { hp: 13, maxHp: 13, attack: 5, defense: 2, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
+      assert.strictEqual(m.kind, "mage");
+      assert.deepStrictEqual(m.stats, { hp: 12, maxHp: 12, attack: 3, defense: 1, range: 4, magic: 4, magicPower: 1, magicResist: 0 });
     }
   }
 
@@ -1455,21 +1539,226 @@ test("themes", () => {
 
   // seeds 0 to 19 at depth 5
   let totalArchers = 0;
+  let totalSwordsmen = 0;
+  let totalMages = 0;
   for (let seed = 0; seed <= 19; seed++) {
     const w5 = fromSave(save.of({ seed, depth: 5, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
     assert.strictEqual(w5.monsters.length, 12);
     for (const m of w5.monsters) {
-      assert.ok(["bat", "slime", "snake", "skeleton", "archer"].includes(m.kind));
+      assert.ok(["bat", "slime", "blue-spider", "skeleton", "archer", "swordsman", "mage"].includes(m.kind));
       if (m.kind === "archer") {
         totalArchers++;
         assert.deepStrictEqual(m.stats, { hp: 7, maxHp: 7, attack: 3, defense: 1, range: 4, magic: 0, magicPower: 1, magicResist: 0 });
-      } else if (m.kind === "skeleton") {
-        assert.deepStrictEqual(m.stats, { hp: 9, maxHp: 9, attack: 4, defense: 2, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
+      } else if (m.kind === "blue-spider") {
+        assert.deepStrictEqual(m.stats, { hp: 7, maxHp: 7, attack: 3, defense: 1, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
+      } else if (m.kind === "swordsman") {
+        totalSwordsmen++;
+      } else if (m.kind === "mage") {
+        totalMages++;
+        assert.deepStrictEqual(m.stats, { hp: 8, maxHp: 8, attack: 2, defense: 1, range: 4, magic: 4, magicPower: 1, magicResist: 0 });
       }
     }
   }
   assert.ok(totalArchers >= 1);
   assert.ok(totalArchers <= 48);
+  assert.ok(totalSwordsmen <= 48);
+  assert.ok(totalMages >= 1);
+  assert.ok(totalMages <= 48);
+});
+
+test("limits", () => {
+  const grid = tileGrid.fromRows(["#######", "#.....#", "#######"]);
+
+  let gains = new Set();
+  for (let rng = 0; rng <= 39; rng++) {
+    const heroAnn = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 8, defense: 4, range: 1 }), ready: 0 }), pending: null, alive: true });
+    const sword = item.of({ id: 1, kind: "sword", pos: point.of(2, 1) });
+    const w = makeWorld({ grid, heroes: [heroAnn], monsters: [], items: [sword], rng });
+    let w1 = advance(intend(w, "Ann", intent.move(1, 0)), 50);
+    assert.strictEqual(w1.heroes[0].actor.pos.x, 2);
+    assert.strictEqual(w1.heroes[0].actor.pos.y, 1);
+    assert.strictEqual(w1.heroes[0].actor.stats.attack, 8);
+    assert.strictEqual(w1.items.length, 1);
+    assert.strictEqual(w1.heroes[0].actor.gesture, null);
+    assert.strictEqual(w1.log[w1.log.length - 1], "Ann: your attack is too high for a sword. Use it (e) to trade it for gold.");
+    const goldBefore = w1.gold;
+    w1 = intend(w1, "Ann", intent.use());
+    w1 = advance(w1, 250);
+    assert.strictEqual(w1.items.length, 0);
+    const gain = w1.gold - goldBefore;
+    assert.ok(gain >= 1 && gain <= 10);
+    gains.add(gain);
+    assert.strictEqual(w1.heroes[0].actor.gesture.kind, "use");
+    assert.strictEqual(w1.heroes[0].actor.gesture.at, 250);
+    assert.ok(w1.log[w1.log.length - 1].startsWith("Ann trades a sword for ") && w1.log[w1.log.length - 1].endsWith(" gold."));
+  }
+  assert.ok(gains.size >= 2);
+
+  const heroAnnS2 = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 8, defense: 4, range: 1 }), ready: 0 }), pending: null, alive: true });
+  const sword2 = item.of({ id: 2, kind: "sword-2", pos: point.of(2, 1) });
+  const wS2 = makeWorld({ grid, heroes: [heroAnnS2], monsters: [], items: [sword2] });
+  const wS2a = advance(intend(wS2, "Ann", intent.move(1, 0)), 50);
+  assert.strictEqual(wS2a.heroes[0].actor.stats.attack, 9);
+  assert.strictEqual(wS2a.log[wS2a.log.length - 1], "Ann picks up a fine sword (+1 attack).");
+
+  const heroArmor = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 4, range: 1 }), ready: 0 }), pending: null, alive: true });
+  const armor = item.of({ id: 3, kind: "armor", pos: point.of(2, 1) });
+  const wArmor = makeWorld({ grid, heroes: [heroArmor], monsters: [], items: [armor] });
+  const wArmorA = advance(intend(wArmor, "Ann", intent.move(1, 0)), 50);
+  assert.strictEqual(wArmorA.heroes[0].actor.stats.defense, 4);
+  assert.strictEqual(wArmorA.items.length, 1);
+  assert.strictEqual(wArmorA.log[wArmorA.log.length - 1], "Ann: your defense is too high for armor. Use it (e) to trade it for gold.");
+
+  const heroArmor2 = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 4, range: 1 }), ready: 0 }), pending: null, alive: true });
+  const armor2 = item.of({ id: 4, kind: "armor-2", pos: point.of(2, 1) });
+  const wArmor2 = makeWorld({ grid, heroes: [heroArmor2], monsters: [], items: [armor2] });
+  const wArmor2a = advance(intend(wArmor2, "Ann", intent.move(1, 0)), 50);
+  assert.strictEqual(wArmor2a.heroes[0].actor.stats.defense, 5);
+  assert.strictEqual(wArmor2a.log[wArmor2a.log.length - 1], "Ann puts on chainmail (+1 defense).");
+
+  const heroArmor4 = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 23, range: 1 }), ready: 0 }), pending: null, alive: true });
+  const armor4 = item.of({ id: 5, kind: "armor-4", pos: point.of(2, 1) });
+  const wArmor4 = makeWorld({ grid, heroes: [heroArmor4], monsters: [], items: [armor4] });
+  const wArmor4a = advance(intend(wArmor4, "Ann", intent.move(1, 0)), 50);
+  assert.strictEqual(wArmor4a.heroes[0].actor.stats.defense, 24);
+  assert.strictEqual(wArmor4a.log[wArmor4a.log.length - 1], "Ann puts on jade mail (+1 defense).");
+
+  const heroArmor4b = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 24, range: 1 }), ready: 0 }), pending: null, alive: true });
+  const armor4b = item.of({ id: 6, kind: "armor-4", pos: point.of(2, 1) });
+  const wArmor4b = makeWorld({ grid, heroes: [heroArmor4b], monsters: [], items: [armor4b] });
+  const wArmor4bA = advance(intend(wArmor4b, "Ann", intent.move(1, 0)), 50);
+  assert.strictEqual(wArmor4bA.heroes[0].actor.stats.defense, 24);
+  assert.strictEqual(wArmor4bA.items.length, 1);
+
+  const heroAnnEmpty = hero.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of(HERO_STATS), ready: 0 }), pending: null, alive: true });
+  const wEmpty = makeWorld({ grid, heroes: [heroAnnEmpty], monsters: [], items: [] });
+  const goldBeforeEmpty = wEmpty.gold;
+  const wEmptyUse = advance(intend(wEmpty, "Ann", intent.use()), 50);
+  assert.strictEqual(wEmptyUse.gold, goldBeforeEmpty);
+  assert.strictEqual(wEmptyUse.items.length, 0);
+});
+
+test("floor-items", () => {
+  for (let seed = 0; seed <= 19; seed++) {
+    for (let depth = 1; depth <= 5; depth++) {
+      const w = fromSave(save.of({ seed, depth, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
+      let goldCount = 0;
+      let foodCount = 0;
+      let potionCount = 0;
+      const swordGrades = new Set();
+      const armorGrades = new Set();
+      for (const it of w.items) {
+        if (it.kind === "gold") goldCount++;
+        else if (it.kind === "cheese" || it.kind === "bread" || it.kind === "meat") foodCount++;
+        else if (it.kind === "potion") potionCount++;
+        else if (it.kind.startsWith("sword")) swordGrades.add(it.kind);
+        else if (it.kind.startsWith("armor")) armorGrades.add(it.kind);
+      }
+      assert.strictEqual(goldCount, 2);
+      assert.strictEqual(foodCount, 2);
+      assert.ok(potionCount <= 1);
+      if (depth === 2 || depth === 4) {
+        assert.ok(swordGrades.size >= 1);
+        for (const g of swordGrades) assert.strictEqual(g, "sword");
+        assert.ok(armorGrades.size === 0);
+      } else if (depth === 3 || depth === 5) {
+        assert.ok(armorGrades.size >= 1);
+        for (const g of armorGrades) assert.strictEqual(g, "armor");
+        assert.ok(swordGrades.size === 0);
+      } else {
+        assert.ok(swordGrades.size === 0);
+        assert.ok(armorGrades.size === 0);
+      }
+    }
+  }
+
+  let hasSword2 = false;
+  let hasArmor2 = false;
+  for (let seed = 0; seed <= 19; seed++) {
+    for (let depth = 8; depth <= 12; depth++) {
+      const w = fromSave(save.of({ seed, depth, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
+      for (const it of w.items) {
+        if (it.kind.startsWith("sword")) {
+          assert.ok(["sword", "sword-2"].includes(it.kind));
+          if (it.kind === "sword-2") hasSword2 = true;
+        } else if (it.kind.startsWith("armor")) {
+          assert.ok(["armor", "armor-2"].includes(it.kind));
+          if (it.kind === "armor-2") hasArmor2 = true;
+        }
+      }
+    }
+  }
+  assert.ok(hasSword2);
+  assert.ok(hasArmor2);
+
+  for (let seed = 0; seed <= 19; seed++) {
+    for (let depth = 29; depth <= 33; depth++) {
+      const w = fromSave(save.of({ seed, depth, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
+      for (const it of w.items) {
+        if (it.kind.startsWith("sword")) {
+          assert.ok(["sword", "sword-2", "sword-3", "sword-4"].includes(it.kind));
+        } else if (it.kind.startsWith("armor")) {
+          assert.ok(["armor", "armor-2", "armor-3", "armor-4"].includes(it.kind));
+        }
+      }
+    }
+  }
+
+  for (let seed = 0; seed <= 19; seed++) {
+    for (let depth = 1; depth <= 33; depth++) {
+      const w = fromSave(save.of({ seed, depth, players: [{ name: "Ann", stats: stats.of(HERO_STATS) }] }));
+      if (level.kind(depth) === 'interior') continue;
+      for (const it of w.items) {
+        assert.strictEqual(it.price, 0);
+      }
+    }
+  }
+});
+
+test("serpent-dies", () => {
+  let slainCount = 0;
+  let flungCorrect = true;
+  let postKillWorld = null;
+  for (let rng = 0; rng <= 39; rng++) {
+    let w = fromSave(save.of({ seed: 4, depth: 14, players: [{ name: "Ann", stats: stats.of({ hp: 24, maxHp: 24, attack: 60, defense: 1, range: 1 }) }] }));
+    let ann = w.heroes[0];
+    ann = hero.of({ name: ann.name, actor: ann.actor.with({ pos: point.of(31, 16) }), pending: null, alive: true });
+    const serpent = w.monsters[0];
+    const serpentFixed = serpent.with({ stats: stats.of({ hp: 1, maxHp: 60, attack: 10, defense: 0, range: 1, magic: 0, magicPower: 1, magicResist: 0 }), ready: 10000 });
+    w = makeWorld({
+      grid: w.grid,
+      heroes: [ann],
+      monsters: [serpentFixed],
+      items: w.items,
+      depth: 14,
+      gold: w.gold,
+      entry: w.entry,
+      rng,
+    });
+    const wMove = advance(intend(w, "Ann", intent.move(1, 0)), 50);
+    const log = wMove.log;
+    const hasSlain = log.includes("The serpent is slain.");
+    const hasOpens = log.includes("The way down opens!");
+    const hasSpills = log.includes("Gold spills from the serpent!");
+    const hasCrumble = log.includes("The guardians crumble.");
+    if (hasSlain && hasOpens && hasSpills && !hasCrumble) {
+      slainCount++;
+      const newGoldItems = wMove.items.filter((it) => it.kind === "gold" && it.flung && it.flung.x === 33 && it.flung.y === 16 && it.flung.at === 50);
+      if (newGoldItems.length >= 1 && newGoldItems.length <= 5) {
+        let sum = 0;
+        for (const gi of newGoldItems) sum += gi.amount;
+        if (sum < 50 || sum > 150) flungCorrect = false;
+      } else {
+        flungCorrect = false;
+      }
+      if (!postKillWorld) postKillWorld = wMove;
+    }
+  }
+  assert.ok(slainCount >= 1);
+  assert.ok(flungCorrect);
+
+  const wDescend = advance(intend(postKillWorld, "Ann", intent.descend()), 50);
+  assert.strictEqual(wDescend.depth, 15);
 });
 
 test("saves", () => {
@@ -1719,9 +2008,9 @@ test("save/valid", () => {
 });
 
 test("bestiary/valid", () => {
-  assert.strictEqual(bestiary.KINDS.length, 18);
+  assert.strictEqual(bestiary.KINDS.length, 22);
   assert.strictEqual(bestiary.KINDS[0], "bat");
-  assert.strictEqual(bestiary.KINDS[17], "golem");
+  assert.strictEqual(bestiary.KINDS[21], "serpent");
   assert.ok(Object.isFrozen(bestiary.KINDS));
 
   assert.deepStrictEqual(bestiary.entry("archer"), { kind: "archer", group: "undead", hp: 7, attack: 3, defense: 1, magic: 0, magicPower: 1, range: 4, slows: false, reach: 7, step: 400, strike: 700, size: 1 });
