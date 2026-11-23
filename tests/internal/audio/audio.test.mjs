@@ -107,24 +107,31 @@ test("create: context left out uses instance when AudioContext exists", () => {
     static instantiated = false;
     constructor() {
       StubAudioContext.instantiated = true;
-      this.destination = {};
-      this.currentTime = 0;
+      this.destination = { connect() {}, disconnect() {} };
+      this._currentTime = 0;
       this.state = "running";
     }
+    get currentTime() { return this._currentTime; }
+    set currentTime(v) { this._currentTime = v; }
     createGain() {
       let v = 1;
       return {
         get value() { return v; },
         set value(x) { v = x; },
         connect() {},
-        disconnect() {}
+        disconnect() {},
+        linearRampToValueAtTime() {},
+        setValueAtTime() {}
       };
     }
     createBufferSource() {
+      let buf = null;
+      let loopVal = false;
       return {
-        set loop(x) {},
-        set start(x) {},
-        set end(x) {},
+        get buffer() { return buf; },
+        set buffer(x) { buf = x; },
+        get loop() { return loopVal; },
+        set loop(x) { loopVal = x; },
         start() {},
         stop() {}
       };
