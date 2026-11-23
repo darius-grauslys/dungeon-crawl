@@ -326,6 +326,247 @@ test("menu", async () => {
   h.stop();
 });
 
+test("explores", async () => {
+  const open = makeSocketFactory();
+  const h = start(document, { open, audioContext: null });
+
+  document.getElementById("landing-name").value = "Ann";
+  document.getElementById("landing-create").click();
+
+  const socket = open.socket();
+  socket.onopen();
+
+  await waitUntil(() => open.recordedTexts().some(t => t === message.create(null).text()));
+
+  socket.onmessage({ data: message.created('ABCDEF').text() });
+  await waitUntil(() => open.recordedTexts().some(t => t === message.join('ABCDEF', 'Ann').text()));
+  const nonListTexts = open.recordedTexts().filter(t => t !== message.list().text());
+  assert.equal(nonListTexts[nonListTexts.length - 1], message.join('ABCDEF', 'Ann').text());
+
+  socket.onmessage({ data: message.joined('ABCDEF', 'Ann').text() });
+  await waitUntil(() => h.screen() === "game");
+
+  const wExploreGrid = tileGrid.fromRows(['#######', '#.....#', '#######']);
+  const wExploreHeroActor = actor.of({ id: 0, kind: 'hero', pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) });
+  const wExploreHero = hero.of({ name: 'Ann', actor: wExploreHeroActor });
+  const wExploreVisible = mask.of(7, 3, [
+    false, false, false, false, false, false, false,
+    true, true, true, true, false, false, false,
+    false, false, false, false, false, false, false
+  ]);
+  const wExploreExplored = mask.of(7, 3, [
+    false, false, false, false, false, false, false,
+    true, true, true, true, false, false, false,
+    false, false, false, false, false, false, false
+  ]);
+  const wExploreEntry = save.of({ seed: 1, depth: 1, players: [] });
+  const wExplore = world.of({
+    seed: 1, rng: 1, depth: 1, time: 0, state: 'playing',
+    grid: wExploreGrid, heroes: [wExploreHero], monsters: [], items: [],
+    visible: wExploreVisible, explored: wExploreExplored, gold: 0, log: [], entry: wExploreEntry
+  });
+
+  socket.onmessage({ data: message.state(wExplore, false).text() });
+  await waitUntil(() => h.world() !== null);
+
+  let ev = new KeyboardEvent("keydown", { key: "z", cancelable: true });
+  document.dispatchEvent(ev);
+  await waitUntil(() => open.recordedTexts().some(t => t === message.act(intent.move(1, 0)).text()));
+  await new Promise(resolve => setTimeout(resolve, 500));
+  assert.equal(open.recordedTexts().filter(t => t === message.act(intent.move(1, 0)).text()).length, 1);
+
+  const wExploreStep1HeroActor = actor.of({ id: 0, kind: 'hero', pos: point.of(2, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 250 });
+  const wExploreStep1Hero = hero.of({ name: 'Ann', actor: wExploreStep1HeroActor });
+  const wExploreStep1 = world.of({
+    seed: 1, rng: 1, depth: 1, time: 50, state: 'playing',
+    grid: wExploreGrid, heroes: [wExploreStep1Hero], monsters: [], items: [],
+    visible: wExploreVisible, explored: wExploreExplored, gold: 0, log: [], entry: wExploreEntry
+  });
+  socket.onmessage({ data: message.state(wExploreStep1, false).text() });
+  await waitUntil(() => open.recordedTexts().filter(t => t === message.act(intent.move(1, 0)).text()).length >= 2);
+
+  ev = new KeyboardEvent("keydown", { key: "ArrowUp", cancelable: true });
+  document.dispatchEvent(ev);
+  assert.equal(open.recordedTexts()[open.recordedTexts().length - 1], message.act(intent.move(0, -1)).text());
+
+  const wExploreStep2HeroActor = actor.of({ id: 0, kind: 'hero', pos: point.of(3, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 500 });
+  const wExploreStep2Hero = hero.of({ name: 'Ann', actor: wExploreStep2HeroActor });
+  const wExploreStep2 = world.of({
+    seed: 1, rng: 1, depth: 1, time: 100, state: 'playing',
+    grid: wExploreGrid, heroes: [wExploreStep2Hero], monsters: [], items: [],
+    visible: wExploreVisible, explored: wExploreExplored, gold: 0, log: [], entry: wExploreEntry
+  });
+  socket.onmessage({ data: message.state(wExploreStep2, false).text() });
+  const beforeEnd = open.recordedTexts().length;
+  await new Promise(resolve => setTimeout(resolve, 500));
+  assert.equal(open.recordedTexts().length, beforeEnd);
+
+  h.stop();
+});
+
+test("enemy", async () => {
+  const open = makeSocketFactory();
+  const h = start(document, { open, audioContext: null });
+
+  document.getElementById("landing-name").value = "Ann";
+  document.getElementById("landing-create").click();
+
+  const socket = open.socket();
+  socket.onopen();
+
+  await waitUntil(() => open.recordedTexts().some(t => t === message.create(null).text()));
+
+  socket.onmessage({ data: message.created('ABCDEF').text() });
+  await waitUntil(() => open.recordedTexts().some(t => t === message.join('ABCDEF', 'Ann').text()));
+  const nonListTexts = open.recordedTexts().filter(t => t !== message.list().text());
+  assert.equal(nonListTexts[nonListTexts.length - 1], message.join('ABCDEF', 'Ann').text());
+
+  socket.onmessage({ data: message.joined('ABCDEF', 'Ann').text() });
+  await waitUntil(() => h.screen() === "game");
+
+  const wEnemyGrid = tileGrid.fromRows(['#######', '#.....#', '#.....#', '#######']);
+  const wEnemyHeroActor = actor.of({ id: 0, kind: 'hero', pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) });
+  const wEnemyHero = hero.of({ name: 'Ann', actor: wEnemyHeroActor });
+  const wEnemyVisible = mask.of(7, 4, [
+    false, false, false, false, false, false, false,
+    true, true, true, true, false, false, false,
+    true, true, true, true, false, false, false,
+    false, false, false, false, false, false, false
+  ]);
+  const wEnemyExplored = mask.of(7, 4, [
+    false, false, false, false, false, false, false,
+    true, true, true, true, false, false, false,
+    true, true, true, true, false, false, false,
+    false, false, false, false, false, false, false
+  ]);
+  const wEnemyEntry = save.of({ seed: 1, depth: 1, players: [] });
+  const wEnemy = world.of({
+    seed: 1, rng: 1, depth: 1, time: 0, state: 'playing',
+    grid: wEnemyGrid, heroes: [wEnemyHero], monsters: [], items: [],
+    visible: wEnemyVisible, explored: wEnemyExplored, gold: 0, log: [], entry: wEnemyEntry
+  });
+
+  socket.onmessage({ data: message.state(wEnemy, false).text() });
+  await waitUntil(() => h.world() !== null);
+
+  let ev = new KeyboardEvent("keydown", { key: "z", cancelable: true });
+  document.dispatchEvent(ev);
+  await waitUntil(() => open.recordedTexts().some(t => t === message.act(intent.move(1, 0)).text()));
+
+  const wEnemyStep1HeroActor = actor.of({ id: 0, kind: 'hero', pos: point.of(2, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 250 });
+  const wEnemyStep1Hero = hero.of({ name: 'Ann', actor: wEnemyStep1HeroActor });
+  const wEnemyStep1BatActor = actor.of({ id: 10, kind: 'bat', pos: point.of(3, 2), stats: stats.of({ hp: 3, maxHp: 3, attack: 2, defense: 0 }) });
+  const wEnemyStep1 = world.of({
+    seed: 1, rng: 1, depth: 1, time: 50, state: 'playing',
+    grid: wEnemyGrid, heroes: [wEnemyStep1Hero], monsters: [wEnemyStep1BatActor], items: [],
+    visible: wEnemyVisible, explored: wEnemyExplored, gold: 0, log: [], entry: wEnemyEntry
+  });
+  socket.onmessage({ data: message.state(wEnemyStep1, false).text() });
+  const afterStep1 = open.recordedTexts().length;
+  await new Promise(resolve => setTimeout(resolve, 500));
+  assert.equal(open.recordedTexts().length, afterStep1);
+
+  ev = new KeyboardEvent("keydown", { key: "z", cancelable: true });
+  document.dispatchEvent(ev);
+  await waitUntil(() => open.recordedTexts().some(t => t === message.act(intent.move(1, 0)).text()));
+
+  h.stop();
+});
+
+test("clicks", async () => {
+  const open = makeSocketFactory();
+  const h = start(document, { open, audioContext: null });
+
+  document.getElementById("landing-name").value = "Ann";
+  document.getElementById("landing-create").click();
+
+  const socket = open.socket();
+  socket.onopen();
+
+  await waitUntil(() => open.recordedTexts().some(t => t === message.create(null).text()));
+
+  socket.onmessage({ data: message.created('ABCDEF').text() });
+  await waitUntil(() => open.recordedTexts().some(t => t === message.join('ABCDEF', 'Ann').text()));
+  const nonListTexts = open.recordedTexts().filter(t => t !== message.list().text());
+  assert.equal(nonListTexts[nonListTexts.length - 1], message.join('ABCDEF', 'Ann').text());
+
+  socket.onmessage({ data: message.joined('ABCDEF', 'Ann').text() });
+  await waitUntil(() => h.screen() === "game");
+
+  const wClicksGrid = tileGrid.fromRows(['#######', '#.....#', '#######']);
+  const wClicksHeroActor = actor.of({ id: 0, kind: 'hero', pos: point.of(1, 1), stats: stats.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) });
+  const wClicksHero = hero.of({ name: 'Ann', actor: wClicksHeroActor });
+  const wClicksVisible = mask.of(7, 3, [
+    false, false, false, false, false, false, false,
+    true, true, true, true, false, false, false,
+    false, false, false, false, false, false, false
+  ]);
+  const wClicksExplored = mask.of(7, 3, [
+    false, false, false, false, false, false, false,
+    true, true, true, true, false, false, false,
+    false, false, false, false, false, false, false
+  ]);
+  const wClicksEntry = save.of({ seed: 1, depth: 1, players: [] });
+  const wClicks = world.of({
+    seed: 1, rng: 1, depth: 1, time: 0, state: 'playing',
+    grid: wClicksGrid, heroes: [wClicksHero], monsters: [], items: [],
+    visible: wClicksVisible, explored: wClicksExplored, gold: 0, log: [], entry: wClicksEntry
+  });
+
+  socket.onmessage({ data: message.state(wClicks, false).text() });
+  await waitUntil(() => h.world() !== null);
+
+  const canvas = document.querySelector("canvas");
+  const rect = canvas.getBoundingClientRect();
+  const clickEv = new MouseEvent('click', {
+    clientX: rect.left + 3 * 48 + 24,
+    clientY: rect.top + 48 + 24,
+    bubbles: true
+  });
+  canvas.dispatchEvent(clickEv);
+  await waitUntil(() => open.recordedTexts().some(t => t === message.act(intent.move(1, 0)).text()));
+
+  const clickBelowEv = new MouseEvent('click', {
+    clientX: rect.left + 3 * 48 + 24,
+    clientY: rect.top + 500,
+    bubbles: true
+  });
+  canvas.dispatchEvent(clickBelowEv);
+  const before = open.recordedTexts().length;
+  await new Promise(resolve => setTimeout(resolve, 500));
+  assert.equal(open.recordedTexts().length, before);
+
+  h.stop();
+});
+
+test("debug", async () => {
+  const open = makeSocketFactory();
+  let h = start(document, { open, audioContext: null, debug: true });
+  assert.ok(document.getElementById("landing-debug"));
+  h.stop();
+
+  const open2 = makeSocketFactory();
+  h = start(document, { open: open2, audioContext: null });
+  assert.equal(document.getElementById("landing-debug"), null);
+  h.stop();
+
+  const open3 = makeSocketFactory();
+  h = start(document, { open: open3, audioContext: null, debug: true });
+
+  document.getElementById("landing-name").value = "Ann";
+  document.querySelector('[data-depth="7"]').click();
+
+  const socket = open3.socket();
+  socket.onopen();
+
+  await waitUntil(() => open3.recordedTexts().some(t => {
+    const m = message.parse(t);
+    return m.kind === 'create' && m.save !== null && m.save.depth === 7 && m.save.players.length === 1 && m.save.players[0].name === 'Ann';
+  }));
+
+  h.stop();
+});
+
 test("creates-canvas", () => {
   const doc = document.implementation.createHTMLDocument("t");
   const open = makeSocketFactory();
