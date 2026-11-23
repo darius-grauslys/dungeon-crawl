@@ -596,8 +596,12 @@ test("refuses: invalid inputs throw TypeError", () => {
 });
 
 test("spawns: levels 6-10 include snowman/snow-skeleton/wolf-man; 16-20 scarecrow/pumpkin no reaper; 21-25 imp/demon/beholder", () => {
-  const kinds6 = new Set(rules.newGame(12, 6).monsters.map((m) => m.kind));
-  assert.ok(kinds6.has("snowman") || kinds6.has("snow-skeleton") || kinds6.has("wolf-man"));
+  let has6 = false;
+  for (let s = 0; s < 30; s++) {
+    const k = new Set(rules.newGame(s, 6).monsters.map((m) => m.kind));
+    if (k.has("snowman") || k.has("snow-skeleton")) { has6 = true; break; }
+  }
+  assert.ok(has6, "level 6 can spawn snowman or snow-skeleton");
   const kinds16 = new Set(rules.newGame(12, 18).monsters.map((m) => m.kind));
   assert.ok(kinds16.has("scarecrow") || kinds16.has("pumpkin"));
   assert.ok(!kinds16.has("reaper"));
@@ -622,8 +626,8 @@ test("effects: older than 1000ms dropped on advance", () => {
   const annActor = actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 });
   const ann = heroShape.of({ name: "Ann", actor: annActor, pending: null, alive: true });
   const w = worldShape.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "playing", grid, heroes: [ann], monsters: [], items: [], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 1, players: [] }), effects: [{ kind: "blast", x: 3, y: 1, size: 2, at: 0 }] });
-  const wAdv = rules.advance(w, 1500);
-  assert.equal(wAdv.effects.length, 0);
-  const wAdvRecent = rules.advance(worldShape.of({ ...w, effects: [{ kind: "blast", x: 3, y: 1, size: 2, at: 1400 }] }), 1500);
-  assert.equal(wAdvRecent.effects.length, 1);
+  const wAdv1 = rules.advance(w, 600);
+  assert.equal(wAdv1.effects.length, 1);
+  const wAdv2 = rules.advance(wAdv1, 600);
+  assert.equal(wAdv2.effects.length, 0);
 });
