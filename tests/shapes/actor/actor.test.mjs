@@ -27,6 +27,11 @@ test("actor of builds a frozen actor with the given values", () => {
   assert.strictEqual(a.size, 1);
   assert.strictEqual(a.small, false);
   assert.strictEqual(a.gesture, null);
+  assert.strictEqual(a.curse, 0);
+  assert.strictEqual(a.haste, 0);
+  assert.strictEqual(a.chant, null);
+  assert.strictEqual(a.cooldown, 0);
+  assert.strictEqual(a.fuse, null);
   assert.strictEqual(Object.isFrozen(a), true);
   assert.strictEqual(Object.isFrozen(a.last), true);
   assert.strictEqual(Object.isFrozen(a.aim), true);
@@ -38,11 +43,11 @@ test("actor of with ready: 250 has ready 250", () => {
   assert.strictEqual(a.ready, 250);
 });
 
-test("actor KINDS has 19 kinds, first hero, then bat, last golem, and frozen", () => {
-  assert.strictEqual(KINDS.length, 19);
+test("actor KINDS has 31 kinds, first hero, then bat, last beholder, and frozen", () => {
+  assert.strictEqual(KINDS.length, 31);
   assert.strictEqual(KINDS[0], 'hero');
   assert.strictEqual(KINDS[1], 'bat');
-  assert.strictEqual(KINDS[18], 'golem');
+  assert.strictEqual(KINDS[30], 'beholder');
   assert.strictEqual(Object.isFrozen(KINDS), true);
 });
 
@@ -186,6 +191,11 @@ test("actor with returns a new actor with changed pos, leaving the original unch
   assert.strictEqual(b.size, a.size);
   assert.strictEqual(b.small, a.small);
   assert.strictEqual(b.gesture, a.gesture);
+  assert.strictEqual(b.curse, a.curse);
+  assert.strictEqual(b.haste, a.haste);
+  assert.strictEqual(b.chant, a.chant);
+  assert.strictEqual(b.cooldown, a.cooldown);
+  assert.strictEqual(b.fuse, a.fuse);
   assert.strictEqual(a.pos.x, 1);
   assert.strictEqual(a.pos.y, 2);
   assert.notStrictEqual(a, b);
@@ -267,6 +277,11 @@ test("with is a shared method, not an own property of an actor", () => {
   assert.strictEqual(Object.hasOwn(a, 'size'), true);
   assert.strictEqual(Object.hasOwn(a, 'small'), true);
   assert.strictEqual(Object.hasOwn(a, 'gesture'), true);
+  assert.strictEqual(Object.hasOwn(a, 'curse'), true);
+  assert.strictEqual(Object.hasOwn(a, 'haste'), true);
+  assert.strictEqual(Object.hasOwn(a, 'chant'), true);
+  assert.strictEqual(Object.hasOwn(a, 'cooldown'), true);
+  assert.strictEqual(Object.hasOwn(a, 'fuse'), true);
   assert.strictEqual(Object.hasOwn(a, 'covers'), false);
   assert.strictEqual(Object.hasOwn(a, 'cells'), false);
 });
@@ -346,4 +361,88 @@ test("actor of accepts gesture: {kind: 'use', at: 0} and {kind: 'power', at: 100
   const b = of({ id: 1, kind: 'hero', pos: pointShape.of(2, 2), stats: s, gesture: { kind: 'power', at: 100 } });
   assert.strictEqual(Object.isFrozen(b.gesture), true);
   assert.deepStrictEqual(b.gesture, { kind: 'power', at: 100 });
+});
+
+test("actor of accepts a cultist with chant {kind: 'haste', at: 100, until: 1300}, cooldown 500 and haste 3", () => {
+  const s = statsShape.of({ hp: 7, maxHp: 7, attack: 5, defense: 1 });
+  const a = of({ id: 0, kind: 'cultist', pos: pointShape.of(1, 2), stats: s, chant: { kind: 'haste', at: 100, until: 1300 }, cooldown: 500, haste: 3 });
+  assert.strictEqual(a.haste, 3);
+  assert.strictEqual(a.cooldown, 500);
+  assert.strictEqual(Object.isFrozen(a.chant), true);
+  assert.deepStrictEqual(a.chant, { kind: 'haste', at: 100, until: 1300 });
+});
+
+test("actor of accepts a pumpkin of size 2 with fuse {at: 40}", () => {
+  const s = statsShape.of({ hp: 12, maxHp: 12, attack: 0, defense: 1 });
+  const a = of({ id: 0, kind: 'pumpkin', pos: pointShape.of(1, 2), stats: s, size: 2, fuse: { at: 40 } });
+  assert.strictEqual(a.size, 2);
+  assert.strictEqual(Object.isFrozen(a.fuse), true);
+  assert.deepStrictEqual(a.fuse, { at: 40 });
+});
+
+test("actor of accepts a hero with curse 3", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  const a = of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, curse: 3 });
+  assert.strictEqual(a.curse, 3);
+});
+
+test("actor of refuses curse: 4", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'golem', pos: pointShape.of(1, 2), stats: s, curse: 4 }), TypeError);
+});
+
+test("actor of refuses haste: -1", () => {
+  const s = statsShape.of({ hp: 7, maxHp: 7, attack: 5, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'cultist', pos: pointShape.of(1, 2), stats: s, haste: -1 }), TypeError);
+});
+
+test("actor of refuses chant: {kind: 'sing', at: 0, until: 1}", () => {
+  const s = statsShape.of({ hp: 7, maxHp: 7, attack: 5, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'cultist', pos: pointShape.of(1, 2), stats: s, chant: { kind: 'sing', at: 0, until: 1 } }), TypeError);
+});
+
+test("actor of refuses chant: {kind: 'haste', at: 5, until: 1}", () => {
+  const s = statsShape.of({ hp: 7, maxHp: 7, attack: 5, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'cultist', pos: pointShape.of(1, 2), stats: s, chant: { kind: 'haste', at: 5, until: 1 } }), TypeError);
+});
+
+test("actor of refuses cooldown: 1.5", () => {
+  const s = statsShape.of({ hp: 7, maxHp: 7, attack: 5, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'cultist', pos: pointShape.of(1, 2), stats: s, cooldown: 1.5 }), TypeError);
+});
+
+test("actor of refuses fuse: {at: -1}", () => {
+  const s = statsShape.of({ hp: 12, maxHp: 12, attack: 0, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'pumpkin', pos: pointShape.of(1, 2), stats: s, fuse: { at: -1 } }), TypeError);
+});
+
+test("actor of refuses a hero with haste 1", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, haste: 1 }), TypeError);
+});
+
+test("actor of refuses a hero with a fuse", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, fuse: { at: 40 } }), TypeError);
+});
+
+test("actor with({kind: 'enraged-wolf-man'}) changes a wolf-man kind", () => {
+  const s = statsShape.of({ hp: 14, maxHp: 14, attack: 5, defense: 2 });
+  const a = of({ id: 0, kind: 'wolf-man', pos: pointShape.of(1, 2), stats: s });
+  const b = a.with({ kind: 'enraged-wolf-man' });
+  assert.strictEqual(b.kind, 'enraged-wolf-man');
+  assert.strictEqual(a.kind, 'wolf-man');
+  assert.notStrictEqual(a, b);
+});
+
+test("actor with({kind: 'hero'}) throws for a wolf-man", () => {
+  const s = statsShape.of({ hp: 14, maxHp: 14, attack: 5, defense: 2 });
+  const a = of({ id: 0, kind: 'wolf-man', pos: pointShape.of(1, 2), stats: s });
+  assert.throws(() => a.with({ kind: 'hero' }), TypeError);
+});
+
+test("actor with({kind: 'bat'}) throws for a hero", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  const a = of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s });
+  assert.throws(() => a.with({ kind: 'bat' }), TypeError);
 });
