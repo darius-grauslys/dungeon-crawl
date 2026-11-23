@@ -43,12 +43,12 @@ function makeHeroActor(id, name, x, y, last = null, gesture = null, alive = true
   return heroShape.of({ name, actor, alive });
 }
 
-function makeMonsterActor(id, kind, x, y, hp, last = null, gesture = null) {
+function makeMonsterActor(id, kind, x, y, hp, last = null, gesture = null, fuse = null) {
   const stats = statsShape.of({ hp, maxHp: hp, attack: 2, defense: 1, range: 1 });
-  return actorShape.of({ id, kind, pos: pointShape.of(x, y), stats, last, gesture });
+  return actorShape.of({ id, kind, pos: pointShape.of(x, y), stats, last, gesture, fuse });
 }
 
-function buildWorld({ gridRows, depth = 1, gold = 0, heroes, monsters = [], items = [], visibleCells, exploredCells, time = 0, state = "playing" }) {
+function buildWorld({ gridRows, depth = 1, gold = 0, heroes, monsters = [], items = [], visibleCells, exploredCells, time = 0, state = "playing", effects = [] }) {
   const grid = tileGridShape.fromRows(gridRows);
   const W = grid.width;
   const H = grid.height;
@@ -69,6 +69,7 @@ function buildWorld({ gridRows, depth = 1, gold = 0, heroes, monsters = [], item
     gold,
     log: [],
     entry: saveShape.of({ seed: 1, depth, players: [] }),
+    effects,
   });
 }
 
@@ -308,6 +309,66 @@ test("cues: dies", () => {
   });
 
   assertCues(cues(prev, next, "Bob"), [makeCue("hit", 1 - 2 / 12), makeCue("death", 1 - 2 / 12)]);
+});
+
+test("cues: fuses", () => {
+  const grid = ["#######", "#.....#", "#######"];
+  const vc = allVisible(7, 3);
+
+  const prev = buildWorld({
+    gridRows: grid,
+    depth: 1,
+    heroes: [makeHeroActor(0, "Ann", 1, 1, null, null, true, 10)],
+    monsters: [makeMonsterActor(10, "pumpkin", 4, 1, 12, null, null, null)],
+    visibleCells: vc,
+  });
+
+  const nextHiss = buildWorld({
+    gridRows: grid,
+    depth: 1,
+    heroes: [makeHeroActor(0, "Ann", 1, 1, null, null, true, 10)],
+    monsters: [makeMonsterActor(10, "pumpkin", 4, 1, 12, null, null, { at: 50 })],
+    visibleCells: vc,
+  });
+
+  assertCues(cues(prev, nextHiss, "Ann"), [makeCue("hiss", 1 - 3 / 12)]);
+
+  const prevSame = buildWorld({
+    gridRows: grid,
+    depth: 1,
+    heroes: [makeHeroActor(0, "Ann", 1, 1, null, null, true, 10)],
+    monsters: [makeMonsterActor(10, "pumpkin", 4, 1, 12, null, null, { at: 50 })],
+    visibleCells: vc,
+  });
+  const nextSame = buildWorld({
+    gridRows: grid,
+    depth: 1,
+    heroes: [makeHeroActor(0, "Ann", 1, 1, null, null, true, 10)],
+    monsters: [makeMonsterActor(10, "pumpkin", 4, 1, 12, null, null, { at: 50 })],
+    visibleCells: vc,
+  });
+  assert.deepEqual(cues(prevSame, nextSame, "Ann"), []);
+
+  const prevDeath = buildWorld({
+    gridRows: grid,
+    depth: 1,
+    heroes: [makeHeroActor(0, "Ann", 1, 1, null, null, true, 10)],
+    monsters: [makeMonsterActor(10, "pumpkin", 4, 1, 12, null, null, null)],
+    visibleCells: vc,
+  });
+
+  const vcNot = allVisible(7, 3);
+  vcNot[1 * 7 + 4] = false;
+  const nextDeath = buildWorld({
+    gridRows: grid,
+    depth: 1,
+    heroes: [makeHeroActor(0, "Ann", 1, 1, null, null, true, 10)],
+    monsters: [],
+    visibleCells: vcNot,
+    effects: [{ kind: "blast", x: 4, y: 1, size: 1, at: 50 }],
+  });
+
+  assertCues(cues(prevDeath, nextDeath, "Ann"), [makeCue("death", 1 - 3 / 12), makeCue("boom", 1 - 3 / 12)]);
 });
 
 test("cues: refuses", () => {
