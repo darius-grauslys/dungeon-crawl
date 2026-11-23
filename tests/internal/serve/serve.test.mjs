@@ -139,6 +139,35 @@ test("not-found", async () => {
   }
 });
 
+test("query", async () => {
+  const root = await makeFixture();
+  const srv = await serve({ port: 0, root });
+  try {
+    const r1 = await fetch(srv.port, "/?debug=true");
+    assert.equal(r1.status, 200);
+    assert.match(r1.headers["content-type"], /text\/html/);
+    const rPage = await fetch(srv.port, "/");
+    assert.equal(r1.body.toString(), rPage.body.toString());
+
+    const r2 = await fetch(srv.port, "/game.js?v=2");
+    assert.equal(r2.status, 200);
+    assert.match(r2.headers["content-type"], /text\/javascript/);
+
+    const r3 = await fetch(srv.port, "/assets/sfx/coin.mp3?x=1");
+    assert.equal(r3.status, 200);
+    assert.equal(r3.headers["content-type"], "audio/mpeg");
+    assert.equal(Buffer.compare(r3.body, MP3), 0);
+
+    const r4 = await fetch(srv.port, "/nope?debug=true");
+    assert.equal(r4.status, 404);
+
+    const r5 = await fetch(srv.port, "/?debug=true#frag");
+    assert.equal(r5.status, 200);
+  } finally {
+    await srv.close();
+  }
+});
+
 test("closes", async () => {
   const root = await makeFixture();
   const srv = await serve({ port: 0, root });

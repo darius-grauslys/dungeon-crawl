@@ -45,6 +45,38 @@ test("page", async () => {
   }
 });
 
+test("query", async () => {
+  const srv = await serve();
+  const server = await srv({ port: 0, root: process.cwd() });
+  try {
+    // GET /?debug=true answers 200 with the same body as GET /
+    const res1 = await fetch(`${server.url}?debug=true`);
+    assert.equal(res1.status, 200);
+    const body1 = await res1.text();
+    const resPage = await fetch(`${server.url}`);
+    const bodyPage = await resPage.text();
+    assert.equal(body1, bodyPage);
+
+    // /game.js?v=2 200 text/javascript
+    const res2 = await fetch(`${server.url}game.js?v=2`);
+    assert.equal(res2.status, 200);
+    assert.match(res2.headers.get("content-type") || "", /text\/javascript/);
+
+    // /assets/sfx/coin.mp3?x=1 the file's exact bytes
+    const res3 = await fetch(`${server.url}assets/sfx/coin.mp3?x=1`);
+    assert.equal(res3.status, 200);
+    assert.match(res3.headers.get("content-type") || "", /audio\/mpeg/);
+    const body3 = Buffer.from(new Uint8Array(await res3.arrayBuffer()));
+    const expected3 = readFileSync(process.cwd() + "/assets/sfx/coin.mp3");
+    assert.ok(body3.equals(expected3));
+
+    // /nope?debug=true 404
+    assert.equal((await fetch(`${server.url}nope?debug=true`)).status, 404);
+  } finally {
+    await server.close();
+  }
+});
+
 test("bundle", async () => {
   const srv = await serve();
   const server = await srv({ port: 0, root: process.cwd() });
