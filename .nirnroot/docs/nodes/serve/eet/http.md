@@ -22,6 +22,9 @@ None
 ## Intrinsic - page:
 As the EED states.
 
+## Intrinsic - query:
+As the EED states.
+
 ## Intrinsic - bundle:
 As the EED states.
 
