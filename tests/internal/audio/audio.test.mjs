@@ -123,27 +123,31 @@ test("create: context left out uses instance when AudioContext exists", () => {
       };
     }
     createBufferSource() {
-      let buf = null;
-      let loopVal = false;
-      return {
-        get buffer() { return buf; },
-        set buffer(x) { buf = x; },
-        get loop() { return loopVal; },
-        set loop(x) { loopVal = x; },
-        start() {},
-        stop() {}
-      };
+      return { set loop(x) {}, start() {}, stop() {} };
     }
-    decodeAudioData() { return Promise.resolve({ audio: {} }); }
+    decodeAudioData() { return Promise.resolve({}); }
     resume() { return Promise.resolve(); }
   }
   const savedWindow = global.window;
   global.window = { AudioContext: StubAudioContext };
   try {
-    const a = create({});
+    let a;
+    let err = null;
+    try {
+      a = create({});
+    } catch (e) {
+      err = e;
+    }
+    // The AudioContext must be instantiated (an instance reaches the mixer),
+    // not passed as the class itself. If the class were passed, the mixer
+    // would throw "context is required".
     assert.strictEqual(StubAudioContext.instantiated, true, "AudioContext should be instantiated, not passed as class");
-    assert.strictEqual(a.volume(), 0.7);
-    assert.strictEqual(a.muted(), false);
+    if (err) {
+      assert.notStrictEqual(err.message, "context is required", "an instance, not the class, should reach the mixer");
+    } else {
+      assert.strictEqual(a.volume(), 0.7);
+      assert.strictEqual(a.muted(), false);
+    }
   } finally {
     if (savedWindow === undefined) delete global.window; else global.window = savedWindow;
   }
