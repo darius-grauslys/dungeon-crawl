@@ -33,6 +33,19 @@ const TABLE = [
   { name: "lever-pulled", sheet: "sheets/generics.png", sx: 32, sy: 80 },
   { name: "ring", sheet: "sheets/items.png", sx: 0, sy: 64 },
   { name: "necklace", sheet: "sheets/items.png", sx: 128, sy: 64 },
+  { name: "mage", sheet: "sheets/monsters.png", sx: 0, sy: 16 },
+  { name: "swordsman", sheet: "sheets/monsters.png", sx: 64, sy: 16 },
+  { name: "blue-spider", sheet: "sheets/monsters.png", sx: 64, sy: 96 },
+  { name: "serpent", sheet: "sheets/frozen-monsters.png", sx: 0, sy: 16 },
+  { name: "bread", sheet: "sheets/items.png", sx: 0, sy: 144 },
+  { name: "meat", sheet: "sheets/items.png", sx: 16, sy: 144 },
+  { name: "cheese", sheet: "sheets/items.png", sx: 32, sy: 144 },
+  { name: "sword-2", sheet: "sheets/items.png", sx: 80, sy: 16 },
+  { name: "sword-3", sheet: "sheets/items.png", sx: 0, sy: 16 },
+  { name: "sword-4", sheet: "sheets/items.png", sx: 16, sy: 16 },
+  { name: "armor-2", sheet: "sheets/items.png", sx: 0, sy: 48 },
+  { name: "armor-3", sheet: "sheets/items.png", sx: 16, sy: 48 },
+  { name: "armor-4", sheet: "sheets/items.png", sx: 32, sy: 48 },
   { name: "wall-0", sheet: "sheets/dungeon.png", sx: 48, sy: 0 },
   { name: "wall-1", sheet: "sheets/dungeon.png", sx: 0, sy: 32 },
   { name: "wall-2", sheet: "sheets/dungeon.png", sx: 48, sy: 32 },
@@ -53,7 +66,7 @@ const TABLE = [
 
 const _names = TABLE.map((r) => r.name);
 
-/** `names() -> array`. The forty-six names, in the table's order, a fresh array each call. */
+/** `names() -> array`. The fifty-nine names, in the table's order, a fresh array each call. */
 export function names() {
   return [..._names];
 }
@@ -102,6 +115,7 @@ const MONSTERS = new Set([
   "archer", "blue-slime", "golem", "beetle", "mummy",
   "cultist", "spider", "ghost", "reaper", "worm",
   "fire-slime", "imp", "blue-snake",
+  "mage", "swordsman", "blue-spider", "serpent",
 ]);
 
 const HERO_ANIMS = {
