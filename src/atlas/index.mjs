@@ -37,6 +37,17 @@ const TABLE = [
   { name: "swordsman", sheet: "sheets/monsters.png", sx: 64, sy: 16 },
   { name: "blue-spider", sheet: "sheets/monsters.png", sx: 64, sy: 96 },
   { name: "serpent", sheet: "sheets/frozen-monsters.png", sx: 0, sy: 16 },
+  { name: "snowman", sheet: "sheets/frozen-cavern-monsters.png", sx: 0, sy: 0 },
+  { name: "snow-skeleton", sheet: "sheets/frozen-cavern-monsters.png", sx: 0, sy: 48 },
+  { name: "wolf-man", sheet: "sheets/frozen-cavern-monsters.png", sx: 64, sy: 16 },
+  { name: "enraged-wolf-man", sheet: "sheets/frozen-cavern-monsters.png", sx: 0, sy: 32 },
+  { name: "scarecrow", sheet: "sheets/temple-monsters.png", sx: 64, sy: 16 },
+  { name: "swarm", sheet: "sheets/temple-monsters.png", sx: 128, sy: 0 },
+  { name: "pumpkin", sheet: "sheets/temple-monsters.png", sx: 0, sy: 32 },
+  { name: "beholder", sheet: "sheets/monsters.png", sx: 0, sy: 32 },
+  { name: "sparkle-0", sheet: "sheets/items.png", sx: 0, sy: 208 },
+  { name: "sparkle-1", sheet: "sheets/items.png", sx: 16, sy: 208 },
+  { name: "sparkle-2", sheet: "sheets/items.png", sx: 32, sy: 208 },
   { name: "bread", sheet: "sheets/items.png", sx: 0, sy: 144 },
   { name: "meat", sheet: "sheets/items.png", sx: 16, sy: 144 },
   { name: "cheese", sheet: "sheets/items.png", sx: 32, sy: 144 },
@@ -66,7 +77,7 @@ const TABLE = [
 
 const _names = TABLE.map((r) => r.name);
 
-/** `names() -> array`. The fifty-nine names, in the table's order, a fresh array each call. */
+/** `names() -> array`. The seventy names, in the table's order, a fresh array each call. */
 export function names() {
   return [..._names];
 }
@@ -81,6 +92,15 @@ const THEMES = [
 ];
 
 const _themeIndex = new Map(THEMES.map((t) => [t.theme, t]));
+
+const _FLOORS_SY = {
+  dungeon: [304, 336, 0, 320, 352, 368, 16, 32, 144, 160, 48, 176, 224, 64, 80, 208, 96, 112, 128, 240, 288, 272, 256],
+  frozen: [80, 64, 32, 16, 112, 0, 48, 208, 240, 176, 144, 160, 128, 224, 256, 192],
+  arid: [0, 16, 32, 80, 64, 192, 48, 304, 272, 288, 176, 320, 160, 144, 208, 128, 112, 96, 240, 224],
+  temple: [160, 176, 144, 192, 128, 112, 80, 64, 48, 0, 16, 32],
+  magma: [176, 160, 288, 80, 128, 272, 96, 240, 256, 64, 48, 112, 304, 0, 16, 32, 224, 192, 208],
+  interior: [112],
+};
 
 const _tileNames = ["floor", "stairs"];
 for (let m = 0; m <= 15; m++) {
@@ -105,6 +125,7 @@ const _SHEETS = [
   "sheets/interior-floor.png",
   "sheets/generics.png",
   "sheets/frozen-monsters.png",
+  "sheets/frozen-cavern-monsters.png",
   "sheets/arid-monsters.png",
   "sheets/temple-monsters.png",
   "sheets/magma-monsters.png",
@@ -116,6 +137,8 @@ const MONSTERS = new Set([
   "cultist", "spider", "ghost", "reaper", "worm",
   "fire-slime", "imp", "blue-snake",
   "mage", "swordsman", "blue-spider", "serpent",
+  "snowman", "snow-skeleton", "wolf-man", "enraged-wolf-man",
+  "scarecrow", "swarm", "pumpkin", "beholder",
 ]);
 
 const HERO_ANIMS = {
@@ -142,7 +165,7 @@ let _loadId = 0;
 let _sprites = null;
 let _tiles = null;
 
-/** `load(base) -> promise`. `base` a URL prefix ending in `/`; each sheet is fetched from `base` plus its path in the table. Resolves, with nothing, once all twenty are loaded and keyed; rejects, with an `Error` whose message contains the sheet's path, as soon as one fails to load. A later `load` replaces what an earlier one loaded once it resolves. */
+/** `load(base) -> promise`. `base` a URL prefix ending in `/`; each sheet is fetched from `base` plus its path in the table. Resolves, with nothing, once all twenty-one are loaded and keyed; rejects, with an `Error` whose message contains the sheet's path, as soon as one fails to load. A later `load` replaces what an earlier one loaded once it resolves. */
 export async function load(base) {
   const myId = ++_loadId;
 
@@ -234,6 +257,24 @@ export function tile(theme, name) {
   }
   if (!_tiles) return null;
   return _tiles.get(theme + "/" + name);
+}
+
+/** `floors(theme) -> array of sprite`. The theme's floor patterns, calmest first, as **Floors** says: a fresh array of `sprite`s on the theme's floor sheet (23 for `dungeon`, 16 `frozen`, 20 `arid`, 12 `temple`, 19 `magma`, 1 `interior`). Before a `load` has resolved, answers `null`. A theme not of the six throws a `TypeError`. */
+export function floors(theme) {
+  if (!_themeIndex.has(theme)) {
+    throw new TypeError(`atlas: no theme named ${theme}`);
+  }
+  if (!_tiles) return null;
+  const syList = _FLOORS_SY[theme];
+  const t = _themeIndex.get(theme);
+  const floorCanvas = _tiles.get(theme + "/floor").image;
+  const result = [];
+  for (const sy of syList) {
+    const sx = theme === "interior" ? t.floorSx : 0;
+    const ssy = theme === "interior" ? t.floorSy : sy;
+    result.push(of({ image: floorCanvas, sx, sy: ssy, sw: 16, sh: 16 }));
+  }
+  return result;
 }
 
 /** `frames(name, anim) -> integer`. How many frames the animation has (a monster's `idle` 3; the hero's as the table says). A name or an animation not of those throws a `TypeError`. */
