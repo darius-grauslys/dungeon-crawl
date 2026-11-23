@@ -6,13 +6,14 @@ import { of as pointOf, equals as pointEquals } from '../point/index.mjs';
  * A floor-plan shape instance.
  */
 export class FloorPlan {
-  constructor(grid, start, stairs, spots, boss, levers) {
+  constructor(grid, start, stairs, spots, boss, levers, spikes) {
     this._grid = grid;
     this._start = start;
     this._stairs = stairs;
     this._spots = Object.freeze(spots.slice());
     this._boss = boss;
     this._levers = Object.freeze(levers.slice());
+    this._spikes = Object.freeze(spikes.slice());
     Object.freeze(this);
   }
 
@@ -38,6 +39,10 @@ export class FloorPlan {
 
   get levers() {
     return this._levers;
+  }
+
+  get spikes() {
+    return this._spikes;
   }
 }
 
@@ -68,9 +73,10 @@ function isTileGrid(g) {
  * @param {Point[]} options.spots
  * @param {Point|null} options.boss
  * @param {Point[]} options.levers
+ * @param {{x:number,y:number,shift:number}[]} options.spikes
  * @returns {FloorPlan}
  */
-export function of({ grid, start, stairs, spots, boss, levers }) {
+export function of({ grid, start, stairs, spots, boss, levers, spikes }) {
   if (!isTileGrid(grid)) {
     throw new TypeError('grid must be a tile-grid');
   }
@@ -192,9 +198,40 @@ export function of({ grid, start, stairs, spots, boss, levers }) {
     leverSet.add(lkey);
   }
 
+  if (spikes === undefined) {
+    spikes = [];
+  }
+  if (!Array.isArray(spikes)) {
+    throw new TypeError('spikes must be an array');
+  }
+  const spikeSet = new Set();
+  for (const spike of spikes) {
+    if (!spike || typeof spike.x !== 'number' || !Number.isInteger(spike.x) ||
+        typeof spike.y !== 'number' || !Number.isInteger(spike.y) ||
+        typeof spike.shift !== 'number' || !Number.isInteger(spike.shift) ||
+        spike.shift < 0 || spike.shift > 5) {
+      throw new TypeError('spikes must be {x, y, shift} with shift 0..5');
+    }
+    if (grid.at(spike.x, spike.y) !== 'floor') {
+      throw new TypeError('spike must be on a floor cell');
+    }
+    if (spike.x === start.x && spike.y === start.y) {
+      throw new TypeError('spike must not equal start');
+    }
+    if (spike.x === stairs.x && spike.y === stairs.y) {
+      throw new TypeError('spike must not equal stairs');
+    }
+    const skey = spike.x + ',' + spike.y;
+    if (spikeSet.has(skey)) {
+      throw new TypeError('spikes must be distinct');
+    }
+    spikeSet.add(skey);
+  }
+
   const spotsCopy = spots.map(s => pointOf(s.x, s.y));
   const leversCopy = levers.map(l => pointOf(l.x, l.y));
   const bossPoint = boss !== null ? pointOf(boss.x, boss.y) : null;
-  const fp = new FloorPlan(grid, pointOf(start.x, start.y), pointOf(stairs.x, stairs.y), spotsCopy, bossPoint, leversCopy);
+  const spikesCopy = spikes.map(s => Object.freeze({ x: s.x, y: s.y, shift: s.shift }));
+  const fp = new FloorPlan(grid, pointOf(start.x, start.y), pointOf(stairs.x, stairs.y), spotsCopy, bossPoint, leversCopy, spikesCopy);
   return fp;
 }
