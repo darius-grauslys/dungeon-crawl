@@ -1126,6 +1126,9 @@ function advance(world, ms) {
   const turn = Math.floor(newTime / 400);
   const monsterMap = new Map();
   for (const m of monstersList) monsterMap.set(m.id, m);
+  let idCounter = 10;
+  for (const mm of monstersList) if (mm.id > idCounter) idCounter = mm.id;
+  idCounter++;
 
   for (const entry of monstersList) {
     // skip if removed before its turn
