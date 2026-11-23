@@ -369,3 +369,97 @@ test("creates-canvas", async () => {
 
   h.stop();
 });
+
+test("explores", async () => {
+  let socket;
+  const open = (url) => {
+    socket = makeFakeSocket();
+    return socket;
+  };
+  const h = playEdge.start(document, { open, audioContext: null });
+
+  document.querySelector("#landing-name").value = "Ann";
+  document.querySelector("#landing-create").click();
+
+  await delay(10);
+  socket.open();
+  socket.message(messageShape.created("ABCDEF").text());
+  socket.message(messageShape.joined("ABCDEF", "Ann").text());
+  await delay(500);
+
+  const w = makeSmallWorld();
+  socket.message(messageShape.state(w, false).text());
+  await delay(500);
+
+  const evZ = new KeyboardEvent("keydown", { key: "z", cancelable: true });
+  document.dispatchEvent(evZ);
+  await delay(500);
+
+  h.stop();
+});
+
+test("enemy", async () => {
+  let socket;
+  const open = (url) => {
+    socket = makeFakeSocket();
+    return socket;
+  };
+  const h = playEdge.start(document, { open, audioContext: null });
+
+  document.querySelector("#landing-name").value = "Ann";
+  document.querySelector("#landing-create").click();
+
+  await delay(10);
+  socket.open();
+  socket.message(messageShape.created("ABCDEF").text());
+  socket.message(messageShape.joined("ABCDEF", "Ann").text());
+  await delay(500);
+
+  const w = makeSmallWorld();
+  socket.message(messageShape.state(w, false).text());
+  await delay(500);
+
+  const evZ = new KeyboardEvent("keydown", { key: "z", cancelable: true });
+  document.dispatchEvent(evZ);
+  await delay(500);
+
+  h.stop();
+});
+
+test("clicks", async () => {
+  let socket;
+  const open = (url) => {
+    socket = makeFakeSocket();
+    return socket;
+  };
+  const h = playEdge.start(document, { open, audioContext: null });
+
+  document.querySelector("#landing-name").value = "Ann";
+  document.querySelector("#landing-create").click();
+
+  await delay(10);
+  socket.open();
+  socket.message(messageShape.created("ABCDEF").text());
+  socket.message(messageShape.joined("ABCDEF", "Ann").text());
+  await delay(500);
+
+  const w = makeSmallWorld();
+  socket.message(messageShape.state(w, false).text());
+  await delay(500);
+
+  const canvas = document.querySelector("canvas");
+  const clickEv = new MouseEvent("click", { clientX: 100, clientY: 100, bubbles: true });
+  canvas.dispatchEvent(clickEv);
+  await delay(500);
+
+  h.stop();
+});
+
+test("debug", async () => {
+  let socket;
+  const open = (url) => {
+    socket = makeFakeSocket();
+    return socket;
+  };
+  playEdge.start(document, { open, debug: true, audioContext: null });
+});
