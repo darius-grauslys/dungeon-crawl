@@ -45,7 +45,7 @@ function centre(r) {
   return { cx: r.x + Math.floor(r.w / 2), cy: r.y + Math.floor(r.h / 2) };
 }
 
-function tryCarve(gen, temple) {
+function tryCarve(gen, temple, makeSpikes) {
   // Step 1: start with all 48 by 32 cells wall (handled by grid init).
   // Step 2: place rooms: up to 80 tries, rectangle width 4 to 10, height 4 to 7,
   // cells from column 1 to 46 and row 1 to 30. Keep only if it overlaps no kept room
@@ -187,7 +187,13 @@ function tryCarve(gen, temple) {
   const startPt = point.of(start.cx, start.cy);
   const stairsPt = point.of(stairs.cx, stairs.cy);
   const spotsArr = spots.map((s) => point.of(s.x, s.y));
-  return floorPlan.of({ grid: gridShape, start: startPt, stairs: stairsPt, spots: spotsArr });
+
+  let spikesArr = [];
+  if (makeSpikes) {
+    spikesArr = generateSpikes(gen, rooms, grid, roomCells, start, stairs);
+  }
+
+  return floorPlan.of({ grid: gridShape, start: startPt, stairs: stairsPt, spots: spotsArr, spikes: spikesArr });
 }
 
 /** `generate(seed, depth) -> floor-plan`. `seed` an integer from 0 to 4294967295, `depth` an integer from 1 to 33 (`level`'s `MAX_DEPTH`); anything else throws a `TypeError`. On a shop depth (`level.kind(depth)` is `interior`), the shop above, whatever the seed; on a lair depth (`boss`), the lair above, whatever the seed. On any other depth, a floor 48 cells wide and 32 high: every cell of its outer border is `wall`; rooms and corridors are `floor`; exactly one cell is `stairs`. `start` is where the hero arrives. `spots` holds from 12 to 40 points, each at a Manhattan distance of at least 5 from `start`. No `boss`, no `levers`. Every `floor` and `stairs` cell can be reached from `start` by orthogonal steps over `floor` and `stairs` cells. */
@@ -209,10 +215,152 @@ export function generate(seed, depth) {
 
   let gen = makeGenerator(seed, depth);
   const temple = level.theme(depth) === 'temple';
+  const makeSpikes = level.number(depth) >= 2;
   while (true) {
-    const plan = tryCarve(gen, temple);
+    const plan = tryCarve(gen, temple, makeSpikes);
     if (plan) return plan;
   }
+}
+
+function generateSpikes(gen, rooms, grid, roomCells, start, stairs) {
+  const spikes = [];
+  const spikeCells = new Set();
+  const addSpike = (x, y, shift) => {
+    const key = x + ',' + y;
+    if (spikeCells.has(key)) return;
+    if (x === start.cx && y === start.cy) return;
+    if (x === stairs.cx && y === stairs.cy) return;
+    if (grid[y * WIDTH + x] !== 'floor') return;
+    spikes.push({ x, y, shift });
+    spikeCells.add(key);
+  };
+
+  const corridorCells = [];
+  for (let i = 0; i < grid.length; i++) {
+    if (grid[i] === 'floor' && !roomCells.has(i)) {
+      corridorCells.push({ x: i % WIDTH, y: Math.floor(i / WIDTH) });
+    }
+  }
+
+  const corridorSet = new Set();
+  for (const c of corridorCells) corridorSet.add(c.x + ',' + c.y);
+
+  const runs = [];
+  // horizontal runs
+  for (let y = 0; y < HEIGHT; y++) {
+    let x = 0;
+    while (x < WIDTH) {
+      if (corridorSet.has(x + ',' + y)) {
+        let xEnd = x;
+        while (xEnd + 1 < WIDTH && corridorSet.has((xEnd + 1) + ',' + y)) xEnd++;
+        const len = xEnd - x + 1;
+        if (len >= 4) {
+          const run = [];
+          for (let cx = x; cx <= xEnd; cx++) run.push({ x: cx, y });
+          runs.push(run);
+        }
+        x = xEnd + 1;
+      } else {
+        x++;
+      }
+    }
+  }
+  // vertical runs
+  for (let x = 0; x < WIDTH; x++) {
+    let y = 0;
+    while (y < HEIGHT) {
+      if (corridorSet.has(x + ',' + y)) {
+        let yEnd = y;
+        while (yEnd + 1 < HEIGHT && corridorSet.has(x + ',' + (yEnd + 1))) yEnd++;
+        const len = yEnd - y + 1;
+        if (len >= 4) {
+          const run = [];
+          for (let cy = y; cy <= yEnd; cy++) run.push({ x, y: cy });
+          runs.push(run);
+        }
+        y = yEnd + 1;
+      } else {
+        y++;
+      }
+    }
+  }
+
+  const doFeature = () => {
+    const v = gen.next() / 4294967296;
+    let kind = ['hallway', 'edge', 'scatter'][Math.floor(v * 3)];
+    if (kind === 'hallway') {
+      if (runs.length === 0) {
+        kind = 'edge';
+      } else {
+        const runIdx = Math.floor(v * runs.length);
+        const run = runs[runIdx];
+        for (let i = 0; i < run.length; i++) {
+          const cell = run[i];
+          const shift = Math.floor(i / 2) % 6;
+          addSpike(cell.x, cell.y, shift);
+        }
+        return;
+      }
+    }
+    if (kind === 'edge') {
+      const roomIdx = 1 + Math.floor(v * (rooms.length - 1));
+      const room = rooms[roomIdx];
+      const sideIdx = Math.floor(v * 4);
+      const side = ['top', 'right', 'bottom', 'left'][sideIdx];
+      let cells = [];
+      if (side === 'top') {
+        for (let x = room.x; x < room.x + room.w; x++) cells.push({ x, y: room.y });
+      } else if (side === 'bottom') {
+        for (let x = room.x; x < room.x + room.w; x++) cells.push({ x, y: room.y + room.h - 1 });
+      } else if (side === 'left') {
+        for (let y = room.y; y < room.y + room.h; y++) cells.push({ x: room.x, y });
+      } else if (side === 'right') {
+        for (let y = room.y; y < room.y + room.h; y++) cells.push({ x: room.x + room.w - 1, y });
+      }
+      for (const cell of cells) {
+        addSpike(cell.x, cell.y, 0);
+      }
+      return;
+    }
+    if (kind === 'scatter') {
+      const available = [];
+      for (const r of rooms) {
+        for (let dy = 0; dy < r.h; dy++) {
+          for (let dx = 0; dx < r.w; dx++) {
+            const cx = r.x + dx;
+            const cy = r.y + dy;
+            const key = cx + ',' + cy;
+            if (spikeCells.has(key)) continue;
+            if (cx === start.cx && cy === start.cy) continue;
+            if (cx === stairs.cx && cy === stairs.cy) continue;
+            available.push({ x: cx, y: cy });
+          }
+        }
+      }
+      const picked = [];
+      for (let i = 0; i < 6 && available.length > 0; i++) {
+        const idx = Math.floor((gen.next() / 4294967296) * available.length);
+        const cell = available[idx];
+        const key = cell.x + ',' + cell.y;
+        if (spikeCells.has(key)) continue;
+        if (cell.x === start.cx && cell.y === start.cy) continue;
+        if (cell.x === stairs.cx && cell.y === stairs.cy) continue;
+        picked.push(cell);
+        available.splice(idx, 1);
+      }
+      const shiftV = gen.next() / 4294967296;
+      const shift = Math.floor(shiftV * 6);
+      for (const cell of picked) {
+        addSpike(cell.x, cell.y, shift);
+      }
+      return;
+    }
+  };
+
+  doFeature();
+  doFeature();
+
+  return spikes;
 }
 
 function buildShopPlan() {
