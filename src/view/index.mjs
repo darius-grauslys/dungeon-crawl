@@ -93,27 +93,130 @@ function tileTheme(world, cx, cy) {
 
 const floorTileCache = new Map(); // grid -> (seed -> (depth -> (theme -> 2D array of indices)))
 
-function valueNoisePoint(world, i, j) {
-  const v = (world.seed ^ Math.imul(world.depth, 0x9E3779B1) ^ Math.imul(i, 0x85EBCA6B) ^ Math.imul(j, 0xC2B2AE35)) >>> 0;
+function h(world, a, b) {
+  const v = (world.seed ^ Math.imul(world.depth, 0x9E3779B1) ^ Math.imul(a, 0x85EBCA6B) ^ Math.imul(b, 0xC2B2AE35)) >>> 0;
   let t = (v + 0x6D2B79F5) >>> 0;
   t = Math.imul(t ^ (t >>> 15), t | 1);
   t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
-function cellDist(grid, x, y) {
-  const kind = grid.at(x, y);
-  if (kind !== "floor" && kind !== "stairs") return 0;
-  for (let d = 1; d <= 6; d++) {
-    for (let dy = -d; dy <= d; dy++) {
-      for (let dx = -d; dx <= d; dx++) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) !== d) continue;
-        const nk = grid.at(x + dx, y + dy);
-        if (nk !== "floor" && nk !== "stairs") return d;
+function isRoomCell(grid, x, y) {
+  for (let bx = x - 2; bx <= x; bx++) {
+    for (let by = y - 2; by <= y; by++) {
+      let allOpen = true;
+      for (let dy = 0; dy <= 2; dy++) {
+        for (let dx = 0; dx <= 2; dx++) {
+          const nk = grid.at(bx + dx, by + dy);
+          if (nk !== "floor" && nk !== "stairs") { allOpen = false; break; }
+        }
+        if (!allOpen) break;
       }
+      if (allOpen) return true;
     }
   }
-  return 6;
+  return false;
+}
+
+function computeRegions(world) {
+  const grid = world.grid;
+  const W = grid.width, H = grid.height;
+  const regionId = new Int32Array(W * H);
+  regionId.fill(-1);
+  const open = (x, y) => { const k = grid.at(x, y); return k === "floor" || k === "stairs"; };
+  const regionType = [];
+  let regionCount = 0;
+
+  for (let cy = 0; cy < H; cy++) {
+    for (let cx = 0; cx < W; cx++) {
+      if (!open(cx, cy)) continue;
+      if (regionId[cy * W + cx] !== -1) continue;
+      const type = isRoomCell(grid, cx, cy) ? 'room' : 'hall';
+      const cells = [];
+      const q = [[cx, cy]];
+      regionId[cy * W + cx] = regionCount;
+      while (q.length > 0) {
+        const [x, y] = q.shift();
+        cells.push([x, y]);
+        const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        for (const [dx, dy] of dirs) {
+          const nx = x + dx, ny = y + dy;
+          if (!open(nx, ny)) continue;
+          if (isRoomCell(grid, nx, ny) !== (type === 'room')) continue;
+          if (regionId[ny * W + nx] !== -1) continue;
+          regionId[ny * W + nx] = regionCount;
+          q.push([nx, ny]);
+        }
+      }
+      regionType[regionCount] = type;
+      regionCount++;
+    }
+  }
+  return { regionId, regionType, regionCount };
+}
+
+function floorTileIndices(world, theme) {
+  const grid = world.grid;
+  const W = grid.width, H = grid.height;
+  const floors = atlas.floors(theme);
+  const N = floors.length;
+  const indices = new Int32Array(W * H);
+
+  if (N < 3) {
+    for (let i = 0; i < W * H; i++) indices[i] = 0;
+    return indices;
+  }
+
+  const { regionId, regionType } = computeRegions(world);
+  const Hbase = 1 + Math.floor(h(world, 1000, 0) * Math.floor(N / 2));
+
+  function baseForRegion(r) {
+    if (regionType[r] === 'hall') return Hbase;
+    const roomBase = h(world, r, 2) < 0.5 ? Hbase - 1 : Hbase + 1;
+    return Math.min(roomBase, N - 2);
+  }
+
+  for (let cy = 0; cy < H; cy++) {
+    for (let cx = 0; cx < W; cx++) {
+      const kind = grid.at(cx, cy);
+      if (kind !== "floor") { indices[cy * W + cx] = -1; continue; }
+      const r = regionId[cy * W + cx];
+      const k = baseForRegion(r);
+      const kindName = regionType[r] === 'hall'
+        ? ['fill', 'checker', 'blobs'][Math.floor(h(world, r, 1) * 3)]
+        : ['fill', 'checker', 'edge', 'blobs'][Math.floor(h(world, r, 1) * 4)];
+
+      let idx;
+      if (kindName === 'fill') {
+        idx = k;
+      } else if (kindName === 'checker') {
+        idx = ((Math.floor(cx / 2) + Math.floor(cy / 2)) % 2 === 0) ? k : k + 1;
+      } else if (kindName === 'edge') {
+        let isEdge = false;
+        for (let dy = -1; dy <= 1 && !isEdge; dy++) {
+          for (let dx = -1; dx <= 1 && !isEdge; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = cx + dx, ny = cy + dy;
+            const nkind = grid.at(nx, ny);
+            if (nkind !== "floor" && nkind !== "stairs") { isEdge = true; break; }
+            if (regionId[ny * W + nx] !== r) { isEdge = true; break; }
+          }
+        }
+        idx = isEdge ? k + 1 : k;
+      } else { // blobs
+        const gx = cx / 3, gy = cy / 3;
+        const i = Math.floor(gx), j = Math.floor(gy);
+        const fx = gx - i, fy = gy - j;
+        const n = h(world, i, j) * (1 - fx) * (1 - fy)
+          + h(world, i + 1, j) * fx * (1 - fy)
+          + h(world, i, j + 1) * (1 - fx) * fy
+          + h(world, i + 1, j + 1) * fx * fy;
+        idx = n >= 0.6 ? k + 1 : k;
+      }
+      indices[cy * W + cx] = idx;
+    }
+  }
+  return indices;
 }
 
 function floorTileIndex(world, theme, x, y) {
@@ -125,32 +228,7 @@ function floorTileIndex(world, theme, x, y) {
   if (!themeMap) { themeMap = new Map(); depthMap.set(world.depth, themeMap); }
   let indices = themeMap.get(theme);
   if (indices === undefined) {
-    const floors = atlas.floors(theme);
-    const N = floors.length;
-    indices = new Array(world.grid.width * world.grid.height);
-    for (let cy = 0; cy < world.grid.height; cy++) {
-      for (let cx = 0; cx < world.grid.width; cx++) {
-        const kind = world.grid.at(cx, cy);
-        if (kind !== "floor") { indices[cy * world.grid.width + cx] = -1; continue; }
-        let sum = 0;
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            const w = (dx === 0 && dy === 0) ? 4 : (Math.abs(dx) === Math.abs(dy)) ? 1 : 2;
-            sum += cellDist(world.grid, cx + dx, cy + dy) * w;
-          }
-        }
-        const b = sum / 16;
-        const gx = cx / 4, gy = cy / 4;
-        const i = Math.floor(gx), j = Math.floor(gy);
-        const fx = gx - i, fy = gy - j;
-        const n = valueNoisePoint(world, i, j) * (1 - fx) * (1 - fy)
-          + valueNoisePoint(world, i + 1, j) * fx * (1 - fy)
-          + valueNoisePoint(world, i, j + 1) * (1 - fx) * fy
-          + valueNoisePoint(world, i + 1, j + 1) * fx * fy;
-        const e = Math.min(0.999, Math.max(0, 1 - (b - 1) / 3 + (n - 0.5) * 0.6));
-        indices[cy * world.grid.width + cx] = Math.floor(e * N);
-      }
-    }
+    indices = floorTileIndices(world, theme);
     themeMap.set(theme, indices);
   }
   return indices[y * world.grid.width + x];
@@ -329,6 +407,98 @@ function drawFlungItemSprite(fpos, it) {
   const name = it.kind === "lever" ? (it.pulled ? "lever-pulled" : "lever") : it.kind;
   const s = atlas.sprite(name);
   if (s) ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, fpos.px - 24, fpos.py - 24, 48, 48);
+}
+
+function leapTransform(air, now) {
+  const t = now - air.at;
+  if (t < 0) return null;
+  const phase = air.phase;
+  if (phase === 'aloft') return { aloft: true, a: 1 };
+  let kx, ky, oy, p, a;
+  if (phase === 'crouch') {
+    p = Math.min(1, t / 250);
+    const s = Math.sin(Math.PI * p / 2) + 0.12 * Math.sin(4 * Math.PI * p) * (1 - p);
+    kx = 1 + 0.35 * s;
+    ky = 1 - 0.35 * s;
+    oy = 0;
+    a = 0;
+  } else if (phase === 'rise') {
+    p = Math.min(1, t / 400);
+    a = p;
+    if (p < 0.4) {
+      const q = p / 0.4;
+      kx = 1.35 - 0.75 * q;
+      ky = 0.65 + 0.85 * q;
+      oy = 24 * q;
+    } else {
+      const q = (p - 0.4) / 0.6;
+      kx = (0.6 + 0.4 * q) * (1 - q);
+      ky = (1.5 - 0.5 * q) * (1 - q);
+      oy = 24 + 48 * q;
+    }
+  } else if (phase === 'drop') {
+    p = Math.min(1, t / 150);
+    a = 1 - p;
+    kx = p;
+    ky = p;
+    oy = 72 * (1 - p);
+  }
+  return { kx, ky, oy, a };
+}
+
+function drawShadow(px, py, a) {
+  if (a <= 0) return;
+  ctx_.save();
+  ctx_.fillStyle = "rgba(0,0,0,0.6)";
+  for (let i = 0; i < 16; i++) {
+    for (let j = 0; j < 16; j++) {
+      const bx = i * 3 + 1;
+      const by = j * 3 + 1;
+      const dx = (bx - 24) / (24 * a);
+      const dy = (by - 24) / (12 * a);
+      if (dx * dx + dy * dy <= 1) {
+        ctx_.fillRect(px + i * 3, py + j * 3, 3, 3);
+      }
+    }
+  }
+  ctx_.restore();
+}
+
+function drawCreaturePoseLeap(pose, name, facing, px, py, oy, kx, ky, size, small) {
+  const s = atlas.pose(name, pose.anim, pose.frame, pose.look);
+  if (!s) return;
+  const scale = small ? 0.5 : 1;
+  const sq = 48 * size * scale;
+  const cx = px + 24 * size;
+  const bottomY = py + sq;
+  ctx_.save();
+  ctx_.translate(cx, bottomY - oy);
+  ctx_.scale(facing === "left" ? -kx : kx, ky);
+  ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, -sq / 2, -sq, sq, sq);
+  ctx_.restore();
+}
+
+function drawCreatureFlatLeap(isHero, isMe, px, py, oy, kx, ky, size, small) {
+  let r, g, b;
+  if (isHero) {
+    [r, g, b] = isMe ? [60, 120, 255] : [60, 200, 120];
+  } else {
+    [r, g, b] = [220, 50, 50];
+  }
+  ctx_.fillStyle = `rgb(${r},${g},${b})`;
+  const cx = px + 24 * size;
+  let halfH, bottomY;
+  if (small) {
+    halfH = 12 * size - 4;
+    bottomY = py + 24 * size - 4;
+  } else {
+    halfH = 24 * size - 8;
+    bottomY = py + 48 * size - 8;
+  }
+  const hw = halfH * kx;
+  const hh = halfH * ky;
+  const bottomYp = bottomY - oy;
+  ctx_.fillRect(cx - hw, bottomYp - 2 * hh, 2 * hw, 2 * hh);
 }
 
 function drawCreaturePose(pose, name, facing, px, py, ox, oy, k, size, small) {
@@ -572,6 +742,32 @@ export function draw(world, me, paused, nowIn, aiming = false) {
     }
   }
 
+  // Pass 1b: spikes on visible cells.
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cx = cam.x + c;
+      const cy = cam.y + r;
+      if (cx < 0 || cy < 0 || cx >= world.grid.width || cy >= world.grid.height) continue;
+      if (!world.visible.at(cx, cy)) continue;
+      const spikes = world.spikes || [];
+      for (const spike of spikes) {
+        if (spike.x === cx && spike.y === cy) {
+          const f = [0, 1, 0, 1, 0, 2][(Math.floor(now / 400) + spike.shift) % 6];
+          if (loaded_) {
+            const theme = tileTheme(world, cx, cy);
+            const s = atlas.tile(theme, `spikes-${f}`);
+            if (s) ctx_.drawImage(s.image, s.sx, s.sy, s.sw, s.sh, c * 48, r * 48, 48, 48);
+          } else {
+            if (f === 2) {
+              ctx_.fillStyle = "rgb(200,200,210)";
+              ctx_.fillRect(c * 48 + 16, r * 48 + 16, 16, 16);
+            }
+          }
+        }
+      }
+    }
+  }
+
   // Pass 2: a black veil of alpha 0.6 over every cell in explored but not visible.
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -621,6 +817,21 @@ export function draw(world, me, paused, nowIn, aiming = false) {
     }
   }
 
+  // Pass 4 (shadows): shadows of creatures off the ground, on visible cells.
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cx = cam.x + c;
+      const cy = cam.y + r;
+      if (cx < 0 || cy < 0 || cx >= world.grid.width || cy >= world.grid.height) continue;
+      if (!world.visible.at(cx, cy)) continue;
+      for (const m of world.monsters) {
+        if (m.air && m.air.phase === 'aloft' && m.pos.x === cx && m.pos.y === cy) {
+          drawShadow(c * 48, r * 48, 1);
+        }
+      }
+    }
+  }
+
   // Pass 4a: the creatures standing on visible cells: the monsters.
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -629,13 +840,69 @@ export function draw(world, me, paused, nowIn, aiming = false) {
       if (cx < 0 || cy < 0 || cx >= world.grid.width || cy >= world.grid.height) continue;
       if (!world.visible.at(cx, cy)) continue;
       for (const m of world.monsters) {
-        if (m.pos.x === cx && m.pos.y === cy) {
-          const anim = animate(m.last, now);
-          if (loaded_) {
-            drawCreaturePose({ anim: "idle", frame: (Math.floor(now / 250) + m.id) % 3 }, m.kind, m.facing, c * 48, r * 48, anim.ox, anim.oy, anim.k, m.size, m.small);
-          } else {
-            drawCreatureFlat(false, false, c * 48, r * 48, anim.ox, anim.oy, anim.k, m.size, m.small);
+        if (m.pos.x !== cx || m.pos.y !== cy) continue;
+
+        // aloft: not drawn, shadow handled in shadow pass
+        if (m.air && m.air.phase === 'aloft') continue;
+
+        // lunge glide
+        if (m.last && m.last.kind === 'lunge') {
+          const t = now - m.last.at;
+          if (t >= 0 && t < 150) {
+            const p = t / 150;
+            const e = 1 - (1 - p) * (1 - p);
+            const reach = m.last.reach || 1;
+            const offset = -(1 - e) * reach * 48;
+            const px = (m.pos.x - cam.x) * 48 + offset * m.last.dx;
+            const py = (m.pos.y - cam.y) * 48 + offset * m.last.dy;
+            if (loaded_) {
+              drawCreaturePose({ anim: "idle", frame: (Math.floor(now / 250) + m.id) % 3 }, m.kind, m.facing, px, py, 0, 0, 1, m.size, m.small);
+            } else {
+              drawCreatureFlat(false, false, px, py, 0, 0, 1, m.size, m.small);
+            }
+            continue;
           }
+        }
+
+        // flung flight
+        if (m.flung) {
+          const t = now - m.flung.at;
+          if (t >= 0 && t < 400) {
+            const p = t / 400;
+            const fx = m.flung.x, fy = m.flung.y;
+            const ex = m.pos.x, ey = m.pos.y;
+            const gx = fx + (ex - fx) * p;
+            const gy = fy + (ey - fy) * p;
+            const flyPx = (gx - cam.x) * 48 + 24;
+            const flyPy = (gy - cam.y) * 48 + 24 - 32 * Math.sin(Math.PI * p);
+            if (loaded_) {
+              drawCreaturePose({ anim: "idle", frame: (Math.floor(now / 250) + m.id) % 3 }, m.kind, m.facing, flyPx - 24, flyPy - 24, 0, 0, 1, m.size, m.small);
+            } else {
+              drawCreatureFlat(false, false, flyPx - 24, flyPy - 24, 0, 0, 1, m.size, m.small);
+            }
+            continue;
+          }
+        }
+
+        // leap (air)
+        if (m.air) {
+          const lt = leapTransform(m.air, now);
+          if (lt && lt.aloft) continue;
+          if (lt) {
+            if (loaded_) {
+              drawCreaturePoseLeap({ anim: "idle", frame: (Math.floor(now / 250) + m.id) % 3 }, m.kind, m.facing, c * 48, r * 48, lt.oy, lt.kx, lt.ky, m.size, m.small);
+            } else {
+              drawCreatureFlatLeap(false, false, c * 48, r * 48, lt.oy, lt.kx, lt.ky, m.size, m.small);
+            }
+            continue;
+          }
+        }
+
+        const anim = animate(m.last, now);
+        if (loaded_) {
+          drawCreaturePose({ anim: "idle", frame: (Math.floor(now / 250) + m.id) % 3 }, m.kind, m.facing, c * 48, r * 48, anim.ox, anim.oy, anim.k, m.size, m.small);
+        } else {
+          drawCreatureFlat(false, false, c * 48, r * 48, anim.ox, anim.oy, anim.k, m.size, m.small);
         }
       }
     }
