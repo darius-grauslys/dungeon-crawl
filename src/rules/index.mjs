@@ -547,6 +547,42 @@ function findQuickestFoe(world, h, monstersList) {
   return best;
 }
 
+function handleSpiderLeap(m, newTime, monsterMap) {
+  if (m.kind !== "spider" && m.kind !== "blue-spider") return { m, acted: false, leapHandled: false, landed: false };
+  const air = m.air;
+  if (!air) return { m, acted: false, leapHandled: false, landed: false };
+  let phase = air.phase, at = air.at;
+  let newAir = air;
+  let landed = false;
+  if (phase === "crouch") {
+    if (newTime >= at + 250) newAir = { phase: "rise", at: newTime };
+  } else if (phase === "rise") {
+    if (newTime >= at + 250) newAir = { phase: "aloft", at: newTime, startAloftAt: newTime };
+  } else if (phase === "aloft") {
+    const aloftFor = air.startAloftAt ? (newTime - air.startAloftAt) : (newTime - at);
+    let drop = false;
+    if (aloftFor >= 4000) drop = true;
+    else {
+      let poisedCount = 0;
+      for (const mm of monsterMap.values()) {
+        if ((mm.kind === "spider" || mm.kind === "blue-spider") && mm.air && mm.air.phase === "aloft") poisedCount++;
+      }
+      if (poisedCount >= 2) drop = true;
+    }
+    if (drop) newAir = { phase: "drop", at: newTime };
+  } else if (phase === "drop") {
+    if (newTime >= at + 150) { landed = true; newAir = null; }
+  }
+  if (landed) {
+    const step = m.step || 50;
+    const cooldown = newTime + 10 * step;
+    return { m: m.with({ air: null, cooldown, mode: "roam", ready: newTime }), acted: true, leapHandled: true, landed: true };
+  } else if (newAir !== air) {
+    return { m: m.with({ air: newAir }), acted: false, leapHandled: true, landed: false };
+  }
+  return { m, acted: false, leapHandled: false, landed: false };
+}
+
 function heroLatency(actor, type) {
   let lat;
   if (type === "attack") lat = HERO_LATENCY.attack;
@@ -1191,6 +1227,19 @@ function advance(world, ms) {
       }
     }
 
+    // 4. Spider leap air phases
+    if ((m.kind === "spider" || m.kind === "blue-spider") && m.air) {
+      const leap = handleSpiderLeap(m, newTime, monsterMap);
+      m = leap.m;
+      monsterMap.set(entry.id, m);
+      if (leap.landed) {
+        mode = "roam";
+      } else if (leap.leapHandled) {
+        monsterMap.set(entry.id, m);
+        continue;
+      }
+    }
+
     // Monster abilities: chant, summon, fuse
     if (m.kind === "cultist") {
       const step = bestiary.entry(m.kind).step;
@@ -1388,11 +1437,13 @@ function advance(world, ms) {
     }
     for (const mm of monsterMap.values()) {
       if (mm.id === m.id) continue;
+      if (mm.air) continue; // off-the-ground creatures: in nobody's foes/threats/blocked
       cellsCovered(mm).forEach((c) => { blockedCells.push(c); blockedSet.add(`${c.x},${c.y}`); });
       if (bestiary.hostile(m.kind, mm.kind)) cellsCovered(mm).forEach((c) => foesCells.push(c));
     }
     for (const mm of monsterMap.values()) {
       if (mm.id === m.id) continue;
+      if (mm.air) continue; // off-the-ground creatures: in nobody's foes/threats/blocked
       if (bestiary.flees(m.kind, mm.kind)) cellsCovered(mm).forEach((c) => threatsCells.push(c));
     }
     for (const it of items) { if (it.price > 0 || it.kind === "lever") { const p = pointShape.of(it.pos.x, it.pos.y); blockedCells.push(p); blockedSet.add(`${p.x},${p.y}`); } }
