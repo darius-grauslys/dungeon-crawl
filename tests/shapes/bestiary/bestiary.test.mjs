@@ -5,10 +5,11 @@ import assert from "node:assert/strict";
 
 import { KINDS, GROUPS, SLIMES, entry, group, hostile, flees } from "../../../shapes/bestiary/index.mjs";
 
-test("KINDS: 22 kinds, first bat, last serpent, frozen", () => {
-  assert.equal(KINDS.length, 22);
+test("KINDS: 30 kinds, first bat, last beholder, frozen", () => {
+  assert.equal(KINDS.length, 30);
   assert.equal(KINDS[0], "bat");
   assert.equal(KINDS[21], "serpent");
+  assert.equal(KINDS[29], "beholder");
   assert.ok(Object.isFrozen(KINDS));
 });
 
@@ -38,6 +39,7 @@ test("entry('archer'): correct row, frozen", () => {
     step: 400,
     strike: 700,
     size: 1,
+    ability: "none",
   });
   assert.ok(Object.isFrozen(e));
 });
@@ -72,6 +74,7 @@ test("entry('mage'): correct row, frozen", () => {
     step: 400,
     strike: 700,
     size: 1,
+    ability: "none",
   });
   assert.ok(Object.isFrozen(e));
 });
@@ -138,6 +141,61 @@ test("flees: vmin flees demon, otherwise false", () => {
   assert.equal(flees("worm", "demon"), true);
   assert.equal(flees("demon", "worm"), false);
   assert.equal(flees("worm", "hero"), false);
+});
+
+test("entry('beetle'): defense 8, strike 1200, ability 'push'", () => {
+  const e = entry("beetle");
+  assert.equal(e.defense, 8);
+  assert.equal(e.strike, 1200);
+  assert.equal(e.ability, "push");
+});
+
+test("entry('mummy').ability is 'curse'", () => {
+  assert.equal(entry("mummy").ability, "curse");
+});
+
+test("entry('cultist').ability is 'chant'", () => {
+  assert.equal(entry("cultist").ability, "chant");
+});
+
+test("entry('snowman'): attack 0, magic 1, range 4, slows true, step 133", () => {
+  const e = entry("snowman");
+  assert.equal(e.attack, 0);
+  assert.equal(e.magic, 1);
+  assert.equal(e.range, 4);
+  assert.equal(e.slows, true);
+  assert.equal(e.step, 133);
+});
+
+test("entry('enraged-wolf-man'): step 200, strike 300", () => {
+  const e = entry("enraged-wolf-man");
+  assert.equal(e.step, 200);
+  assert.equal(e.strike, 300);
+});
+
+test("entry('swarm'): hp 3, step 80, strike 300, ability 'split'", () => {
+  const e = entry("swarm");
+  assert.equal(e.hp, 3);
+  assert.equal(e.step, 80);
+  assert.equal(e.strike, 300);
+  assert.equal(e.ability, "split");
+});
+
+test("entry('pumpkin'): size 2, step 800, ability 'fuse'", () => {
+  const e = entry("pumpkin");
+  assert.equal(e.size, 2);
+  assert.equal(e.step, 800);
+  assert.equal(e.ability, "fuse");
+});
+
+test("entry('reaper'): size 2, hp 90", () => {
+  const e = entry("reaper");
+  assert.equal(e.size, 2);
+  assert.equal(e.hp, 90);
+});
+
+test("group('beholder') is 'demon'", () => {
+  assert.equal(group("beholder"), "demon");
 });
 
 test("entry, group, hostile throw TypeError on invalid input", () => {
