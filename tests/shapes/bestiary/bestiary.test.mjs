@@ -158,13 +158,34 @@ test("entry('cultist').ability is 'chant'", () => {
   assert.equal(entry("cultist").ability, "chant");
 });
 
-test("entry('snowman'): attack 0, magic 1, range 4, slows true, step 133", () => {
+test("entry('spider').ability is 'leap'", () => {
+  assert.equal(entry("spider").ability, "leap");
+});
+
+test("entry('blue-spider').ability is 'leap'", () => {
+  assert.equal(entry("blue-spider").ability, "leap");
+});
+
+test("entry('snake').ability is 'lunge'", () => {
+  assert.equal(entry("snake").ability, "lunge");
+});
+
+test("entry('blue-snake').ability is 'lunge'", () => {
+  assert.equal(entry("blue-snake").ability, "lunge");
+});
+
+test("entry('serpent').ability is 'none'", () => {
+  assert.equal(entry("serpent").ability, "none");
+});
+
+test("entry('snowman'): attack 0, magic 1, range 4, slows true, step 133, strike 600", () => {
   const e = entry("snowman");
   assert.equal(e.attack, 0);
   assert.equal(e.magic, 1);
   assert.equal(e.range, 4);
   assert.equal(e.slows, true);
   assert.equal(e.step, 133);
+  assert.equal(e.strike, 600);
 });
 
 test("entry('enraged-wolf-man'): step 200, strike 300", () => {

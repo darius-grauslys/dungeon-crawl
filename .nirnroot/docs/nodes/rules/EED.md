@@ -40,6 +40,17 @@ attack stays pending, unfired, until `held` has passed; its `attack`,
 would be a step does nothing, and its `ready` becomes its `held` (it
 decides again then); its attacks go on as usual.
 
+**Attacked first.** A hero's `move` that would be a plain step (onto an
+open cell no creature, ware or lever holds, cutting no corner) does not
+fire with the other heroes' actions: it waits for the monsters of the
+same `advance` (step 2 below), and fires right after them. So a monster
+whose turn comes in the same `advance` attacks the hero where it stands;
+held by that attack, the hero can't step, and its `move` stays pending
+and fires in the first `advance` whose new `time` reaches its `held`
+(right after the attack has landed). A `move` that waited is resolved
+against the world as it stands after the monsters: onto a cell a
+monster has since stepped onto, it is a melee attack on it.
+
 **Directions and diagonals.** A `move` or an `attack` goes toward any
 of the eight directions (`intent`). A diagonal step `(dx, dy)` **cuts a
 corner** when either of the cells `(x + dx, y)` and `(x, y + dy)` beside
@@ -70,7 +81,16 @@ corner; it strikes the first creature it reaches that is hostile to the
 attacker (`bestiary`'s `hostile`; for a creature covering several cells,
 any cell it covers), passing through friends; with none, nothing
 happens. For a hero, a ware or a lever on the cell at `k` 1 is bumped or
-pulled instead (below). Every attack is `combat`'s, a d20 roll and then
+pulled instead (below); a `web` on that cell with no creature
+struck is torn (**Webs**). **Turning to the quickest foe.** A hero's `attack()` (both 0)
+first looks at the eight cells next to it (a diagonal across a cut
+corner not counted): if a creature hostile to it, on the ground, covers
+any of them, the hero turns to the one that strikes **fastest** (the
+least `strike` of its kind, doubled while its `slow` is above 0, halved
+(`Math.floor`) while its `haste` is; on a tie, the first by direction in
+`monsters`' order of preference: up, right, down, left, up-right,
+down-right, down-left, up-left), aims and faces that way, and attacks
+that way. With none, it attacks toward its `aim`, as before. Every attack is `combat`'s, a d20 roll and then
 a ward roll (1 to 100) from the world's `rng`; a hit takes its whole
 `damage` (physical and magic) off the defender's hit points; a miss takes
 none and is logged as a miss, never as a hit of 0. A creature brought to
@@ -303,6 +323,89 @@ actor's `haste` is above 0, which then takes 1 off `haste`):
   `The <m> is slain.` (a swarm still takes 1; a boss slain this way dies
   as a boss does).
 
+- **Leap** (`spider`, `blue-spider`). A spider **leaps** to come down
+  on its foes from above. When its `ready` is reached on the ground
+  (`air` `null`), with `mode` `roam`, at or past its `cooldown`, not
+  fleeing (below), with a foe within its `reach` and none next to it: its
+  `air` becomes `{phase: 'crouch', at: t}` and its `ready` `t + 250`
+  (it flattens, gathering itself: still on the ground). At its `ready`
+  with `crouch`: `{phase: 'rise', at: t}`, `ready` `t + 250` (it springs
+  up). At its `ready` with `rise`: `{phase: 'aloft', at: t}`, and it acts
+  aloft at once. **Aloft**, at each `ready`: it is **poised** when it is
+  next to a foe and no other creature (on the ground) covers its own
+  cell. Poised, it **drops** when every other `aloft` spider within 8 of
+  it is poised too, and then each of those drops with it at that same
+  moment (spiders come down together); a spider aloft for 4000 ms or
+  more (`t >= air.at + 4000`) with no creature on its cell, or with no
+  foe within its `reach`, drops on its own. Dropping: `air` `{phase:
+  'drop', at: t}`, `ready` `t + 150`. Poised and waiting for the others:
+  it waits, `ready` `t + 50`. Otherwise it moves as `monsters.decide`
+  answers with nothing in its `blocked` (it flies over everything): a
+  `move` onto open cells is a step there (even onto creatures' cells:
+  they share the cell), at its `step` latency; a `move` that would
+  attack, or anything else, is a wait (`t + 50`). At its `ready` with
+  `drop`: it lands, `air` `null`, `cooldown` `t + 10 * step`, and acts
+  at once as any monster does (next to a foe, it attacks). **Off the
+  ground** (`air` phase `rise`, `aloft` or `drop`) a creature can't be
+  harmed and doesn't attack: an attack's line passes over it as over a
+  friend, a cleave or a blast or spikes don't touch it, no creature
+  fights or flees it (it is in no one's `foes` or `threats`), and it
+  blocks nothing (heroes and monsters step onto its cell).
+- **Flight and webs** (`spider`, `blue-spider`). A spider on the ground
+  at a third of its `maxHp` or less (`hp * 3 <= maxHp`) **flees**: it
+  never leaps, is decided with no `foes` and with its foes' cells added
+  to its `threats`, and its steps take a third of its `step`
+  (`Math.floor(step / 3)`, then slowed and hastened as usual). Every
+  step it takes leaves a `web` item (a new id, `price` 0) on the cell it
+  left, if that cell holds no item.
+- **Webs.** A creature on the ground whose step (or push) brings it
+  onto a web's cell tears the web (the item is removed) and is caught:
+  its `slow` becomes at least 1 (its next move or attack takes twice its
+  time), with, for a hero, the line `<h> is caught in a web!`. A hero's
+  attack (an `attack` toward a direction, `attack()` included) whose
+  first cell holds a web and no creature it strikes tears it instead,
+  with no slow: the web is removed and the line is `<h> tears a web.`
+  (it fires as an attack). A web is never picked up, bought, nor in
+  anyone's way.
+- **Lunge** (`snake`, `blue-snake`). When its `ready` is reached, with
+  `mode` `roam`, at or past its `cooldown`: if a foe's cell (the first
+  such in its `foes`) is exactly 3 cells away along one of the eight
+  directions `(dx, dy)` (`pos + 3 (dx, dy)`), and the two cells between
+  are open, hold no creature on the ground, ware or lever, and no step
+  of the three cuts a corner, it **lunges**: it glides to `pos + 2 (dx,
+  dy)` (next to the foe), its `last` `{kind: 'lunge', dx, dy, at: t,
+  reach: 2}`, aim `(dx, dy)`, facing `actor.facingFor(dx, dy)`, `ready`
+  `t + 150` (the glide: it may attack as soon as it lands), `cooldown`
+  `t + 5 * step` (five of its actions). A lunge is no attack: the foe is
+  not held, nothing is rolled. Landing on a web catches it as a step
+  does.
+- **Slimes split** (`bestiary`'s `SLIMES`). A slime of `maxHp` above 1,
+  not a `guard`, brought to 0 hit points (by any damage), takes one
+  draw: below 0.5, it **splits**: two slimes of its kind burst out of
+  the cell it died on (its `pos`), each with `hp` 1 and `maxHp` 1, its
+  other stats, `mode` `roam`, `ready` `t` plus its `step`, and `flung`
+  `{x, y, at: t}` (`(x, y)` its `pos`): each on a cell picked by one
+  more draw from the free cells within 2 of that cell (open, holding no
+  creature on the ground, ware or lever; row by row; behind another
+  creature counts), the second from those left; with fewer free cells,
+  fewer slimes. The line `The <m> splits!` follows its slain line. A
+  slime of `maxHp` 1 never splits.
+
+**Spikes.** A dungeon floor's world has its plan's spike traps (`spikes`,
+from `dungeon.generate`, on `newGame`, `fromSave`, a wipe and a descent;
+none elsewhere). A spike's cycle runs in steps of 400 ms: at world time
+`t` it is in frame `[0, 1, 0, 1, 0, 2][(Math.floor(t / 400) + shift) %
+6]` (0 down, 1 peeking, 2 **raised**). Each time a spike is raised (a
+time `m`, a multiple of 400, with `(m / 400 + shift) % 6` equal to 5,
+reached by an `advance`: the old time below `m`, the new at least `m`),
+every creature on the ground covering its cell takes the floor's spike
+damage less its `defense` (at least 1; no roll, no ward), by the depth's
+`level.tier`: 4 on tier 0, 8 on tier 1, 16 on tier 2, 32 on tiers 3 and
+4, with the line `The spikes hit <h> for <n>.` / `The spikes hit the <m>
+for <n>.` (and, brought to 0, `<h> falls.` / `The <m> is slain.`). A
+creature whose step brings it onto a raised spike is struck the same
+way at once. Spikes never block anything.
+
 A world's `effects` are kept for 1000 milliseconds: each `advance`
 drops every effect whose `at` is more than 1000 below the new time.
 
@@ -336,11 +439,12 @@ drops every effect whose `at` is more than 1000 below the new time.
    - `move` into a `wall`, across a cut corner, or onto another alive hero: nothing happens.
    - `move` onto a cell a monster covers: a melee attack on that monster (`reach` 1).
    - `attack` toward a direction (or `attack()`, toward its aim): an attack along its range (**Attacks and range**); striking nothing, nothing happens.
-   - `move` onto an open cell no creature, ware or lever holds: the hero steps there and picks up every item there (**Items**; a sword or armor at or above its limit stays); when one it picks up is anything but `gold`, its actor's `gesture` becomes `{kind: 'power', at}` (`at` the time it fired).
+   - `move` onto an open cell no creature, ware or lever holds: it waits for step 2b (**Attacked first**); there the hero steps and picks up every item there (**Items**; a sword or armor at or above its limit stays); when one it picks up is anything but `gold`, its actor's `gesture` becomes `{kind: 'power', at}` (`at` the time it fired).
    - `use`: its actor's `gesture` becomes `{kind: 'use', at}`; standing on a sword or armor at or above its limit, it trades it (**Items**); otherwise nothing else happens.
    - `wait`: nothing happens.
    - `descend` (a grid with no `stairs` cell: nothing happens): when every alive hero is within 5 of the stairs, the party goes down (the step 4 below takes it, after the monsters); otherwise nothing but the log line `All party members must be within 5 units of the exit!`.
-2. **Monsters**, in the order of `monsters` (one removed before its turn does nothing): each whose `ready` is at most the new `time` takes its action: a `dormant` one may wake (**Lairs**); then `monsters.decide`, with its foes the creatures hostile to it (the alive heroes, then the monsters), its threats the monsters it flees, and the cells it may not step onto: every other alive creature's cells, the wares' and the levers'. With no foe and no threat, it waits. A `move` whose moved square reaches a cell a hostile creature covers is a melee attack on that creature (the alive heroes before the monsters, in their order); a `move` onto cells all open, holding no creature, ware or lever, and not cutting a corner, is a step there; anything else, nothing. An `attack` is an attack along its range. A hero brought to 0 hit points is no longer alive (its actor stays where it fell, and no one else sees it there: it blocks nothing and is not drawn).
+2. **Monsters**, in the order of `monsters` (one removed before its turn does nothing): each whose `ready` is at most the new `time` takes its action: a `dormant` one may wake (**Lairs**); then `monsters.decide`, with its foes the creatures hostile to it (the alive heroes, then the monsters), its threats the monsters it flees, its `friends` the other monsters not hostile to it (on the ground), and the cells it may not step onto: every other alive creature's cells (on the ground), the wares' and the levers'. (With no foe it roams, as `monsters` says; a spider's leap and flight, a snake's lunge, a chant and a fuse come first, **Abilities**.) A `move` whose moved square reaches a cell a hostile creature covers is a melee attack on that creature (the alive heroes before the monsters, in their order); a `move` onto cells all open, holding no creature, ware or lever, and not cutting a corner, is a step there; anything else, nothing. An `attack` is an attack along its range. A hero brought to 0 hit points is no longer alive (its actor stays where it fell, and no one else sees it there: it blocks nothing and is not drawn).
+   Then **2b**: each hero's `move` that waited (**Attacked first**), in the heroes' order, fires now, as step 1 says, unless its hero is now held or no longer alive (then it stays pending, or is dropped with the dead). Then **2c**: the spikes raised in this `advance` strike (**Spikes**).
 3. **A wipe**: with at least one hero and none alive, the floor starts again from `entry`: the world `fromSave(entry)` would give, but keeping `time`, `gold` and the log (every `ready` the current `time`), with the line `The party has fallen. <label> begins again.` (`<label>` `level.label(depth)`: `Level 3`, `Shop`, `Lair`).
 4. **The stairs**: only when a `descend` fired in step 1 with every alive hero within 5 of the stairs, and a hero is still alive and every alive hero is still within 5 of them after step 2 (else the line `All party members must be within 5 units of the exit!`): on depth 33 the state becomes `won` (log `The party escapes the dungeon with <g> gold!`); otherwise the next depth's floor, freshly placed (monsters' `ready` the current `time`), every hero on its start cells, alive, its `colour` and `group` kept, `gesture` null, each `maxHp` 4 more, `hp` 4 more for one that was alive (never above `maxHp`) and 1 for one that wasn't, `ready` the current `time`, `pending` null, `offer` null, `slow` 0, `held` 0; `explored` reset; `entry` the save of the new floor and the heroes as they now are; the log: on a dungeon floor `The party descends to level <n>.` (`<n>` `level.number(depth)`); on a shop `The party descends to a shop.` and `A shop! Bump a ware twice to buy it.`; on the golem's lair `The party descends into a lair.` and `A golem guards the way down. Pull the levers to weaken it!`; on the serpent's `The party descends into a lair.` and `A great serpent guards the way down!`; on the reaper's `The party descends into a lair.` and `A reaper guards the way down!`; on another lair `The party descends into a lair.` alone.
 5. `visible` is computed again from every alive hero's cell (radius 7) (on a shop: every cell), and `explored` takes in `visible`.
@@ -476,6 +580,30 @@ Over the seeds 0 to 19 at depths 1 to 5: each floor has exactly 2 `gold` and exa
 
 ## Intrinsic - saves:
 `toSave` of the `descends` world is `{seed, depth: 1, players: [Ann at 20 of 24, Bob at 1 of 24]}`. For `s = save.of({seed: 9, depth: 3, players: [{name: 'Cy', stats: 10/30/6/2}]})`, `fromSave(s)` is at depth 3, time 0, state `playing`, on a 48 by 32 grid, with the one hero `Cy` alive at those stats on an open cell, its `entry` deep equal to `s`; `fromSave(s)` twice gives deep-equal worlds; a player saved at 0 hit points comes back at 1.
+
+## Intrinsic - attacked-first:
+In a world on `['#######', '#.....#', '#######']` with `Ann` (24/24/4/1) at (2, 1), `ready` 0, and a `skeleton` (9/9/4/2, `ready` 0) at (3, 1): `advance(intend(w, 'Ann', move(-1, 0)), 50)` leaves Ann at (2, 1), her `held` 350, her `pending` `move(-1, 0)`, and the skeleton's `last` `{kind: 'attack', dx: -1, dy: 0, at: 50, reach: 1}`; advanced by 50 at a time, she is still at (2, 1) at time 300 and at (1, 1) at time 350 (her `ready` 550). With no skeleton, the same `advance` puts her at (1, 1) at once (time 50, `ready` 250).
+
+## Intrinsic - turns-to-quickest:
+In a world on `['#####', '#...#', '#...#', '#...#', '#####']` with `Ann` (24/24/4/1) at (2, 2), `aim` `{dx: 1, dy: 0}`, a `skeleton` (`ready` 10000) at (2, 1) and a `bat` (`ready` 10000) at (1, 3): Ann's `attack()` advanced by 50 leaves her `aim` `{dx: -1, dy: 1}`, `facing` `left` and `last` `{kind: 'attack', dx: -1, dy: 1, at: 50, reach: 1}` (the bat strikes in 200, the skeleton in 600). With the bat left out: `aim` `{dx: 0, dy: -1}`. With the bat's `slow` 3 (400) and the skeleton's `haste` 1 (300): toward the skeleton, `(0, -1)`. With two skeletons, at (3, 2) and (2, 3): `(1, 0)` (right before down). With no monster: `aim` stays `{dx: 1, dy: 0}` and `last` is `{kind: 'attack', dx: 1, dy: 0, at: 50, reach: 1}`. A spider `aloft` at (2, 1) is never turned to.
+
+## Intrinsic - leaps:
+In a world on `['##########', '#........#', '#........#', '##########']` with `Ann` (24/24/4/1) at (1, 1) and a `spider` (9/9/5/1, `ready` 0, `id` 10) at (6, 1), advanced by 50 at a time: at time 50 the spider's `air` is `{phase: 'crouch', at: 50}` and its `ready` 300; at 300 `{phase: 'rise', at: 300}`; at 550 its phase is `aloft` (`at` 550); by time 4000 its `air` has been `{phase: 'drop', at: T}` at some time `T`, on a cell next to (1, 1) that isn't Ann's, and then `null` from `T + 150` on, with `cooldown` `T + 150 + 3000`; Ann's hit points stay 24 at every time before `T + 150` (no attack from the air). A `spider` with `air` `{phase: 'aloft', at: 0}` (`ready` 10000) at (2, 1): Ann's `attack(1, 0)` advanced by 50 leaves its hit points as they were, and Ann's `move(1, 0)` puts her on (2, 1) (it blocks nothing). Two spiders aloft, `id` 10 at (2, 1) (`ready` 0, next to Ann: poised) and `id` 11 at (7, 2) (`ready` 10000, not poised, 5 away): at time 50 spider 10 is still `aloft`, its `ready` 100; with spider 11's `air` `null` instead (on the ground), spider 10's `air` at time 50 is `{phase: 'drop', at: 50}`, its `ready` 200.
+
+## Intrinsic - webs:
+In a world on `['#########', '#.......#', '#########']` with `Ann` (24/24/4/1) at (1, 1) and a `spider` (3/9/5/1, `ready` 0) at (3, 1) (a third of its hit points: it flees): `advance(w, 50)` has the spider at (4, 1), a `web` item at (3, 1) and the spider's `ready` 150 (a third of 300), its `air` `null`. With Ann at (1, 1), a `web` at (2, 1) and no monster: her `move(1, 0)` advanced by 50 puts her at (2, 1), no item left, her `slow` 1, the log's last line `Ann is caught in a web!`; her next `move(1, 0)`, advanced to 250, gives `ready` 650 and `slow` 0. Instead, her `attack(1, 0)` (or `attack()` with her `aim` `(1, 0)`) advanced by 50 removes the web, leaves her at (1, 1) with `slow` 0 and `ready` 400, and the log's last line `Ann tears a web.`
+
+## Intrinsic - lunges:
+In a world on `['#########', '#.......#', '#########']` with `Ann` (24/24/4/1) at (1, 1) and a `snake` (5/5/3/0, `ready` 0, `id` 10) at (4, 1): `advance(w, 50)` has the snake at (2, 1), its `last` `{kind: 'lunge', dx: -1, dy: 0, at: 50, reach: 2}`, `facing` `left`, `ready` 200 and `cooldown` 2050, and Ann's `held` 0 and hit points 24; at time 200 the snake's `last` is an `attack` at 200 (it strikes on landing). With a `bat` (`ready` 10000) at (3, 1), or the snake's `cooldown` 5000, or the snake at (5, 1) (4 away), its `last` after `advance(w, 50)` is not a `lunge`.
+
+## Intrinsic - slime-splits:
+In a world on `['#######', '#.....#', '#.....#', '#######']` with `Ann` (24/24/40/1) at (1, 1) and a `slime` (1/6/2/1, `ready` 10000, `id` 10) at (2, 1): for `rng` from 0 to 39, in every one where Ann's `attack(1, 0)` advanced by 50 slays it, either no monster is left, or exactly two `slime`s, each of `hp` 1, `maxHp` 1, `attack` 2, `mode` `roam`, `ready` 450, `flung` `{x: 2, y: 1, at: 50}`, on two different open cells within 2 of (2, 1), neither Ann's, with `The slime splits!` in the log; over those `rng`, each happens at least once. A `slime` of 1/1/2/1 slain never splits; nor a `slime` of `mode` `guard`.
+
+## Intrinsic - spikes:
+In a world on `['#######', '#.....#', '#######']` at depth 1 with `spikes` `[{x: 2, y: 1, shift: 0}]` and `Ann` (24/24/4/1) at (2, 1): advanced by 50 at a time, Ann has 24 hit points at time 1950 and 21 at 2000, the log's last line `The spikes hit Ann for 3.`, and 21 still at 4350, 18 at 4400. With `shift` 1, she has 21 at 1600. At depth 8 (tier 1), 17 at 2000. With Ann at (1, 1) instead, at time 2000, her `move(1, 0)` advanced by 50 puts her on (2, 1) with 21 (stepping onto a raised spike). A `skeleton` (9/9/4/2, `ready` 10000) on (2, 1) at depth 1 has 7 at 2000; a `spider` there `aloft` keeps its hit points. `fromSave` of depth 2 for the seeds 0 to 4 has at least 4 `spikes`, each on a `floor` cell; of depth 1, 6 or 7, none.
+
+## Intrinsic - roams:
+In a world on `['######################', '#....................#', '######################']` with `Ann` (24/24/4/1) at (1, 1) and a `bat` (3/3/2/0, `ready` 0, `id` 10) at (15, 1) (14 away: out of its reach of 9): `advance(w, 50)` has the bat at (16, 1) (it roams: heading down, not free; right first of the free steps) and its `ready` 183, not waiting.
 
 ## Intrinsic - refuses:
 `newGame(-1)`, `newGame(2.5)`, `advance(w, 0)`, `advance(w, 1.5)`, `advance(w, 1001)`, `intend(w, 'Ann', {kind: 'wait'})` (a plain object, not an `intent`), `join(w, 5)`, `fromSave({})` and `advance({}, 50)` throw a `TypeError`.

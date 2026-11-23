@@ -39,13 +39,23 @@ round 3), the reaper's: `boss` (32, 15) (its 2 by 2 square covers `x`
 `spots`. On the last lair (28): `boss` `null`, no `levers`, no `spots`
 (an empty hall, its stairs open).
 
+**Spikes.** A dungeon floor's plan also has its spike traps (`spikes`,
+`{x, y, shift}`; `rules` makes them strike): none on depth 1, on shops
+and on lairs; on every other dungeon depth two **features**, each one
+of: a **hallway** (every cell of one straight stretch of corridor, at
+least 4 cells long, its `shift` stepping on by 1 every 2 cells along it,
+so a wave runs down the hall), a **room's edge** (the cells along one
+side of a room, just inside its wall, `shift` 0), or a **scatter** (6
+cells inside rooms, each its own `shift`). Never on `start` or
+`stairs`; the ISD says how they are drawn.
+
 # API Shapes:
 - [shape:floor-plan](../../shapes/floor-plan.md)
 - [shape:level](../../shapes/level.md)
 
 # Functions:
 ## Function - generate:
-`generate(seed, depth) -> floor-plan`. `seed` an integer from 0 to 4294967295, `depth` an integer from 1 to 33 (`level`'s `MAX_DEPTH`); anything else throws a `TypeError`. On a shop depth (`level.kind(depth)` `interior`), the shop above, whatever the seed; on a lair depth (`boss`), the lair above, whatever the seed. On any other depth, a floor 48 cells wide and 32 high: every cell of its outer border is `wall`; rooms and corridors are `floor`; exactly one cell is `stairs`. `start` is where the hero arrives. `spots` holds from 12 to 40 points, each at a Manhattan distance of at least 5 from `start`. No `boss`, no `levers`. On the temple's dungeon floors (depths 22 to 26) the corridors are two cells wide (the ISD). Every `floor` and `stairs` cell can be reached from `start` by orthogonal steps over `floor` and `stairs` cells.
+`generate(seed, depth) -> floor-plan`. `seed` an integer from 0 to 4294967295, `depth` an integer from 1 to 33 (`level`'s `MAX_DEPTH`); anything else throws a `TypeError`. On a shop depth (`level.kind(depth)` `interior`), the shop above, whatever the seed; on a lair depth (`boss`), the lair above, whatever the seed. On any other depth, a floor 48 cells wide and 32 high: every cell of its outer border is `wall`; rooms and corridors are `floor`; exactly one cell is `stairs`. `start` is where the hero arrives. `spots` holds from 12 to 40 points, each at a Manhattan distance of at least 5 from `start`. No `boss`, no `levers`. `spikes` as **Spikes** says. On the temple's dungeon floors (depths 22 to 26) the corridors are two cells wide (the ISD). Every `floor` and `stairs` cell can be reached from `start` by orthogonal steps over `floor` and `stairs` cells.
 
 # Intrinsics:
 ## Intrinsic - deterministic:
@@ -68,6 +78,16 @@ For seeds 0 to 19 and the depths of `bounded`: `spots` has from 12 to 40 points;
 
 ## Intrinsic - wide-halls:
 For seeds 0 to 19 at the depths 22 to 26: every `floor` or `stairs` cell lies in at least one 2 by 2 block of four open cells (no passage one cell wide). For seeds 0 to 19 at depth 2, at least one floor has a cell in no such block (its corridors are one cell wide).
+
+## Intrinsic - spikes:
+`generate(s, 1)`, and `generate(s, d)` for `d` 6, 7, 13, 14 and 28, for
+`s` 0 to 4, have no `spikes`. For seeds 0 to 19 and the depths 2, 3, 5,
+8, 12, 15, 22, 26 and 33: `spikes` has from 4 to 100 entries, each on a
+`floor` cell, none `start` or `stairs`, no two on one cell, each `shift`
+from 0 to 5; `generate(s, d)` twice gives deep-equal `spikes`. Over those
+seeds and depths, at least one plan has 4 or more spikes in one row or
+one column on consecutive cells whose `shift`s, from the top or left
+one, are `k, k, k+1, k+1, ...` (mod 6) (a hallway).
 
 ## Intrinsic - refuses:
 `generate(-1, 1)`, `generate(1.5, 1)`, `generate(4294967296, 1)`, `generate(1, 0)`, `generate(1, 34)` and `generate('1', 1)` throw a `TypeError`.

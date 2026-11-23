@@ -2,8 +2,8 @@
 
 import { of as pointOf } from '../point/index.mjs';
 
-/** The sixteen kind names, in the table's order. */
-export const KINDS = Object.freeze(['potion', 'gold', 'sword', 'armor', 'ring', 'necklace', 'lever', 'bread', 'meat', 'cheese', 'sword-2', 'sword-3', 'sword-4', 'armor-2', 'armor-3', 'armor-4']);
+/** The seventeen kind names, in the table's order. */
+export const KINDS = Object.freeze(['potion', 'gold', 'sword', 'armor', 'ring', 'necklace', 'lever', 'bread', 'meat', 'cheese', 'sword-2', 'sword-3', 'sword-4', 'armor-2', 'armor-3', 'armor-4', 'web']);
 
 /**
  * Create an immutable item.
@@ -12,7 +12,7 @@ export const KINDS = Object.freeze(['potion', 'gold', 'sword', 'armor', 'ring', 
  * @param {string} spec.kind - one of KINDS
  * @param {Point} spec.pos - a point
  * @param {number} [spec.amount] - an integer, at least 1 for gold, 0 otherwise
- * @param {number} [spec.price] - an integer of 0 or more, 0 for a gold and a lever
+ * @param {number} [spec.price] - an integer of 0 or more, 0 for a gold, a lever and a web
  * @param {boolean} [spec.pulled] - a boolean, false for any kind but lever
  * @param {{x:number,y:number,at:number}|null} [spec.flung] - null or {x,y,at}
  * @returns {Item} a frozen item
@@ -48,7 +48,7 @@ export function of({ id, kind, pos, amount, price, pulled, flung }) {
   } else {
     prc = price;
   }
-  if ((kind === 'gold' || kind === 'lever') && prc !== 0) {
+  if ((kind === 'gold' || kind === 'lever' || kind === 'web') && prc !== 0) {
     throw new TypeError(`${kind} price must be 0`);
   }
   let isPulled;

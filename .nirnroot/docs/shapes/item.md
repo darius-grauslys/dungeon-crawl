@@ -14,6 +14,7 @@ shop, a **ware**: a thing for sale, with a price; or, in a lair, a
 | `necklace` | a cross necklace (magic resist) |
 | `lever` | never picked up: a hero pulls it (`rules` says how) |
 | `bread`, `meat`, `cheese` | food: eating it heals |
+| `web` | a spider's web: never picked up nor sold; whatever walks onto it tears it and is slowed (`rules`) |
 
 What picking each up does is `rules`'s.
 
@@ -28,17 +29,17 @@ when, so the screen can draw it flying.
 
 The module (`shapes/item/index.mjs`) exports `of({id, kind, pos, amount,
 price, pulled, flung})`: `id` an integer of 0 or more; `kind` one of the
-sixteen; `pos` a `point`; `amount` an integer, at least 1 for `gold` and
+seventeen; `pos` a `point`; `amount` an integer, at least 1 for `gold` and
 exactly 0 for the others (left out: 0); `price` an integer of 0 or more,
-0 for a `gold` and a `lever` (left out: 0); `pulled` a boolean, `false`
+0 for a `gold`, a `lever` and a `web` (left out: 0); `pulled` a boolean, `false`
 for any kind but `lever` (left out: `false`); `flung` `null` or `{x, y,
 at}`, the cell it was thrown from and the world time it was thrown, all
 integers of 0 or more (left out: `null`; the item keeps a frozen copy
 with those three keys). Any other input is refused with a `TypeError`.
-`KINDS` is the sixteen kind names (a frozen array), in this order:
+`KINDS` is the seventeen kind names (a frozen array), in this order:
 `potion`, `gold`, `sword`, `armor`, `ring`, `necklace`, `lever`,
 `bread`, `meat`, `cheese`, `sword-2`, `sword-3`, `sword-4`, `armor-2`,
-`armor-3`, `armor-4`.
+`armor-3`, `armor-4`, `web`.
 
 # Fields:
 ## Field - id:
@@ -80,10 +81,11 @@ price: 35})` and `of({id: 10, kind: 'necklace', pos: point.of(1, 1)})`
 are accepted. `of({id: 11, kind: 'cheese', pos: point.of(1, 1)})`, `of({id: 12, kind:
 'armor-3', pos: point.of(1, 1), price: 70})` and `of({id: 13, kind:
 'sword-4', pos: point.of(1, 1)})` are accepted; a `meat` of `amount` 2
-and an `armor-5` throw a `TypeError`. `KINDS` is `['potion', 'gold',
+and an `armor-5` throw a `TypeError`. `of({id: 14, kind: 'web', pos:
+point.of(1, 1)})` is accepted; a `web` of `price` 5 throws a `TypeError`. `KINDS` is `['potion', 'gold',
 'sword', 'armor', 'ring', 'necklace', 'lever', 'bread', 'meat',
 'cheese', 'sword-2', 'sword-3', 'sword-4', 'armor-2', 'armor-3',
-'armor-4']`.
+'armor-4', 'web']` (seventeen).
 
 # Callbacks:
 None

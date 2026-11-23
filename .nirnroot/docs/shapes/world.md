@@ -25,9 +25,11 @@ frozen world, with `fields` an object of these keys:
 | `log` | an array of strings, the oldest first, at most 50 |
 | `entry` | a `save`: the party as it entered this floor (a wipe starts the floor again from it) |
 | `effects` | **optional** (left out: `[]`): an array of passing effects for the screen, each `{kind, x, y, size, at}`: `kind` `'blast'` (an explosion), `(x, y)` the top-left cell of the `size` by `size` square it burst from (`size` 1 to 3), `at` the world time, all integers of 0 or more |
+| `spikes` | **optional** (left out: `[]`): the floor's spike traps, an array of `{x, y, shift}`: `(x, y)` a cell of the grid, `shift` an integer from 0 to 5 (how many steps its cycle runs ahead, `rules`), all integers; no two on one cell |
 
 Arrays are copied and answered frozen (each effect a frozen copy with
-those five keys). Any key missing (but `effects`), of the wrong type,
+those five keys, each spike with its three). Any key missing (but
+`effects` and `spikes`), of the wrong type,
 or a mask of another size than the grid, is refused with a `TypeError`.
 
 It also exports `fromData(data)`: the world whose `data()` is `data`,
@@ -47,9 +49,11 @@ the constructors of the shapes it holds.
 | `items` | `[{id, kind, pos: {x, y}, amount, price, pulled, flung}]`: `flung` `null` or `{x, y, at}` |
 | `entry` | the save's `data()` |
 | `effects` | `[{kind, x, y, size, at}]`, always present (`[]` with none) |
+| `spikes` | `[{x, y, shift}]`, always present (`[]` with none) |
 
-An actor's data is `{id, kind, pos: {x, y}, stats: {hp, maxHp, attack, defense, range, magic, magicPower, magicResist}, ready, held, facing, last, aim: {dx, dy}, slow, mode, size, small, gesture, curse, haste, chant, cooldown, fuse}`,
-`last` `null` or `{kind, dx, dy, at, reach}`, `gesture` `null` or `{kind, at}`, `chant` `null` or `{kind, at, until}`, `fuse` `null` or `{at}`.
+An actor's data is `{id, kind, pos: {x, y}, stats: {hp, maxHp, attack, defense, range, magic, magicPower, magicResist}, ready, held, facing, last, aim: {dx, dy}, slow, mode, size, small, gesture, curse, haste, chant, cooldown, fuse, air, flung}`,
+`last` `null` or `{kind, dx, dy, at, reach}`, `gesture` `null` or `{kind, at}`, `chant` `null` or `{kind, at, until}`, `fuse` `null` or `{at}`, `air`
+`null` or `{phase, at}`, `flung` `null` or `{x, y, at}`.
 
 # Fields:
 ## Field - seed:
@@ -97,6 +101,9 @@ Property `entry`, a `save`.
 ## Field - effects:
 Property `effects`, a frozen array of frozen `{kind, x, y, size, at}`.
 
+## Field - spikes:
+Property `spikes`, a frozen array of frozen `{x, y, shift}`.
+
 ## Field - with:
 `with(changes)` answers a new world: this one with the keys of `changes`
 put in, checked as `of` checks them; this one is unchanged. `with` is a
@@ -121,7 +128,10 @@ named `Ann`, a `log` of 51 strings, a missing `gold` and a missing
 `w.time` is unchanged. Its `effects` is `[]` (left out); with `effects:
 [{kind: 'blast', x: 1, y: 1, size: 2, at: 40}]` it holds that, frozen;
 `effects` of `[{kind: 'boom', x: 1, y: 1, size: 2, at: 40}]` or
-`[{kind: 'blast', x: 1, y: 1, size: 4, at: 40}]` throws a `TypeError`. Two worlds made by `of` from the same fields pass
+`[{kind: 'blast', x: 1, y: 1, size: 4, at: 40}]` throws a `TypeError`. Its `spikes` is `[]` (left out); with `spikes:
+[{x: 2, y: 1, shift: 3}]` it holds that, frozen; `spikes` of `[{x: 9, y:
+1, shift: 0}]` (off the grid), `[{x: 2, y: 1, shift: 6}]` or two on (2,
+1) throws a `TypeError`. Two worlds made by `of` from the same fields pass
 `assert.deepStrictEqual`; neither `with` nor `data` is an own property.
 
 ## Intrinsic - data:
@@ -138,7 +148,10 @@ a `visible` true at (1, 1) alone): `fromData(JSON.parse(JSON.stringify(w.data())
 passes `assert.deepStrictEqual` with `w`; so does it with `w` given
 `effects` `[{kind: 'blast', x: 1, y: 1, size: 2, at: 40}]` and its slime
 given `curse` 0, `haste` 2, `chant` `{kind: 'haste', at: 10, until: 1210}`,
-`cooldown` 900 and `fuse` `{at: 30}`; `w.data().effects` is `[]`; `w.data().grid` is
+`cooldown` 900 and `fuse` `{at: 30}`; so does it with `w` given `spikes`
+`[{x: 2, y: 1, shift: 1}]`, a `spider` monster with `air` `{phase:
+'aloft', at: 60}`, a `slime` with `flung` `{x: 1, y: 1, at: 70}`, and a
+`web` item at (3, 1); `w.data().effects` and `w.data().spikes` are `[]`; `w.data().grid` is
 `['#####', '#...#', '#####']` for `fromRows` of those rows, and
 `w.data().visible[1]` is `'01000'`. `w.data().items[1].price` is 30 and
 `w.data().heroes[0].offer` 12; `w.data().items[2].pulled` is true and

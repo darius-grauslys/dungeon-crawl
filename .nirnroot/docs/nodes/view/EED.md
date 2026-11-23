@@ -20,11 +20,11 @@ at canvas `((cx - camera.x) * 48, (cy - camera.y) * 48)`.
 the background rgb(22, 13, 19):
 
 1. the tile of every cell in `visible` or `explored` (any other cell:
-   nothing, the background);
+   nothing, the background), and the **spikes** on `visible` cells;
 2. a black veil of alpha 0.6 over every cell in `explored` but not
    `visible`;
 3. the items lying on `visible` cells (a flung item while it flies:
-   below);
+   below), and the **shadows** of creatures off the ground;
 4. the creatures standing on `visible` cells (a creature bigger than a
    cell when any cell it covers is `visible`): the monsters, then the
    alive heroes (heroes on top), each where its animation puts it; then
@@ -57,35 +57,92 @@ drawn in `blend[1]` when `x + (x * 7 + y * 13) % 5 >= 26`, else in
 `blend[0]` (the hall's west in the old theme, its east in the new, with
 a ragged seam). Items and creatures are the same in every theme.
 
-**Floors.** Once the sprites are loaded, a `floor` cell is not always
-the theme's one `floor` tile: it is one of `atlas.floors(theme)` (calm
-patterns first, busy last; `N` of them), calm in the middle of a room
-and busier toward its walls, in blotches. For the cell `(x, y)`:
+**Floors.** Once the sprites are loaded, a `floor` cell is drawn in one
+of `atlas.floors(theme)` (its theme's patterns ranked calmest first:
+index 0 the calmest, `N` of them), laid out by **regions**, each in a
+**pattern** of one or two patterns next to each other in that ranking:
 
-1. `d`: for an open cell, its distance (`max(|dx|, |dy|)`) to the
-   nearest cell that is not open (outside the grid counts as not open),
-   at most 6; 0 for a cell that is not open.
-2. `b`: `d` blurred: the sum over the 3 by 3 cells around it of `d`
-   times the weight (4 at the centre, 2 for the four orthogonal
-   neighbours, 1 for the four corners; a cell outside the grid has `d`
-   0), divided by 16.
-3. `n`: value noise, with `h(i, j)` a number in [0, 1) for the lattice
-   point `(i, j)`: `v = (world.seed ^ Math.imul(world.depth,
-   0x9E3779B1) ^ Math.imul(i, 0x85EBCA6B) ^ Math.imul(j, 0xC2B2AE35)) >>>
-   0`, then mulberry32's mix of it (`t = (v + 0x6D2B79F5) >>> 0; t =
-   Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t
-   | 61); h = ((t ^ (t >>> 14)) >>> 0) / 4294967296`). With `gx = x / 4`,
-   `i = Math.floor(gx)`, `fx = gx - i` (and `j`, `fy` likewise from `y`),
-   `n` is `h` blended bilinearly over the four lattice points `(i, j)`,
-   `(i + 1, j)`, `(i, j + 1)`, `(i + 1, j + 1)` by `fx` and `fy`.
-4. `e = Math.min(0.999, Math.max(0, 1 - (b - 1) / 3 + (n - 0.5) *
-   0.6))`, and the cell's tile is `atlas.floors(theme)[Math.floor(e *
-   N)]` (`theme` the cell's, a lair's blend side included).
+1. **Rooms and halls.** An open cell (`floor` or `stairs`) is a **room
+   cell** when it lies in at least one 3 by 3 block of nine open cells;
+   any other open cell is a **hall cell**. A **region** is a set of room
+   cells, or of hall cells, joined by orthogonal steps within that set;
+   regions are numbered `r` 0, 1, ... in the order of their first cell
+   (row by row, top first, left to right).
+2. **Draws.** `h(a, b)`, a number in [0, 1): `v = (world.seed ^
+   Math.imul(world.depth, 0x9E3779B1) ^ Math.imul(a, 0x85EBCA6B) ^
+   Math.imul(b, 0xC2B2AE35)) >>> 0`, then mulberry32's mix of it (`t = (v
+   + 0x6D2B79F5) >>> 0; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t +
+   Math.imul(t ^ (t >>> 7), t | 61); h = ((t ^ (t >>> 14)) >>> 0) /
+   4294967296`).
+3. **Bases.** With `N` the cell's theme's count: when `N` is below 3,
+   every cell is index 0. Otherwise the halls' base is `H = 1 +
+   Math.floor(h(1000, 0) * Math.floor(N / 2))`; every hall region has
+   base `H`; a room region `r` has base `H - 1` when `h(r, 2)` is below
+   0.5, else `H + 1`, then at most `N - 2`. So a hall's patterns and a
+   room's are never more than 1 apart in the ranking (a hall in `H`, `H
+   + 1`, a room in `H - 1`, `H` or `H + 1`, `H + 2`).
+4. **Patterns.** A region of base `k` uses `k` (the calmer) and `k + 1`
+   (the busier), as its kind says: a hall's kind is `['fill', 'checker',
+   'blobs'][Math.floor(h(r, 1) * 3)]`, a room's `['fill', 'checker',
+   'edge', 'blobs'][Math.floor(h(r, 1) * 4)]`:
+   - `fill`: `k` on every cell;
+   - `checker`: a checkerboard of 2 by 2 squares, `k` where
+     `(Math.floor(x / 2) + Math.floor(y / 2)) % 2` is 0, else `k + 1`;
+   - `edge` (an embroidered edge): `k + 1` on each cell one of whose
+     eight neighbours is not a cell of the same region, `k` on the rest
+     (the calm fills the middle);
+   - `blobs`: `k`, with blotches of `k + 1` where the value noise `n` is
+     0.6 or more: `n` is `h` blended bilinearly over the lattice points
+     `(i, j)`, `(i + 1, j)`, `(i, j + 1)`, `(i + 1, j + 1)` by `fx` and
+     `fy`, with `gx = x / 3`, `i = Math.floor(gx)`, `fx = gx - i` (`j`,
+     `fy` likewise from `y`).
+5. The cell's tile is `atlas.floors(theme)[index]` (`theme` the cell's,
+   a lair's blend side included; the bases are worked out with that
+   theme's `N`).
 
-So a cell next to a wall (`b` about 1) is drawn busy, one 4 or more
-from the walls calm, with a blotchy edge between. A shop's one floor
-pattern is its floor everywhere. Stairs and walls are as before; in flat
-colours, every floor is the floor colour.
+A shop's one floor pattern is its floor everywhere. Stairs and walls are
+as before; in flat colours, every floor is the floor colour.
+
+**Spikes.** Each of the world's `spikes` (`{x, y, shift}`) on a `visible`
+cell is drawn over the cell's tile (under items and creatures) in frame
+`f = [0, 1, 0, 1, 0, 2][(Math.floor(now / 400) + shift) % 6]`:
+`atlas.tile(theme, 'spikes-<f>')` over the whole cell (`theme` the
+cell's); in flat colours, only when `f` is 2 (raised), a square of 16 by
+16 pixels of rgb(200, 200, 210) centred on the cell.
+
+**Leaps.** A creature whose actor's `air` is `{phase, at}` is drawn, with
+`t = now - at` (0 or more), its picture scaled by `kx` across and `ky`
+up and down (instead of `k`) about the middle of its square's bottom
+edge (its feet stay down), and moved up by `oy`:
+- `crouch` (it flattens and spreads, springily), `p = Math.min(1, t /
+  250)`, `s = Math.sin(π p / 2) + 0.12 Math.sin(4 π p) (1 - p)`: `kx = 1
+  + 0.35 s`, `ky = 1 - 0.35 s`, `oy` 0;
+- `rise` (it snaps thin and tall as it shoots up, then shrinks away to
+  nothing), `p = Math.min(1, t / 250)`: for `p` below 0.4, `q = p /
+  0.4`, `kx = 1.35 - 0.75 q`, `ky = 0.65 + 0.85 q`, `oy = 24 q`; from
+  0.4, `q = (p - 0.4) / 0.6`, `kx = (0.6 + 0.4 q) (1 - q)`, `ky = (1.5 -
+  0.5 q) (1 - q)`, `oy = 24 + 48 q`;
+- `aloft`: not drawn at all;
+- `drop`, `p = Math.min(1, t / 150)`: `kx = ky = p`, `oy = 72 (1 - p)`
+  (it falls back into view, growing to its size).
+Under it (drawn with the items, before the creatures) is its
+**shadow**, whenever its altitude `a` is above 0 (`rise`: `a = p`;
+`aloft`: 1; `drop`: `1 - p`; `crouch`: 0): a pixelated black oval, every
+3 by 3 pixel block of its cell's 16 by 16 grid of blocks (the cell
+under its `pos`) whose centre `(bx, by)` has `((bx - cx) / (24 a))² +
+((by - cy) / (12 a))²` at most 1 (`(cx, cy)` the cell's centre) filled
+rgba(0, 0, 0, 0.6): never bigger than its cell. The shadow follows its
+`pos` (where it is aloft), drawn on `visible` cells.
+
+**Glides and flights.** A creature whose `last` is a `lunge` (`{kind:
+'lunge', dx, dy, at, reach}`) glides while `t = now - at` is from 0
+below 150: `p = t / 150`, `e = 1 - (1 - p)²`, drawn at the offset `-(1
+- e) * reach * 48 * (dx, dy)` from its cell (from the cell it left,
+sliding smoothly onto its own), `k` 1. A creature whose actor's `flung`
+is `{x, y, at}` flies as a flung item does (**Flung items**): while `t =
+now - at` is from 0 below 400, `p = t / 400`, drawn as if its cell were
+the point going straight from `(x, y)` to its `pos`, raised by `32
+sin(π p)` pixels.
 
 **Fuse.** A creature whose actor's `fuse` is `{at}` blinks, with `t =
 now - at` (0 or more): while `t` is below 2400 it is lit when `t % 400`
@@ -231,13 +288,27 @@ with `PAUSED` in rgb(230, 220, 200), `bold 24px monospace`, centred in it.
 
 # Intrinsics:
 ## Intrinsic - floors:
-After `load('/assets/')` resolves, a world at depth 1 on a 15 by 11 grid (`fromRows`: a border of `#` around `floor`), every cell `visible` and `explored`, `Ann` alive at (1, 1): `draw(w, 'Ann', false)`; the cell (7, 5) (four from every wall) is pixel for pixel one of the seven calmest dungeon floor patterns, and the cell (1, 5) (next to a wall) one of the seven busiest. The dungeon's patterns lie on `/assets/sheets/floor.png` at `sx` 0; the calmest seven at `sy` 304, 336, 0, 320, 352, 368 and 16, the busiest seven at `sy` 112, 128, 240, 288, 272 and 256 and 96 (each 16 by 16, every pixel of exactly rgb(22, 13, 19) transparent, drawn at 48 by 48 with smoothing off over the background rgb(22, 13, 19)). The same world drawn twice gives the same pixels; with `seed` 2 instead of 1, the 13 by 9 floor cells are not all the same as with seed 1.
+After `load('/assets/')` resolves, a world at depth 1 on a 15 by 11 grid (`fromRows`: a border of `#` around `floor`), every cell `visible` and `explored`, `Ann` alive at (1, 1): `draw(w, 'Ann', false)`; every floor cell but Ann's is, pixel for pixel, one of the dungeon's floor patterns, at most two different ones in all, and when two, next to each other in the ranking (one room). Over `seed` 1 to 8 (each world drawn alone), at least two of the worlds differ in some floor cell. The same world drawn twice gives the same pixels. A world at depth 1 on `['#############', '#...#####...#', '#...........#', '#...#####...#', '#############']` (two rooms, (1..3, 1..3) and (9..11, 1..3), joined by a hall, (4..8, 2)), every cell `visible` and `explored`, `Ann` alive at (1, 1), for `seed` 1 to 8: the hall's five cells use at most two patterns, next to each other in the ranking, and so does each room (but Ann's cell); some hall cell's pattern and some cell's of each room are at most 1 apart in the ranking.
 
 ## Intrinsic - effects:
 On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, the monster and the gold left out, plus a monster (`slime`) at (4, 1):
 - with the slime's `fuse` `{at: 0}`: at `now` 50 the centre pixel of (4, 1) is within 3 in each channel of rgb(236, 127, 82) (the lit blink over its red); at `now` 150 it is rgb(220, 50, 50); at 2650 lit again; at 2750 rgb(220, 50, 50);
 - with the slime's `chant` `{kind: 'haste', at: 0, until: 1200}` instead: at `now` 100 its centre pixel is rgb(255, 240, 180); at `now` 1300 rgb(220, 50, 50);
 - with no slime and the world's `effects` `[{kind: 'blast', x: 4, y: 1, size: 1, at: 0}]`: at `now` 100 the centre pixel of (5, 1) is rgb(255, 240, 180); at `now` 500 it is the floor's rgb(50, 36, 44).
+
+## Intrinsic - spikes:
+On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, the monster and the gold left out, plus `spikes` `[{x: 4, y: 1, shift: 0}]`: at `now` 2000 the centre pixel of (4, 1) is rgb(200, 200, 210); at `now` 0 and 1600 it is the floor's rgb(50, 36, 44). With `shift` 1, at `now` 1600 it is rgb(200, 200, 210). With every cell `visible` but (4, 1) (it stays `explored`), at `now` 2000 it is 0.4 times the floor's colour (veiled, no spike).
+
+## Intrinsic - leaps:
+On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, the monster and the gold left out, plus a `spider` monster at (4, 1):
+- with `air` `{phase: 'aloft', at: 0}`: at `now` 100 the centre pixel of (4, 1) is within 3 in each channel of rgb(20, 14, 18) (the shadow over the floor), and no pixel of the cell (4, 1) is rgb(220, 50, 50);
+- with `air` `{phase: 'crouch', at: 0}`: at `now` 125 the pixel (198, 80) is rgb(220, 50, 50) (spread wider than its 32-pixel square) and (216, 60) the floor's rgb(50, 36, 44) (flattened); at `now` 0 (216, 60) is rgb(220, 50, 50) and (198, 80) the floor's;
+- with `air` `{phase: 'drop', at: 0}`: at `now` 150 and later the centre pixel of (4, 1) is rgb(220, 50, 50).
+
+## Intrinsic - glides:
+On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, the monster and the gold left out, plus a `snake` at (4, 1):
+- with `last` `{kind: 'lunge', dx: 1, dy: 0, at: 0, reach: 2}`: at `now` 0 the centre pixel of (2, 1) is rgb(220, 50, 50) and of (4, 1) the floor's; at `now` 75 the pixel (192, 72) is rgb(220, 50, 50); at `now` 150 the centre of (4, 1) is rgb(220, 50, 50) and of (2, 1) the stairs' rgb(230, 200, 60);
+- with `flung` `{x: 2, y: 1, at: 0}` (and `last` `null`): at `now` 200 the pixel (168, 40) is rgb(220, 50, 50) (halfway, raised 32) and the centre of (4, 1) the floor's; at `now` 400 the centre of (4, 1) is rgb(220, 50, 50).
 
 ## Intrinsic - camera:
 For a world on a 48 by 32 grid with a view of 16 by 10 and `Ann`'s hero alive: Ann at (2, 2) gives (0, 0); at (40, 30), (32, 22); at (20, 15), (12, 10). With Ann not alive and `Bob` alive at (20, 15), `camera(w, 'Ann', 16, 10)` is (12, 10); with no hero alive, (0, 0). On a 10 by 5 grid, any focus gives (0, 0).

@@ -162,6 +162,30 @@ As the EED states.
 ## Intrinsic - saves:
 As the EED states.
 
+## Intrinsic - attacked-first:
+As the EED states.
+
+## Intrinsic - turns-to-quickest:
+As the EED states.
+
+## Intrinsic - leaps:
+As the EED states.
+
+## Intrinsic - webs:
+As the EED states.
+
+## Intrinsic - lunges:
+As the EED states.
+
+## Intrinsic - slime-splits:
+As the EED states.
+
+## Intrinsic - spikes:
+As the EED states.
+
+## Intrinsic - roams:
+As the EED states.
+
 ## Intrinsic - refuses:
 As the EED states.
 

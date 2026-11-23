@@ -10,7 +10,7 @@ around an `actor` of kind `hero`, `{hp: 24, maxHp: 24, attack: 4,
 defense: 1}`, or 0 hit points and `alive: false` for one not alive; a
 monster a `slime` of any stats, unless the intrinsic says another kind;
 actors' `held` 0, `facing` and `last` left out unless said). Read pixels back with `getImageData`.
-Write the `flat-colours`, `fog`, `paused`, `walls`, `animates`, `aim`, `sizes`, `flies` and `effects` tests before the `sprites`
+Write the `flat-colours`, `fog`, `paused`, `walls`, `animates`, `aim`, `sizes`, `flies`, `effects`, `spikes`, `leaps` and `glides` tests before the `sprites`
 one (and the `floors` one), in the same file or in files whose names sort before them: once
 loaded, the sprites are used for good.
 
@@ -35,7 +35,16 @@ The edge under test:
 
 # Intrinsics:
 ## Intrinsic - floors:
-As the EED states. Load the sheet yourself (`new Image()`, `src` `/assets/sheets/floor.png`, await `decode()`); for each candidate `sy`, on a scratch canvas filled with rgb(22, 13, 19), draw the 16 by 16 rectangle at (0, sy) of a copy of the sheet whose rgb(22, 13, 19) pixels were made transparent, scaled to 48 by 48 with smoothing off, and compare its pixels with the cell's. There is no other floor file: use only that sheet.
+As the EED states. The dungeon's floor patterns lie on `/assets/sheets/floor.png`, all at `sx` 0, ranked calmest first by `sy`: 304, 336, 0, 320, 352, 368, 16, 32, 144, 160, 48, 176, 224, 64, 80, 208, 96, 112, 128, 240, 288, 272, 256 (23; "next to each other in the ranking" is two neighbours of this list, "at most 1 apart" the same or neighbours). Load the sheet yourself (`new Image()`, `src` `/assets/sheets/floor.png`, await `decode()`); for each `sy`, on a scratch canvas filled with rgb(22, 13, 19), draw the 16 by 16 rectangle at (0, sy) of a copy of the sheet whose rgb(22, 13, 19) pixels were made transparent, scaled to 48 by 48 with smoothing off, and compare its pixels with the cell's to find each cell's pattern. There is no other floor file: use only that sheet. (The old test of calm centres and busy edges is stale: replace it.)
+
+## Intrinsic - spikes:
+As the EED states: set the world's `spikes` with the shape.
+
+## Intrinsic - leaps:
+As the EED states: set the spider's `air` with `actor`'s `of`.
+
+## Intrinsic - glides:
+As the EED states: set the snake's `last` and `flung` with `actor`'s `of`.
 
 ## Intrinsic - effects:
 As the EED states: set the actors' `fuse` and `chant`, and the world's `effects`, with the shapes.

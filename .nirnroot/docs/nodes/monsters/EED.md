@@ -42,7 +42,7 @@ between them is open (creatures in between don't stop a shot).
 
 # Functions:
 ## Function - decide:
-`decide(monster, grid, foes, threats, blocked, turn) -> intent`. `monster` an `actor` not of kind `hero`; `grid` a `tile-grid`; `foes` an array of `point`s, the cells of the creatures it fights (every cell each covers), in the caller's order of preference; `threats` an array of `point`s, the cells of the creatures it flees; `blocked` an array of `point`s, the cells it may not step onto (other creatures, wares, levers); `turn` an integer of 0 or more. Anything else throws a `TypeError`. With its `reach` from `bestiary.entry(monster.kind)`, in order, the first that applies:
+`decide(monster, grid, foes, threats, blocked, turn, friends) -> intent`. `monster` an `actor` not of kind `hero`; `grid` a `tile-grid`; `foes` an array of `point`s, the cells of the creatures it fights (every cell each covers), in the caller's order of preference; `threats` an array of `point`s, the cells of the creatures it flees; `blocked` an array of `point`s, the cells it may not step onto (other creatures, wares, levers); `turn` an integer of 0 or more; `friends` (left out: `[]`) an array of `actor`s, the monsters near it that are not hostile to it (its flock; itself, by `id`, is skipped if there). Anything else throws a `TypeError`. With its `reach` from `bestiary.entry(monster.kind)`, in order, the first that applies:
 1. A `dormant` monster waits; so does one whose `bestiary` `ability` is `summon` (a scarecrow never moves nor attacks: `rules` makes it chant).
 2. A slime (`bestiary`'s `SLIMES`) on an odd `turn` waits.
 3. **Keeping its distance.** A monster whose `mode` is `roam` and whose `stats.range` is above 1, with the nearest foe's cell at a distance below its `range` (a foe has come close): **if its `last` is a `move`** (its last action was a step) **and a foe's cell is in line** (the first such in `foes`), it shoots between steps: an `attack` toward that cell. Otherwise, among its free steps, the one that leaves it farthest from the nearest foe's cell (the first in the order of preference on a tie), if that is farther than it is now: it backs off, one step at a time, until the foe is at its full range. With no step that takes it farther (it is cornered), go on to the next rules (it fights where it stands).
@@ -51,7 +51,7 @@ between them is open (creatures in between don't stop a shot).
 6. If a threat's cell is within 5 of it: it flees: among its free steps, the one that leaves it farthest from the nearest threat's cell (the first in the order of preference on a tie), if that is farther than it is now; else it waits.
 7. If its `stats.range` is above 1 and a foe's cell is in line (the first such in `foes`): an `attack` toward it (the direction from the monster to the cell).
 8. If a foe's cell is within its `reach` (the nearest such cell; on a tie, the first in `foes`): a step toward it: count, with a breadth-first search of free steps to a depth of 20, how many steps each square needs to be next to that cell; among its free steps, the one whose square needs the fewest more; on a tie, the one whose moved square's nearest cell to the foe's cell is the nearest to it by `dx * dx + dy * dy`; then the first in the order of preference. With no such path of at most 20 steps, it waits.
-9. Otherwise it waits.
+9. **Roams.** Otherwise (no foe within its `reach`, nothing above applying) it walks on at its full speed, flocking with its friends. With the eight directions numbered 0 to 7 in the order of preference (0 up, 1 right, 2 down, 3 left, 4 up-right, 5 down-right, 6 down-left, 7 up-left), a creature's **heading** is its `last`'s `(dx, dy)` when its `last` is a `move` (else `(0, 0)` for a friend); the monster's own, with no such `last`, is direction number `(monster.id + turn) % 8`. Over the friends whose `pos` is within 6 of its own `pos` (by distance, from `pos` to `pos`): `A` the sum of their headings; `C` `(Math.sign(Σ (f.pos.x - pos.x)), Math.sign(Σ (f.pos.y - pos.y)))` (toward the flock); `S` the sum, over those within 1, of `(Math.sign(pos.x - f.pos.x), Math.sign(pos.y - f.pos.y))` (away from crowding). With `v = 3 h + A + C + 2 S` (`h` its own heading), among its free steps the one with the largest `dx * v.x + dy * v.y` (the first in the order of preference on a tie: even a step back, when nothing better is free); with no free step, it waits.
 
 # Intrinsics:
 ## Intrinsic - adjacent-attacks:
@@ -61,7 +61,7 @@ In an all-`floor` 7 by 7 grid (`of`), a `skeleton` at (3, 3) with a foe at (3, 2
 In the grid `['#######', '#.....#', '#.###.#', '#.....#', '#######']`, a `snake` at (1, 3) with a foe at (5, 1) moves `(1, 0)` (up and right each need 4 more steps; right ends nearer the foe). With `blocked` holding (2, 3), it moves `(0, -1)`.
 
 ## Intrinsic - reach:
-In an all-`floor` 20 by 3 grid, a `snake` at (0, 1) waits with the foe at (7, 1) and moves `(1, 0)` with the foe at (6, 1); a `bat` there moves `(1, 0)` with the foe at (9, 1) and waits with the foe at (10, 1). The `snake` at (0, 1) with the foe at (6, 2) moves `(1, 1)`.
+In an all-`floor` 20 by 3 grid, a `snake` (`id` 1) at (0, 1) moves `(1, 0)` with the foe at (6, 1), and with the foe at (7, 1) (out of its reach) on `turn` 2 roams: its heading is direction 3, left, which is not free, so `(0, -1)` (up: the first of the steps scoring 0). A `bat` (`id` 1) there on `turn` 2 moves `(1, 0)` with the foe at (9, 1), and `(0, -1)` with the foe at (10, 1). The `snake` at (0, 1) with the foe at (6, 2) moves `(1, 1)`.
 
 ## Intrinsic - slime-slow:
 A `slime` next to a foe waits on turn 3 and moves onto it on turn 4; so does a `blue-slime`.
@@ -73,7 +73,7 @@ A `slime` of `mode` `guard` at (2, 2) in an all-`floor` 7 by 7 grid: with a foe 
 A `golem` of `size` 3 and `mode` `dormant` at (1, 1) in an all-`floor` 10 by 10 grid waits with a foe at (4, 2). The same golem of `mode` `roam` moves `(1, 0)` with the foe at (4, 2) (an attack: the cell (3, 2) it covers is next to it), and with the foe at (8, 2) steps `(1, 0)`.
 
 ## Intrinsic - flees:
-In an all-`floor` 12 by 12 grid, a `worm` at (4, 4) with no foes and a threat at (2, 4) steps `(1, 0)`; with the threat at (4, 2), `(0, 1)`; with the threat at (10, 4) (6 away), it waits. In the grid `['#####', '#...#', '#####']`, a `worm` at (3, 1) with a threat at (1, 1) waits (no step takes it farther).
+In an all-`floor` 12 by 12 grid, a `worm` at (4, 4) with no foes and a threat at (2, 4) steps `(1, 0)`; with the threat at (4, 2), `(0, 1)`; with the threat at (10, 4) (6 away), it does not flee: on `turn` 2 (heading left, `id` 1) it roams `(-1, 0)`. In the grid `['#####', '#...#', '#####']`, a `worm` at (3, 1) with a threat at (1, 1) waits (no step takes it farther).
 
 ## Intrinsic - shoots:
 In an all-`floor` 9 by 9 grid, an `archer` with `stats.range` 4 at (1, 1): with a foe at (5, 1) it answers `attack(1, 0)`; with the foe at (5, 5), `attack(1, 1)`; with the foe at (6, 1) (5 away) it steps `(1, 0)`; with the foe at (3, 5) (4 away, not in line) it steps `(1, 1)`. In the grid `['#######', '#..#..#', '#######']`, the archer at (1, 1) with a foe at (5, 1) does not shoot (the wall (3, 1) is between) and waits (no path).
@@ -83,6 +83,9 @@ In an all-`floor` 12 by 12 grid, an `archer` with `stats.range` 4 at (5, 5): wit
 
 ## Intrinsic - abilities:
 In an all-`floor` 9 by 9 grid, a `scarecrow` at (4, 4) waits with a foe at (4, 3) (next to it) and with the foe at (4, 1). A `pumpkin` of `size` 2 at (2, 2) with a foe at (4, 2) (next to its square) waits; with the foe at (7, 2), it steps `(1, 0)` toward it. A `swarm` at (4, 4) with the foe at (4, 3) moves `(0, -1)` (an attack).
+
+## Intrinsic - roams:
+In an all-`floor` 12 by 12 grid, with no foes, no threats, `blocked` `[]` and `turn` 0: a `bat` (`id` 1) at (5, 5) with `last` `null` moves `(1, 0)` (direction 1); with `last` `{kind: 'move', dx: 0, dy: 1, at: 0, reach: 1}`, `(0, 1)`. With `last` `null` and `friends` two `bat`s, `id` 2 at (5, 3) and `id` 3 at (6, 3), each with `last` `{kind: 'move', dx: -1, dy: 0, at: 0, reach: 1}`: `(1, -1)` (`v` (2, -1)). With `friends` one `bat`, `id` 2 at (5, 4) (next to it), `last` `null`: `(1, 1)` (`v` (3, 1)). A `slime` (`id` 1) at (5, 5) on `turn` 1 waits; on `turn` 0 it moves `(1, 0)`. The `bat` of `mode` `guard` waits. In the grid `['###', '#.#', '###']` a `bat` at (1, 1) waits. `friends` not an array throws a `TypeError`.
 
 ## Intrinsic - no-path:
 In the grid `['#######', '#..#..#', '#######']`, a `skeleton` at (1, 1) with a foe at (4, 1) waits.

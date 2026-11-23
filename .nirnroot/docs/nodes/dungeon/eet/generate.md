@@ -37,6 +37,9 @@ As the EED states.
 ## Intrinsic - wide-halls:
 As the EED states.
 
+## Intrinsic - spikes:
+As the EED states.
+
 ## Intrinsic - refuses:
 As the EED states.
 
