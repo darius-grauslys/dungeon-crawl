@@ -62,11 +62,9 @@ function isLairDepth(depth) {
 
 function wareLabel(kind) {
   if (kind === "potion") return "a potion";
-  if (kind === "sword") return "a sword";
-  if (kind === "armor") return "armor";
   if (kind === "ring") return "a ring";
   if (kind === "necklace") return "a cross necklace";
-  return kind;
+  return itemGradeName(kind);
 }
 
 function wareTooHigh(stats, kind) {
