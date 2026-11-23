@@ -866,9 +866,9 @@ export function draw(world, me, paused, nowIn, aiming = false) {
             const px = (m.pos.x - cam.x) * 48 + 24 + offset * m.last.dx;
             const py = (m.pos.y - cam.y) * 48 + 24 + offset * m.last.dy;
             if (loaded_) {
-              drawCreaturePose({ anim: "idle", frame: (Math.floor(now / 250) + m.id) % 3 }, m.kind, m.facing, px, py, 0, 0, 1, m.size, m.small);
+              drawCreaturePose({ anim: "idle", frame: (Math.floor(now / 250) + m.id) % 3 }, m.kind, m.facing, px - 24, py - 24, 0, 0, 1, m.size, m.small);
             } else {
-              drawCreatureFlat(false, false, px, py, 0, 0, 1, m.size, m.small);
+              drawCreatureFlat(false, false, px - 24, py - 24, 0, 0, 1, m.size, m.small);
             }
             continue;
           }

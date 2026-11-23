@@ -359,12 +359,15 @@ test("effects: fuse, chant, blasts (flat colours)", async () => {
 });
 
 function leapWorld(air) {
-  const grid = tileGrid.fromRows(["#############", "#...#####...#", "#...........#", "#...#####...#", "#############"]);
-  const visible = mask.of(13, 5, Array(65).fill(true));
-  const explored = mask.of(13, 5, Array(65).fill(true));
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const visible = mask.of(7, 3, Array(21).fill(true));
+  const explored = mask.of(7, 3, Array(21).fill(true));
   const monster = actor.of({ id: 1, kind: "spider", pos: point.of(4, 1), stats: stats.of({ hp: 10, maxHp: 10, attack: 2, defense: 2 }), size: 1, small: false, facing: "right", air, last: null, chant: null, fuse: null });
-  const heroes = [heroShape.of({ name: "Bob", actor: actor.of({ id: 2, kind: "hero", pos: point.of(2, 2), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }), alive: true })];
-  const entry = saveShape.of({ seed: 1, depth: 1, players: [{ name: "Ann", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }] });
+  const heroes = [
+    heroShape.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }), alive: true }),
+    heroShape.of({ name: "Bob", actor: actor.of({ id: 2, kind: "hero", pos: point.of(3, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }), alive: true })
+  ];
+  const entry = saveShape.of({ seed: 1, depth: 1, players: [{ name: "Ann", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }, { name: "Bob", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }] });
   return world.of({ seed: 1, rng: 2, depth: 1, time: 0, state: "playing", grid, heroes, monsters: [monster], items: [], visible, explored, gold: 5, log: [], entry });
 }
 
@@ -425,11 +428,14 @@ test("glides: lunge slides from cell left onto own", async () => {
   const ctx = canvas.getContext("2d");
   view.init(canvas);
   const monster = actor.of({ id: 1, kind: "snake", pos: point.of(4, 1), stats: stats.of({ hp: 10, maxHp: 10, attack: 2, defense: 2 }), size: 1, small: false, facing: "right", last: { kind: "lunge", dx: 1, dy: 0, at: 0, reach: 2 }, chant: null, fuse: null });
-  const heroes = [heroShape.of({ name: "Bob", actor: actor.of({ id: 2, kind: "hero", pos: point.of(2, 2), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }), alive: true })];
-  const grid = tileGrid.fromRows(["#############", "#...#####...#", "#...........#", "#...#####...#", "#############"]);
-  const visible = mask.of(13, 5, Array(65).fill(true));
-  const explored = mask.of(13, 5, Array(65).fill(true));
-  const entry = saveShape.of({ seed: 1, depth: 1, players: [{ name: "Ann", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }] });
+  const heroes = [
+    heroShape.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }), alive: true }),
+    heroShape.of({ name: "Bob", actor: actor.of({ id: 2, kind: "hero", pos: point.of(3, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }), alive: true })
+  ];
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const visible = mask.of(7, 3, Array(21).fill(true));
+  const explored = mask.of(7, 3, Array(21).fill(true));
+  const entry = saveShape.of({ seed: 1, depth: 1, players: [{ name: "Ann", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }, { name: "Bob", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }] });
   const w = world.of({ seed: 1, rng: 2, depth: 1, time: 0, state: "playing", grid, heroes, monsters: [monster], items: [], visible, explored, gold: 5, log: [], entry });
 
   view.draw(w, "Ann", false, 0);
@@ -452,11 +458,14 @@ test("glides: flung flies from x,y to pos", async () => {
   const ctx = canvas.getContext("2d");
   view.init(canvas);
   const monster = actor.of({ id: 1, kind: "snake", pos: point.of(4, 1), stats: stats.of({ hp: 10, maxHp: 10, attack: 2, defense: 2 }), size: 1, small: false, facing: "right", last: null, flung: { x: 2, y: 1, at: 0 }, chant: null, fuse: null });
-  const heroes = [heroShape.of({ name: "Bob", actor: actor.of({ id: 2, kind: "hero", pos: point.of(2, 2), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }), alive: true })];
-  const grid = tileGrid.fromRows(["#############", "#...#####...#", "#...........#", "#...#####...#", "#############"]);
-  const visible = mask.of(13, 5, Array(65).fill(true));
-  const explored = mask.of(13, 5, Array(65).fill(true));
-  const entry = saveShape.of({ seed: 1, depth: 1, players: [{ name: "Ann", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }] });
+  const heroes = [
+    heroShape.of({ name: "Ann", actor: actor.of({ id: 0, kind: "hero", pos: point.of(1, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }), alive: true }),
+    heroShape.of({ name: "Bob", actor: actor.of({ id: 2, kind: "hero", pos: point.of(3, 1), stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }), alive: true })
+  ];
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const visible = mask.of(7, 3, Array(21).fill(true));
+  const explored = mask.of(7, 3, Array(21).fill(true));
+  const entry = saveShape.of({ seed: 1, depth: 1, players: [{ name: "Ann", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }, { name: "Bob", stats: stats.of({ hp: 18, maxHp: 24, attack: 4, defense: 1 }) }] });
   const w = world.of({ seed: 1, rng: 2, depth: 1, time: 0, state: "playing", grid, heroes, monsters: [monster], items: [], visible, explored, gold: 5, log: [], entry });
 
   view.draw(w, "Ann", false, 200);
