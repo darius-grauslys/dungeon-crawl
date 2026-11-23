@@ -147,15 +147,27 @@ test("generate: shop", () => {
       assert.ok(point.equals(plan.stairs, point.of(31, 19)));
       assert.ok(point.equals(plan.start, point.of(16, 19)));
       const expectedSpots = [
-        point.of(16, 13),
+        point.of(15, 13),
+        point.of(17, 13),
         point.of(19, 13),
-        point.of(22, 13),
+        point.of(21, 13),
+        point.of(23, 13),
         point.of(25, 13),
-        point.of(28, 13),
+        point.of(27, 13),
+        point.of(29, 13),
         point.of(31, 13),
+        point.of(15, 16),
+        point.of(17, 16),
+        point.of(19, 16),
+        point.of(21, 16),
+        point.of(23, 16),
+        point.of(25, 16),
+        point.of(27, 16),
+        point.of(29, 16),
+        point.of(31, 16),
       ];
-      assert.strictEqual(plan.spots.length, 6);
-      for (let i = 0; i < 6; i++) {
+      assert.strictEqual(plan.spots.length, 18);
+      for (let i = 0; i < 18; i++) {
         assert.ok(point.equals(plan.spots[i], expectedSpots[i]));
       }
       assert.strictEqual(plan.boss, null);
@@ -203,8 +215,19 @@ test("generate: lair", () => {
     }
     assert.deepStrictEqual(g.tiles(), s7Tiles);
   }
-  // depths 14, 21, 28: no boss, no levers, no spots
-  for (const d of [14, 21, 28]) {
+  // depth 14: serpent's lair, boss (32, 15), no levers, no spots
+  {
+    const plan = generate(0, 14);
+    const g = plan.grid;
+    assert.deepStrictEqual(g.tiles(), s7Tiles);
+    assert.ok(point.equals(plan.stairs, point.of(33, 16)));
+    assert.ok(point.equals(plan.start, point.of(8, 16)));
+    assert.ok(point.equals(plan.boss, point.of(32, 15)));
+    assert.deepStrictEqual(plan.levers, []);
+    assert.deepStrictEqual(plan.spots, []);
+  }
+  // depths 21, 28: empty hall, no boss, no levers, no spots
+  for (const d of [21, 28]) {
     const plan = generate(0, d);
     const g = plan.grid;
     assert.deepStrictEqual(g.tiles(), s7Tiles);
