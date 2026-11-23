@@ -733,6 +733,205 @@ test("effects", async () => {
   }
 });
 
+test("spikes", async () => {
+  const canvas = document.querySelector("canvas");
+  init(canvas);
+
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const visible = fullMask(7, 3);
+  const explored = fullMask(7, 3);
+  const hAnn = makeHero("Ann", 0, 1, 1, true);
+
+  const ctx = canvas.getContext("2d");
+  const centerPixel = (cx, cy) => {
+    const data = ctx.getImageData(cx * 48 + 24, cy * 48 + 24, 1, 1).data;
+    return { r: data[0], g: data[1], b: data[2] };
+  };
+
+  // spikes [{x: 4, y: 1, shift: 0}]
+  {
+    const w = world.of({
+      seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+      grid, heroes: [hAnn], monsters: [], items: [],
+      visible, explored, gold: 0, log: ["hello"], entry: makeEntry(),
+      spikes: [{ x: 4, y: 1, shift: 0 }]
+    });
+    draw(w, "Ann", false, 2000);
+    let p = centerPixel(4, 1);
+    assert.equal(p.r, 200); assert.equal(p.g, 200); assert.equal(p.b, 210);
+    draw(w, "Ann", false, 0);
+    p = centerPixel(4, 1);
+    assert.equal(p.r, 50); assert.equal(p.g, 36); assert.equal(p.b, 44);
+    draw(w, "Ann", false, 1600);
+    p = centerPixel(4, 1);
+    assert.equal(p.r, 50); assert.equal(p.g, 36); assert.equal(p.b, 44);
+  }
+
+  // with shift 1, at now 1600 rgb(200, 200, 210)
+  {
+    const w = world.of({
+      seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+      grid, heroes: [hAnn], monsters: [], items: [],
+      visible, explored, gold: 0, log: ["hello"], entry: makeEntry(),
+      spikes: [{ x: 4, y: 1, shift: 1 }]
+    });
+    draw(w, "Ann", false, 1600);
+    let p = centerPixel(4, 1);
+    assert.equal(p.r, 200); assert.equal(p.g, 200); assert.equal(p.b, 210);
+  }
+
+  // every cell visible but (4,1), stays explored, at now 2000 it is 0.4 times floor's colour
+  {
+    const visibleNoSpike = mask.of(7, 3, [
+      true, true, true, true, true, true, true,
+      true, true, true, true, false, true, true,
+      true, true, true, true, true, true, true
+    ]);
+    const w = world.of({
+      seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+      grid, heroes: [hAnn], monsters: [], items: [],
+      visible: visibleNoSpike, explored, gold: 0, log: ["hello"], entry: makeEntry(),
+      spikes: [{ x: 4, y: 1, shift: 0 }]
+    });
+    draw(w, "Ann", false, 2000);
+    let p = centerPixel(4, 1);
+    assert.ok(Math.abs(p.r - 20) <= 3, "r 0.4x floor");
+    assert.ok(Math.abs(p.g - 14) <= 3, "g 0.4x floor");
+    assert.ok(Math.abs(p.b - 18) <= 3, "b 0.4x floor");
+  }
+});
+
+test("leaps", async () => {
+  const canvas = document.querySelector("canvas");
+  init(canvas);
+
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const visible = fullMask(7, 3);
+  const explored = fullMask(7, 3);
+  const hAnn = makeHero("Ann", 0, 1, 1, true);
+
+  const ctx = canvas.getContext("2d");
+  const centerPixel = (cx, cy) => {
+    const data = ctx.getImageData(cx * 48 + 24, cy * 48 + 24, 1, 1).data;
+    return { r: data[0], g: data[1], b: data[2] };
+  };
+
+  // aloft
+  {
+    const spider = actor.of({ id: 2, kind: "spider", pos: point.of(4, 1), stats: makeStats(), air: { phase: "aloft", at: 0 } });
+    const w = world.of({
+      seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+      grid, heroes: [hAnn], monsters: [spider], items: [],
+      visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
+    });
+    draw(w, "Ann", false, 100);
+    let p = centerPixel(4, 1);
+    assert.ok(Math.abs(p.r - 20) <= 3, "aloft centre r shadow");
+    assert.ok(Math.abs(p.g - 14) <= 3, "aloft centre g shadow");
+    assert.ok(Math.abs(p.b - 18) <= 3, "aloft centre b shadow");
+    const data = ctx.getImageData(4 * 48, 1 * 48, 48, 48).data;
+    let anyMonsterPixel = false;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i] === 220 && data[i + 1] === 50 && data[i + 2] === 50) anyMonsterPixel = true;
+    }
+    assert.ok(!anyMonsterPixel, "no monster pixel in cell (4,1) when aloft");
+  }
+
+  // crouch
+  {
+    const spider = actor.of({ id: 2, kind: "spider", pos: point.of(4, 1), stats: makeStats(), air: { phase: "crouch", at: 0 } });
+    const w = world.of({
+      seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+      grid, heroes: [hAnn], monsters: [spider], items: [],
+      visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
+    });
+    draw(w, "Ann", false, 125);
+    let p = ctx.getImageData(198, 80, 1, 1).data;
+    assert.equal(p[0], 220); assert.equal(p[1], 50); assert.equal(p[2], 50);
+    p = ctx.getImageData(216, 60, 1, 1).data;
+    assert.equal(p[0], 50); assert.equal(p[1], 36); assert.equal(p[2], 44);
+
+    draw(w, "Ann", false, 0);
+    p = ctx.getImageData(216, 60, 1, 1).data;
+    assert.equal(p[0], 220); assert.equal(p[1], 50); assert.equal(p[2], 50);
+    p = ctx.getImageData(198, 80, 1, 1).data;
+    assert.equal(p[0], 50); assert.equal(p[1], 36); assert.equal(p[2], 44);
+  }
+
+  // drop
+  {
+    const spider = actor.of({ id: 2, kind: "spider", pos: point.of(4, 1), stats: makeStats(), air: { phase: "drop", at: 0 } });
+    const w = world.of({
+      seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+      grid, heroes: [hAnn], monsters: [spider], items: [],
+      visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
+    });
+    draw(w, "Ann", false, 150);
+    let p = centerPixel(4, 1);
+    assert.equal(p.r, 220); assert.equal(p.g, 50); assert.equal(p.b, 50);
+    draw(w, "Ann", false, 300);
+    p = centerPixel(4, 1);
+    assert.equal(p.r, 220); assert.equal(p.g, 50); assert.equal(p.b, 50);
+  }
+});
+
+test("glides", async () => {
+  const canvas = document.querySelector("canvas");
+  init(canvas);
+
+  const grid = tileGrid.fromRows(["#######", "#.>...#", "#######"]);
+  const visible = fullMask(7, 3);
+  const explored = fullMask(7, 3);
+  const hAnn = makeHero("Ann", 0, 1, 1, true);
+
+  const ctx = canvas.getContext("2d");
+  const centerPixel = (cx, cy) => {
+    const data = ctx.getImageData(cx * 48 + 24, cy * 48 + 24, 1, 1).data;
+    return { r: data[0], g: data[1], b: data[2] };
+  };
+
+  // lunge
+  {
+    const snake = actor.of({ id: 2, kind: "snake", pos: point.of(4, 1), stats: makeStats(), last: { kind: "lunge", dx: 1, dy: 0, at: 0, reach: 2 } });
+    const w = world.of({
+      seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+      grid, heroes: [hAnn], monsters: [snake], items: [],
+      visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
+    });
+    draw(w, "Ann", false, 0);
+    let p = centerPixel(2, 1);
+    assert.equal(p.r, 220); assert.equal(p.g, 50); assert.equal(p.b, 50);
+    p = centerPixel(4, 1);
+    assert.equal(p.r, 50); assert.equal(p.g, 36); assert.equal(p.b, 44);
+    draw(w, "Ann", false, 75);
+    p = ctx.getImageData(192, 72, 1, 1).data;
+    assert.equal(p[0], 220); assert.equal(p[1], 50); assert.equal(p[2], 50);
+    draw(w, "Ann", false, 150);
+    p = centerPixel(4, 1);
+    assert.equal(p.r, 220); assert.equal(p.g, 50); assert.equal(p.b, 50);
+    p = centerPixel(2, 1);
+    assert.equal(p.r, 230); assert.equal(p.g, 200); assert.equal(p.b, 60);
+  }
+
+  // flung
+  {
+    const snake = actor.of({ id: 2, kind: "snake", pos: point.of(4, 1), stats: makeStats(), last: null, flung: { x: 2, y: 1, at: 0 } });
+    const w = world.of({
+      seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+      grid, heroes: [hAnn], monsters: [snake], items: [],
+      visible, explored, gold: 0, log: ["hello"], entry: makeEntry()
+    });
+    draw(w, "Ann", false, 200);
+    let p = ctx.getImageData(168, 40, 1, 1).data;
+    assert.equal(p[0], 220); assert.equal(p[1], 50); assert.equal(p[2], 50);
+    p = centerPixel(4, 1);
+    assert.equal(p.r, 50); assert.equal(p.g, 36); assert.equal(p.b, 44);
+    draw(w, "Ann", false, 400);
+    p = centerPixel(4, 1);
+    assert.equal(p.r, 220); assert.equal(p.g, 50); assert.equal(p.b, 50);
+  }
+});
+
 test("themes", async () => {
   const canvas = document.querySelector("canvas");
   init(canvas);
@@ -1035,49 +1234,11 @@ test("floors", async () => {
 
   await load("/assets/");
 
-  const grid = tileGrid.fromRows([
-    "###############",
-    "#.............#",
-    "#.............#",
-    "#.............#",
-    "#.............#",
-    "#.............#",
-    "#.............#",
-    "#.............#",
-    "#.............#",
-    "#.............#",
-    "###############"
-  ]);
-  const visible = fullMask(15, 11);
-  const explored = fullMask(15, 11);
-  const hAnn = makeHero("Ann", 0, 1, 1, true);
-
-  const makeWorldForSeed = (seed) => world.of({
-    seed, rng: 1, depth: 1, time: 0, state: "playing",
-    grid, heroes: [hAnn], monsters: [], items: [],
-    visible, explored, gold: 0, log: ["hello"], entry: save.of({ seed, depth: 1, players: [] })
-  });
-
-  const w1 = makeWorldForSeed(1);
-  draw(w1, "Ann", false);
-
-  const ctx = canvas.getContext("2d");
-
-  const collectCell = (cx, cy) => {
-    const data = ctx.getImageData(cx * 48, cy * 48, 48, 48).data;
-    const pixels = [];
-    for (let i = 0; i < data.length; i += 4) {
-      pixels.push(data[i], data[i + 1], data[i + 2], data[i + 3]);
-    }
-    return pixels;
-  };
-
-  const cell75 = collectCell(7, 5);
-  const cell15 = collectCell(1, 5);
-
   const sheetImg = new Image();
   sheetImg.src = "/assets/sheets/floor.png";
   await sheetImg.decode();
+
+  const ranking = [304, 336, 0, 320, 352, 368, 16, 32, 144, 160, 48, 176, 224, 64, 80, 208, 96, 112, 128, 240, 288, 272, 256];
 
   const drawSpriteToPixels = async (sy) => {
     const scratch = document.createElement("canvas");
@@ -1117,50 +1278,185 @@ test("floors", async () => {
     return pixels;
   };
 
+  const collectCell = (cx, cy) => {
+    const ctx = canvas.getContext("2d");
+    const data = ctx.getImageData(cx * 48, cy * 48, 48, 48).data;
+    const pixels = [];
+    for (let i = 0; i < data.length; i += 4) {
+      pixels.push(data[i], data[i + 1], data[i + 2], data[i + 3]);
+    }
+    return pixels;
+  };
+
   const match = (a, b) => {
     if (a.length !== b.length) return false;
     for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
     return true;
   };
 
-  const calmestSy = [304, 336, 0, 320, 352, 368, 16];
-  let matched75 = false;
-  for (const sy of calmestSy) {
-    if (match(await drawSpriteToPixels(sy), cell75)) { matched75 = true; break; }
-  }
-  assert.ok(matched75, "cell (7,5) matches one of the seven calmest dungeon floor patterns");
+  const spritePixels = await Promise.all(ranking.map(sy => drawSpriteToPixels(sy)));
 
-  const busiestSy = [96, 112, 128, 240, 288, 272, 256];
-  let matched15 = false;
-  for (const sy of busiestSy) {
-    if (match(await drawSpriteToPixels(sy), cell15)) { matched15 = true; break; }
+  const findPatternRank = (cellPixels) => {
+    for (let i = 0; i < spritePixels.length; i++) {
+      if (match(cellPixels, spritePixels[i])) return i;
+    }
+    return -1;
+  };
+
+  // Part 1: 15x11 grid, border of # around floor, one room
+  const grid15x11 = tileGrid.fromRows([
+    "###############",
+    "#.............#",
+    "#.............#",
+    "#.............#",
+    "#.............#",
+    "#.............#",
+    "#.............#",
+    "#.............#",
+    "#.............#",
+    "#.............#",
+    "###############"
+  ]);
+  const visibleFull = fullMask(15, 11);
+  const exploredFull = fullMask(15, 11);
+  const hAnn = makeHero("Ann", 0, 1, 1, true);
+
+  const makeWorldForSeed15x11 = (seed) => world.of({
+    seed, rng: 1, depth: 1, time: 0, state: "playing",
+    grid: grid15x11, heroes: [hAnn], monsters: [], items: [],
+    visible: visibleFull, explored: exploredFull, gold: 0, log: ["hello"], entry: save.of({ seed, depth: 1, players: [] })
+  });
+
+  const worldPixels = [];
+  for (let seed = 1; seed <= 8; seed++) {
+    const w = makeWorldForSeed15x11(seed);
+    draw(w, "Ann", false);
+    const pixels = [];
+    for (let x = 1; x <= 13; x++) {
+      for (let y = 1; y <= 9; y++) {
+        if (x === 1 && y === 1) continue; // Ann's cell
+        pixels.push(...collectCell(x, y));
+      }
+    }
+    worldPixels.push({ seed, pixels });
   }
-  assert.ok(matched15, "cell (1,5) matches one of the seven busiest dungeon floor patterns");
+
+  // at least two of the worlds differ in some floor cell over seeds 1-8
+  let anyDiff = false;
+  for (let s1 = 1; s1 <= 8; s1++) {
+    for (let s2 = s1 + 1; s2 <= 8; s2++) {
+      const p1 = worldPixels.find(w => w.seed === s1).pixels;
+      const p2 = worldPixels.find(w => w.seed === s2).pixels;
+      let diff = false;
+      for (let i = 0; i < p1.length; i++) {
+        if (p1[i] !== p2[i]) { diff = true; break; }
+      }
+      if (diff) { anyDiff = true; break; }
+    }
+    if (anyDiff) break;
+  }
+  assert.ok(anyDiff, "over seeds 1-8, at least two worlds differ in some floor cell");
 
   // same world drawn twice gives same pixels
+  const w1 = makeWorldForSeed15x11(1);
+  draw(w1, "Ann", false);
+  const cell75 = collectCell(7, 5);
   draw(w1, "Ann", false);
   assert.deepEqual(collectCell(7, 5), cell75);
 
-  // seed 2: 13x9 floor cells not all same as seed 1
-  const pixels1 = [];
+  // every floor cell but Ann's is one of the dungeon's floor patterns, at most two different ones in all
+  const w1check = makeWorldForSeed15x11(1);
+  draw(w1check, "Ann", false);
+  const patternIndices = new Set();
   for (let x = 1; x <= 13; x++) {
     for (let y = 1; y <= 9; y++) {
-      pixels1.push(...collectCell(x, y));
+      if (x === 1 && y === 1) continue; // Ann's cell
+      const idx = findPatternRank(collectCell(x, y));
+      assert.notEqual(idx, -1, `cell (${x},${y}) matches a dungeon floor pattern`);
+      patternIndices.add(idx);
     }
   }
-  const w2 = makeWorldForSeed(2);
-  draw(w2, "Ann", false);
-  const pixels2 = [];
-  for (let x = 1; x <= 13; x++) {
-    for (let y = 1; y <= 9; y++) {
-      pixels2.push(...collectCell(x, y));
+  assert.ok(patternIndices.size <= 2, "at most two different patterns in all");
+  if (patternIndices.size === 2) {
+    const indices = [...patternIndices];
+    assert.ok(Math.abs(indices[0] - indices[1]) <= 1, "when two, they are next to each other in the ranking");
+  }
+
+  // Part 2: two rooms and a hall
+  const gridRooms = tileGrid.fromRows([
+    "#############",
+    "#...#####...#",
+    "#...........#",
+    "#...#####...#",
+    "#############"
+  ]);
+  const visibleRooms = fullMask(13, 5);
+  const exploredRooms = fullMask(13, 5);
+  const hAnn2 = makeHero("Ann", 0, 1, 1, true);
+
+  const makeWorldForSeedRooms = (seed) => world.of({
+    seed, rng: 1, depth: 1, time: 0, state: "playing",
+    grid: gridRooms, heroes: [hAnn2], monsters: [], items: [],
+    visible: visibleRooms, explored: exploredRooms, gold: 0, log: ["hello"], entry: save.of({ seed, depth: 1, players: [] })
+  });
+
+  const rooms = {
+    room1: [[1, 1], [2, 1], [3, 1], [1, 2], [2, 2], [3, 2], [1, 3], [2, 3], [3, 3]],
+    room2: [[9, 1], [10, 1], [11, 1], [9, 2], [10, 2], [11, 2], [9, 3], [10, 3], [11, 3]],
+    hall: [[4, 2], [5, 2], [6, 2], [7, 2], [8, 2]]
+  };
+
+  for (let seed = 1; seed <= 8; seed++) {
+    const w = makeWorldForSeedRooms(seed);
+    draw(w, "Ann", false);
+
+    const hallIndices = new Set();
+    for (const [x, y] of rooms.hall) {
+      const idx = findPatternRank(collectCell(x, y));
+      assert.notEqual(idx, -1, `hall cell (${x},${y}) matches a dungeon floor pattern`);
+      hallIndices.add(idx);
+    }
+    assert.ok(hallIndices.size <= 2, "hall uses at most two patterns");
+    if (hallIndices.size === 2) {
+      const indices = [...hallIndices];
+      assert.ok(Math.abs(indices[0] - indices[1]) <= 1, "hall patterns next to each other");
+    }
+
+    for (const [name, cells] of Object.entries(rooms)) {
+      if (name === 'hall') continue;
+      const roomIndices = new Set();
+      for (const [x, y] of cells) {
+        if (x === 1 && y === 1) continue; // Ann's cell
+        const idx = findPatternRank(collectCell(x, y));
+        assert.notEqual(idx, -1, `${name} cell (${x},${y}) matches a dungeon floor pattern`);
+        roomIndices.add(idx);
+      }
+      assert.ok(roomIndices.size <= 2, `${name} uses at most two patterns`);
+      if (roomIndices.size === 2) {
+        const indices = [...roomIndices];
+        assert.ok(Math.abs(indices[0] - indices[1]) <= 1, `${name} patterns next to each other`);
+      }
+    }
+
+    // some hall cell's pattern and some cell's of each room are at most 1 apart in the ranking
+    const hallIdxs = [...hallIndices];
+    for (const [name, cells] of Object.entries(rooms)) {
+      if (name === 'hall') continue;
+      const roomIdxs = new Set();
+      for (const [x, y] of cells) {
+        if (x === 1 && y === 1) continue;
+        roomIdxs.add(findPatternRank(collectCell(x, y)));
+      }
+      let found = false;
+      for (const h of hallIdxs) {
+        for (const r of roomIdxs) {
+          if (Math.abs(h - r) <= 1) { found = true; break; }
+        }
+        if (found) break;
+      }
+      assert.ok(found, `some hall cell's pattern and some ${name} cell's pattern are at most 1 apart`);
     }
   }
-  let anyDiff = false;
-  for (let i = 0; i < pixels1.length; i++) {
-    if (pixels1[i] !== pixels2[i]) { anyDiff = true; break; }
-  }
-  assert.ok(anyDiff, "with seed 2 the 13x9 floor cells are not all the same as with seed 1");
 });
 
 test("world/valid", () => {
@@ -1209,6 +1505,14 @@ test("world/valid", () => {
   assert.equal(w2.time, 9);
   assert.equal(w.time, 0);
 
+  // spikes cases
+  const wSpikesOk = world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "playing", grid: grid5x3, heroes: [heroAnn], monsters: [monster], items: [itemGold], visible, explored, gold: 0, log: ["hello"], entry, spikes: [{ x: 2, y: 1, shift: 3 }] });
+  assert.ok(Object.isFrozen(wSpikesOk.spikes));
+
+  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "playing", grid: grid5x3, heroes: [heroAnn], monsters: [monster], items: [itemGold], visible, explored, gold: 0, log: ["hello"], entry, spikes: [{ x: 9, y: 1, shift: 0 }] }), TypeError);
+  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "playing", grid: grid5x3, heroes: [heroAnn], monsters: [monster], items: [itemGold], visible, explored, gold: 0, log: ["hello"], entry, spikes: [{ x: 2, y: 1, shift: 6 }] }), TypeError);
+  assert.throws(() => world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "playing", grid: grid5x3, heroes: [heroAnn], monsters: [monster], items: [itemGold], visible, explored, gold: 0, log: ["hello"], entry, spikes: [{ x: 2, y: 1, shift: 1 }, { x: 2, y: 1, shift: 2 }] }), TypeError);
+
   const w3 = world.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "playing", grid: grid5x3, heroes: [heroAnn], monsters: [monster], items: [itemGold], visible, explored, gold: 0, log: ["hello"], entry });
   assert.deepStrictEqual(w, w3);
   assert.ok(!Object.hasOwn(w, "with"));
@@ -1242,11 +1546,27 @@ test("world/data", () => {
   assert.deepStrictEqual(wFromData, w);
   assert.deepStrictEqual(w.data().grid, ["#####", "#...#", "#####"]);
   assert.equal(w.data().visible[1], "01000");
+  assert.deepStrictEqual(w.data().effects, []);
+  assert.deepStrictEqual(w.data().spikes, []);
 
   assert.throws(() => world.fromData({}), TypeError);
   const badData = w.data();
   badData.depth = 34;
   assert.throws(() => world.fromData(badData), TypeError);
+
+  // with spikes, spider with air, slime with flung, web item
+  const spider = actor.of({ id: 3, kind: "spider", pos: point.of(0, 0), stats: heroStats, air: { phase: "aloft", at: 60 } });
+  const monsterFlung = actor.of({ id: 1, kind: "slime", pos: point.of(2, 1), stats: heroStats, flung: { x: 1, y: 1, at: 70 } });
+  const itemWeb = item.of({ id: 1, kind: "web", pos: point.of(3, 1) });
+  const w2 = world.of({
+    seed: 1, rng: 1, depth: 1, time: 0, state: "playing",
+    grid: grid5x3, heroes: [heroAnn], monsters: [monsterFlung, spider], items: [itemGold, itemWeb],
+    visible, explored, gold: 0, log: ["hello"], entry,
+    spikes: [{ x: 2, y: 1, shift: 1 }]
+  });
+  const data2 = JSON.parse(JSON.stringify(w2.data()));
+  const w2FromData = world.fromData(data2);
+  assert.deepStrictEqual(w2FromData, w2);
 });
 
 test("point/valid", () => {
