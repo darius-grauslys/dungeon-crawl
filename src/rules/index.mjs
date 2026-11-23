@@ -534,11 +534,11 @@ function golemDeath(world, monstersList, boss, newTime, gold, log, rng) {
   rng = nr2;
   let n = 1 + Math.floor(v2 * 5);
 
-  const size = golem.size || 1;
-  const small = golem.small || false;
+  const size = boss.size || 1;
+  const small = boss.small || false;
   const sSize = small ? 1 : size;
-  const sqX = golem.pos.x;
-  const sqY = golem.pos.y;
+  const sqX = boss.pos.x;
+  const sqY = boss.pos.y;
   const candidates = [];
   for (let y = 0; y < world.grid.height; y++) {
     for (let x = 0; x < world.grid.width; x++) {
