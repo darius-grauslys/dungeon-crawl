@@ -211,6 +211,58 @@ test("closed", async () => {
   }
 });
 
+test("host", async () => {
+  const srv = await serve();
+
+  // host: '127.0.0.1' resolves with url http://127.0.0.1:<port>/, GET / answers 200
+  let server = await srv({ port: 0, root: process.cwd(), host: '127.0.0.1' });
+  try {
+    assert.equal(server.url, `http://127.0.0.1:${server.port}/`);
+    const res = await fetch(`${server.url}`);
+    assert.equal(res.status, 200);
+  } finally {
+    await server.close();
+  }
+
+  // host: '0.0.0.0', url is http://0.0.0.0:<port>/, GET / on http://127.0.0.1:<port>/ answers 200
+  server = await srv({ port: 0, root: process.cwd(), host: '0.0.0.0' });
+  try {
+    assert.equal(server.url, `http://0.0.0.0:${server.port}/`);
+    const res = await fetch(`http://127.0.0.1:${server.port}/`);
+    assert.equal(res.status, 200);
+  } finally {
+    await server.close();
+  }
+
+  // no host, url is http://127.0.0.1:<port>/
+  server = await srv({ port: 0, root: process.cwd() });
+  try {
+    assert.equal(server.url, `http://127.0.0.1:${server.port}/`);
+  } finally {
+    await server.close();
+  }
+
+  // host: '' rejects (or throws) a TypeError
+  let threw = false;
+  try {
+    await srv({ port: 0, root: process.cwd(), host: '' });
+  } catch (e) {
+    threw = true;
+    assert.ok(e instanceof TypeError);
+  }
+  assert.ok(threw, "host: '' should reject/throw a TypeError");
+
+  // host: 5 rejects (or throws) a TypeError
+  threw = false;
+  try {
+    await srv({ port: 0, root: process.cwd(), host: 5 });
+  } catch (e) {
+    threw = true;
+    assert.ok(e instanceof TypeError);
+  }
+  assert.ok(threw, "host: 5 should reject/throw a TypeError");
+});
+
 test("closes", async () => {
   const srv = await serve();
   const server = await srv({ port: 0, root: process.cwd() });

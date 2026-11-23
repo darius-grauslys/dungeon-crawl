@@ -401,13 +401,16 @@ test("bestiary/valid", () => {
   assert.ok(Object.isFrozen(bestiary.KINDS));
 
   const archerEntry = bestiary.entry("archer");
-  assert.deepStrictEqual(archerEntry, { kind: "archer", group: "undead", hp: 7, attack: 3, defense: 1, range: 4, slows: false, reach: 7, step: 400, strike: 700, size: 1 });
+  assert.deepStrictEqual(archerEntry, { kind: "archer", group: "undead", hp: 7, attack: 3, defense: 1, magic: 0, magicPower: 1, range: 4, slows: false, reach: 7, step: 400, strike: 700, size: 1 });
   assert.ok(Object.isFrozen(archerEntry));
 
   assert.strictEqual(bestiary.entry("blue-snake").slows, true);
   assert.strictEqual(bestiary.entry("golem").size, 3);
   assert.strictEqual(bestiary.entry("golem").step, 1600);
   assert.strictEqual(bestiary.entry("golem").defense, 12);
+  assert.strictEqual(bestiary.entry("golem").attack, 12);
+  assert.strictEqual(bestiary.entry("golem").magic, 6);
+  assert.strictEqual(bestiary.entry("golem").magicPower, 2);
   assert.strictEqual(bestiary.entry("cultist").range, 4);
 
   assert.strictEqual(bestiary.group("hero"), "human");
@@ -501,6 +504,10 @@ test("stats/valid", () => {
   assert.strictEqual(s.attack, 3);
   assert.strictEqual(s.defense, 1);
   assert.strictEqual(s.range, 1);
+  assert.strictEqual(s.magic, 0);
+  assert.strictEqual(s.magicPower, 1);
+  assert.strictEqual(s.magicResist, 0);
+  assert.deepStrictEqual(s, { hp: 5, maxHp: 10, attack: 3, defense: 1, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
   assert.ok(Object.isFrozen(s));
 
   const s0 = stats.of({ hp: 0, maxHp: 10, attack: 3, defense: 1 });
@@ -509,11 +516,20 @@ test("stats/valid", () => {
   const s4 = stats.of({ hp: 5, maxHp: 10, attack: 3, defense: 1, range: 4 });
   assert.strictEqual(s4.range, 4);
 
+  const sm = stats.of({ hp: 5, maxHp: 10, attack: 3, defense: 1, magic: 6, magicPower: 2, magicResist: 3 });
+  assert.strictEqual(sm.magic, 6);
+  assert.strictEqual(sm.magicPower, 2);
+  assert.strictEqual(sm.magicResist, 3);
+
   assert.throws(() => stats.of({ hp: 11, maxHp: 10, attack: 3, defense: 1 }), TypeError);
   assert.throws(() => stats.of({ hp: 5, maxHp: 0, attack: 3, defense: 1 }), TypeError);
   assert.throws(() => stats.of({ hp: 5, maxHp: 10, attack: -1, defense: 1 }), TypeError);
   assert.throws(() => stats.of({ hp: 5, maxHp: 10, attack: 3, defense: 1.5 }), TypeError);
   assert.throws(() => stats.of({ hp: 5, maxHp: 10, attack: 3, defense: 1, range: 0 }), TypeError);
   assert.throws(() => stats.of({ hp: 5, maxHp: 10, attack: 3, defense: 1, range: 10 }), TypeError);
+  assert.throws(() => stats.of({ hp: 5, maxHp: 10, attack: 3, defense: 1, magic: -1 }), TypeError);
+  assert.throws(() => stats.of({ hp: 5, maxHp: 10, attack: 3, defense: 1, magicPower: 0 }), TypeError);
+  assert.throws(() => stats.of({ hp: 5, maxHp: 10, attack: 3, defense: 1, magicResist: -1 }), TypeError);
+  assert.throws(() => stats.of({ hp: 5, maxHp: 10, attack: 3, defense: 1, magicResist: 0.5 }), TypeError);
   assert.throws(() => stats.of({ maxHp: 10, attack: 3, defense: 1 }), TypeError);
 });

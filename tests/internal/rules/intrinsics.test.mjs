@@ -51,7 +51,7 @@ test("joins: Ann joins, dup returns same, full returns null, bad name throws", (
   assert.equal(h.name, "Ann");
   assert.ok(h.alive);
   assert.equal(h.pending, null);
-  assert.deepEqual(h.actor.stats, { hp: 24, maxHp: 24, attack: 4, defense: 1, range: 1 });
+  assert.deepEqual(h.actor.stats, { hp: 24, maxHp: 24, attack: 4, defense: 1, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
   assert.equal(h.actor.ready, 0);
   assert.ok(wAnn.grid.open(h.actor.pos.x, h.actor.pos.y));
   assert.ok(wAnn.visible.at(h.actor.pos.x, h.actor.pos.y));
@@ -137,11 +137,13 @@ test("picks-up: gold, potion, sword, armor", () => {
   const wGold = rules.advance(rules.intend(mkWorld(heroG, [goldItem], 0), "Ann", intentShape.move(1, 0)), 50);
   assert.equal(wGold.gold, 7);
   assert.equal(wGold.items.length, 0);
+  assert.equal(wGold.heroes[0].actor.gesture, null);
 
   const potionItem = itemShape.of({ id: 2, kind: "potion", pos: pointShape.of(2, 1), amount: 0 });
   const hero10 = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 10, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, alive: true });
   const wPotion = rules.advance(rules.intend(mkWorld(hero10, [potionItem], 0), "Ann", intentShape.move(1, 0)), 50);
   assert.equal(wPotion.heroes[0].actor.stats.hp, 18);
+  assert.deepEqual(wPotion.heroes[0].actor.gesture, { kind: "power", at: 50 });
 
   const hero20 = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 20, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, alive: true });
   const wPotion20 = rules.advance(rules.intend(mkWorld(hero20, [potionItem], 0), "Ann", intentShape.move(1, 0)), 50);
@@ -151,11 +153,13 @@ test("picks-up: gold, potion, sword, armor", () => {
   const heroSword = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, alive: true });
   const wSword = rules.advance(rules.intend(mkWorld(heroSword, [swordItem], 0), "Ann", intentShape.move(1, 0)), 50);
   assert.equal(wSword.heroes[0].actor.stats.attack, 6);
+  assert.deepEqual(wSword.heroes[0].actor.gesture, { kind: "power", at: 50 });
 
   const armorItem = itemShape.of({ id: 4, kind: "armor", pos: pointShape.of(2, 1), amount: 0 });
   const heroArmor = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, alive: true });
   const wArmor = rules.advance(rules.intend(mkWorld(heroArmor, [armorItem], 0), "Ann", intentShape.move(1, 0)), 50);
   assert.equal(wArmor.heroes[0].actor.stats.defense, 2);
+  assert.deepEqual(wArmor.heroes[0].actor.gesture, { kind: "power", at: 50 });
 });
 
 test("attacks: hero stays, bat sometimes gone sometimes stays", () => {
@@ -383,7 +387,7 @@ test("saves: toSave and fromSave round-trip, hp 0 becomes 1", () => {
   assert.equal(w.heroes.length, 1);
   assert.equal(w.heroes[0].name, "Cy");
   assert.ok(w.heroes[0].alive);
-  assert.deepEqual(w.heroes[0].actor.stats, { hp: 10, maxHp: 30, attack: 6, defense: 2, range: 1 });
+  assert.deepEqual(w.heroes[0].actor.stats, { hp: 10, maxHp: 30, attack: 6, defense: 2, range: 1, magic: 0, magicPower: 1, magicResist: 0 });
   assert.deepEqual(w.entry, s);
   const w2 = rules.fromSave(s);
   assert.deepStrictEqual(w, w2);
@@ -427,12 +431,12 @@ test("shop floors: no monsters, six wares with prices, every cell visible and ex
   assert.equal(wShop.monsters.length, 0);
   assert.equal(wShop.items.length, 6);
   for (const it of wShop.items) {
-    assert.ok(["potion", "sword", "armor"].includes(it.kind));
+    assert.ok(["potion", "sword", "armor", "ring", "necklace"].includes(it.kind));
     assert.equal(it.price > 0, true);
     assert.ok(wShop.grid.open(it.pos.x, it.pos.y));
   }
   const kinds = wShop.items.map((it) => it.kind);
-  assert.deepEqual(kinds, ["potion", "sword", "armor", "potion", "sword", "armor"]);
+  assert.deepEqual(kinds, ["potion", "sword", "armor", "ring", "necklace", "potion"]);
   assert.equal(wShop.visible.count(), 48 * 32);
   assert.equal(wShop.explored.count(), 48 * 32);
 });
@@ -451,8 +455,9 @@ test("bumping and buying: offer, three log lines, wares block steps, other actio
   const wShopBuy = worldShape.of({ seed: 5, rng: 5, depth: 6, time: 0, state: "playing", grid: wShop.grid, heroes: [heroOffer], monsters: wShop.monsters, items: wShop.items, visible: wShop.visible, explored: wShop.explored, gold: 50, log: wShop.log, entry: wShop.entry });
   const wBuy = rules.advance(rules.intend(wShopBuy, "Ann", intentShape.move(1, 0)), 50);
   assert.equal(wBuy.heroes[0].offer, null);
-  assert.equal(wBuy.items.filter((it) => it.kind === "sword").length, 1);
+  assert.equal(wBuy.items.filter((it) => it.kind === "sword").length, 0);
   assert.equal(wBuy.log[wBuy.log.length - 1], `Ann buys a sword for ${swordWare.price} gold.`);
+  assert.deepEqual(wBuy.heroes[0].actor.gesture, { kind: "power", at: 50 });
 
   const heroOfferLow = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(18, 13), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, offer: swordWare.id, alive: true });
   const wShopLow = worldShape.of({ seed: 5, rng: 5, depth: 6, time: 0, state: "playing", grid: wShop.grid, heroes: [heroOfferLow], monsters: wShop.monsters, items: wShop.items, visible: wShop.visible, explored: wShop.explored, gold: 10, log: wShop.log, entry: wShop.entry });
@@ -467,6 +472,90 @@ test("bumping and buying: offer, three log lines, wares block steps, other actio
 
   const wNewFloor = rules.join(rules.fromSave(saveShape.of({ seed: 5, depth: 1, players: [{ name: "Ann", stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) }] })), "Ann");
   assert.equal(wNewFloor.heroes[0].offer, null);
+});
+
+test("rolls-advance: rng advances per attack, 20 attacks give miss and hit", () => {
+  const grid = tileGridShape.fromRows(["######", "#....#", "######"]);
+  const visible = maskShape.empty(6, 3);
+  const explored = maskShape.empty(6, 3);
+  const annActor = actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) });
+  const ann = heroShape.of({ name: "Ann", actor: annActor });
+  const skeletonActor = actorShape.of({ id: 1, kind: "skeleton", pos: pointShape.of(2, 1), stats: statsShape.of({ hp: 30, maxHp: 30, attack: 4, defense: 2 }), ready: 10000 });
+  const wBase = worldShape.of({ seed: 1, rng: 0, depth: 1, time: 0, state: "playing", grid, heroes: [ann], monsters: [skeletonActor], items: [], visible, explored, gold: 0, log: ["welcome"], entry: saveShape.of({ seed: 1, depth: 1, players: [] }) });
+
+  for (let r = 0; r < 40; r++) {
+    const w = worldShape.of({ ...wBase, rng: r });
+    const aw = rules.advance(rules.intend(w, "Ann", intentShape.attack(1, 0)), 50);
+    const expected = (r + 2 * 0x6d2b79f5) >>> 0;
+    assert.equal(aw.rng, expected, `rng after attack from ${r}`);
+  }
+
+  let w = worldShape.of({ ...wBase, rng: 0 });
+  let anyMiss = false;
+  let anyHit = false;
+  for (let i = 0; i < 20; i++) {
+    w = worldShape.of({ ...w, monsters: [skeletonActor] });
+    const ready = w.heroes[0].actor.ready;
+    const elapsed = Math.max(1, ready - w.time);
+    w = rules.advance(rules.intend(w, "Ann", intentShape.attack(1, 0)), elapsed);
+    const last = w.log[w.log.length - 1];
+    if (last.includes("misses")) anyMiss = true;
+    if (last.includes("hits")) anyHit = true;
+  }
+  assert.ok(anyMiss);
+  assert.ok(anyHit);
+});
+
+test("bumps-are-uses: ware bump leaves last unchanged, sets gesture use, second bump buys with gesture power", () => {
+  const wShop = rules.fromSave(saveShape.of({ seed: 5, depth: 6, players: [{ name: "Ann", stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) }] }));
+  const swordWare = wShop.items.find((it) => it.kind === "sword");
+
+  const heroInit = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(18, 13), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, offer: null, alive: true });
+  const wShopAnn = worldShape.of({ seed: 5, rng: 5, depth: 6, time: 0, state: "playing", grid: wShop.grid, heroes: [heroInit], monsters: wShop.monsters, items: wShop.items, visible: wShop.visible, explored: wShop.explored, gold: 50, log: wShop.log, entry: wShop.entry });
+  const wFirst = rules.advance(rules.intend(wShopAnn, "Ann", intentShape.move(1, 0)), 50);
+  assert.equal(wFirst.heroes[0].offer, swordWare.id);
+  assert.deepEqual(wFirst.heroes[0].actor.gesture, { kind: "use", at: 50 });
+  assert.equal(wFirst.heroes[0].actor.last, null);
+
+  const heroOffer = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(18, 13), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, offer: swordWare.id, alive: true });
+  const wShopBuy = worldShape.of({ seed: 5, rng: 5, depth: 6, time: 0, state: "playing", grid: wShop.grid, heroes: [heroOffer], monsters: wShop.monsters, items: wShop.items, visible: wShop.visible, explored: wShop.explored, gold: 50, log: wShop.log, entry: wShop.entry });
+  const wBuy = rules.advance(rules.intend(wShopBuy, "Ann", intentShape.move(1, 0)), 350);
+  assert.equal(wBuy.heroes[0].offer, null);
+  assert.deepEqual(wBuy.heroes[0].actor.gesture, { kind: "power", at: 350 });
+  assert.equal(wBuy.heroes[0].actor.last, null);
+});
+
+test("bump-pulled-lever-again: second bump of a pulled lever is a use, last unchanged, gesture use", () => {
+  const grid = tileGridShape.fromRows(["##########", "#........#", "#........#", "#........#", "#........#", "##########"]);
+  const visible = maskShape.empty(10, 6);
+  const explored = maskShape.empty(10, 6);
+  const lever1 = itemShape.of({ id: 20, kind: "lever", pos: pointShape.of(2, 1), amount: 0, price: 0, pulled: true });
+  const hero = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0, gesture: null }), pending: null, alive: true });
+  const w = worldShape.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "playing", grid, heroes: [hero], monsters: [], items: [lever1], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 1, players: [] }) });
+  const wPulled = rules.advance(rules.intend(w, "Ann", intentShape.move(1, 0)), 50);
+  assert.deepEqual(wPulled.heroes[0].actor.gesture, { kind: "use", at: 50 });
+  assert.equal(wPulled.heroes[0].actor.last, null);
+  assert.equal(wPulled.heroes[0].actor.ready, 400);
+});
+
+test("colours: join gets smallest free colour and group 0, fromSave gives colour i", () => {
+  const w = rules.newGame(5);
+  const wAnn = rules.join(w, "Ann");
+  assert.equal(wAnn.heroes[0].colour, 0);
+  assert.equal(wAnn.heroes[0].group, 0);
+  const wBob = rules.join(wAnn, "Bob");
+  assert.equal(wBob.heroes[1].colour, 1);
+  assert.equal(wBob.heroes[1].group, 0);
+  const wC = rules.join(wBob, "C");
+  assert.equal(wC.heroes[2].colour, 2);
+  const wD = rules.join(wC, "D");
+  assert.equal(wD.heroes[3].colour, 3);
+
+  const wSave = rules.fromSave(saveShape.of({ seed: 9, depth: 3, players: [{ name: "A", stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) }, { name: "B", stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) }] }));
+  assert.equal(wSave.heroes[0].colour, 0);
+  assert.equal(wSave.heroes[0].group, 0);
+  assert.equal(wSave.heroes[1].colour, 1);
+  assert.equal(wSave.heroes[1].group, 0);
 });
 
 test("refuses: invalid inputs throw TypeError", () => {
