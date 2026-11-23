@@ -17,12 +17,13 @@ test("names returns the table's names in order, fresh array each call", () => {
     "bread", "meat", "cheese",
     "sword-2", "sword-3", "sword-4",
     "armor-2", "armor-3", "armor-4",
+    "web",
     "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5", "wall-6",
     "wall-7", "wall-8", "wall-9", "wall-10", "wall-11", "wall-12",
     "wall-13", "wall-14", "wall-15"
   ]);
   assert.notStrictEqual(names(), n);
-  assert.strictEqual(n.length, 70);
+  assert.strictEqual(n.length, 71);
 });
 
 test("before load, sprite('hero') is null and sprite('dragon') throws TypeError", () => {
@@ -30,9 +31,9 @@ test("before load, sprite('hero') is null and sprite('dragon') throws TypeError"
   assert.throws(() => sprite("dragon"), TypeError);
 });
 
-test("wall-0 to wall-15 are the last sixteen names; mage after necklace, sparkle-2 before bread, armor-4 before wall-0; wall-16 throws TypeError", () => {
+test("wall-0 to wall-15 are the last sixteen names; mage after necklace, sparkle-2 before bread, armor-4 before web before wall-0; wall-16 throws TypeError", () => {
   const n = names();
-  const last16 = n.slice(54);
+  const last16 = n.slice(55);
   assert.deepStrictEqual(last16, [
     "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5", "wall-6",
     "wall-7", "wall-8", "wall-9", "wall-10", "wall-11", "wall-12",
@@ -47,6 +48,7 @@ test("wall-0 to wall-15 are the last sixteen names; mage after necklace, sparkle
   assert.strictEqual(n[44], "sparkle-2");
   assert.strictEqual(n[45], "bread");
   assert.strictEqual(n[53], "armor-4");
+  assert.strictEqual(n[54], "web");
   assert.throws(() => sprite("wall-16"), TypeError);
 });
 
@@ -273,4 +275,33 @@ test("after load, new monster sprites and poses", async () => {
   assert.strictEqual(sw2.sy, 0);
   assert.strictEqual(sw2.sw, 16);
   assert.strictEqual(sw2.sh, 16);
+});
+
+test("after load, spike tiles have correct sx/sy and images per theme", async () => {
+  await load("/assets/");
+  for (const s of [0, 1, 2]) {
+    const n = "spikes-" + s;
+    const d = tile("dungeon", n);
+    assert.strictEqual(d.sx, s * 16);
+    assert.strictEqual(d.sy, 0);
+    assert.strictEqual(d.sw, 16);
+    assert.strictEqual(d.sh, 16);
+    assert.strictEqual(d.image, tile("arid", n).image);
+    assert.strictEqual(d.image, tile("temple", n).image);
+  }
+  const df2 = tile("frozen", "spikes-2");
+  assert.strictEqual(df2.sx, 32);
+  assert.strictEqual(df2.sy, 0);
+  assert.notStrictEqual(df2.image, sprite("lever").image);
+  const mf2 = tile("magma", "spikes-2");
+  assert.notStrictEqual(df2.image, mf2.image);
+  const web = sprite("web");
+  assert.strictEqual(web.sx, 0);
+  assert.strictEqual(web.sy, 208);
+  assert.notStrictEqual(web.image, sprite("potion").image);
+});
+
+test("tile with spikes-3 throws TypeError", () => {
+  assert.throws(() => tile("frozen", "spikes-3"), TypeError);
+  assert.throws(() => tile("dungeon", "spikes-3"), TypeError);
 });
