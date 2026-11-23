@@ -231,7 +231,7 @@ with `PAUSED` in rgb(230, 220, 200), `bold 24px monospace`, centred in it.
 
 # Intrinsics:
 ## Intrinsic - floors:
-After `load('/assets/')` resolves, a world at depth 1 on a 15 by 11 grid (`fromRows`: a border of `#` around `floor`), every cell `visible` and `explored`, `Ann` alive at (1, 1): `draw(w, 'Ann', false)`; the cell (7, 5) (four from every wall) is pixel for pixel one of `atlas.floors('dungeon')[0]` to `[6]` drawn at 48 by 48 pixels (smoothing off) over the background rgb(22, 13, 19), and the cell (1, 5) (next to a wall) one of `[16]` to `[22]`. The same world drawn twice gives the same pixels; with `seed` 2 instead of 1, the 13 by 9 floor cells are not all the same as with seed 1.
+After `load('/assets/')` resolves, a world at depth 1 on a 15 by 11 grid (`fromRows`: a border of `#` around `floor`), every cell `visible` and `explored`, `Ann` alive at (1, 1): `draw(w, 'Ann', false)`; the cell (7, 5) (four from every wall) is pixel for pixel one of the seven calmest dungeon floor patterns, and the cell (1, 5) (next to a wall) one of the seven busiest. The dungeon's patterns lie on `/assets/sheets/floor.png` at `sx` 0; the calmest seven at `sy` 304, 336, 0, 320, 352, 368 and 16, the busiest seven at `sy` 112, 128, 240, 288, 272 and 256 and 96 (each 16 by 16, every pixel of exactly rgb(22, 13, 19) transparent, drawn at 48 by 48 with smoothing off over the background rgb(22, 13, 19)). The same world drawn twice gives the same pixels; with `seed` 2 instead of 1, the 13 by 9 floor cells are not all the same as with seed 1.
 
 ## Intrinsic - effects:
 On the 800 by 600 canvas, before any `load`, the `flat-colours` world with Bob, the monster and the gold left out, plus a monster (`slime`) at (4, 1):
