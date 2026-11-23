@@ -704,7 +704,11 @@ test("fuse: pumpkin fuse lit then explodes after 6 steps", () => {
   assert.ok(wFuse.log.some((l) => l.includes("fuse is lit!")));
   const fuseM = wFuse.monsters.find((m) => m.kind === "pumpkin");
   assert.ok(fuseM && fuseM.fuse, "pumpkin has fuse after lit");
-  const wExplode = rules.advance(wFuse, 6 * 800 + 50);
+  let wExplode = wFuse;
+  for (let t = 0; t < 6 * 800; t += 500) {
+    wExplode = rules.advance(wExplode, 500);
+  }
+  wExplode = rules.advance(wExplode, 50);
   assert.ok(wExplode.log.some((l) => l.includes("explodes!")));
   assert.ok(!wExplode.monsters.some((m) => m.kind === "pumpkin"));
 });
