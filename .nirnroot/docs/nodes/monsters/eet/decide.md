@@ -5,7 +5,10 @@ Pure: plain `node:test` tests in Node. Build monsters with `actor`'s `of`
 `range` 4 for the `archer`; `mode` and `size` as the intrinsic says),
 grids with `tile-grid`'s `of` or `fromRows`, and compare the answer's
 `kind`, `dx` and `dy`. `foes` is the one foe's cell, `threats`,
-`blocked` `[]` and `turn` 0 unless the EED says otherwise.
+`blocked` `[]`, `turn` 0 and `friends` left out unless the EED says
+otherwise. (Tests written before `friends` and **Roams** came, which
+expect a monster with no foe in its reach to wait, are stale: the EED's
+`reach` and `flees` now say what it does.)
 
 The edge under test:
 
@@ -49,6 +52,9 @@ As the EED states (`blocked` `[]`: the foe's own cell is not in it; set `last` w
 
 ## Intrinsic - abilities:
 As the EED states.
+
+## Intrinsic - roams:
+As the EED states (the friends built with `actor`'s `of`).
 
 ## Intrinsic - no-path:
 As the EED states.

@@ -21,18 +21,18 @@ the second lair's boss, a giant blue snake.
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `bat` | `vermin` | 3 | 2 | 0 | 0 | 1 | 1 | no | 9 | 133 | 200 | 1 | `none` |
 | `slime` | `vermin` | 6 | 2 | 1 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 | `none` |
-| `snake` | `vermin` | 5 | 3 | 0 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 | `none` |
+| `snake` | `vermin` | 5 | 3 | 0 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 | `lunge` |
 | `skeleton` | `undead` | 9 | 4 | 2 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 | `none` |
 | `archer` | `undead` | 7 | 3 | 1 | 0 | 1 | 4 | no | 7 | 400 | 700 | 1 | `none` |
 | `mage` | `undead` | 8 | 2 | 1 | 4 | 1 | 4 | no | 7 | 400 | 700 | 1 | `none` |
 | `swordsman` | `undead` | 11 | 5 | 2 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 | `none` |
 | `blue-slime` | `vermin` | 6 | 2 | 1 | 0 | 1 | 1 | yes | 6 | 400 | 600 | 1 | `none` |
-| `blue-snake` | `vermin` | 5 | 3 | 0 | 0 | 1 | 1 | yes | 6 | 400 | 600 | 1 | `none` |
-| `blue-spider` | `vermin` | 7 | 3 | 1 | 0 | 1 | 1 | yes | 7 | 300 | 600 | 1 | `none` |
+| `blue-snake` | `vermin` | 5 | 3 | 0 | 0 | 1 | 1 | yes | 6 | 400 | 600 | 1 | `lunge` |
+| `blue-spider` | `vermin` | 7 | 3 | 1 | 0 | 1 | 1 | yes | 7 | 300 | 600 | 1 | `leap` |
 | `beetle` | `vermin` | 8 | 4 | 8 | 0 | 1 | 1 | no | 6 | 400 | 1200 | 1 | `push` |
 | `mummy` | `undead` | 12 | 5 | 2 | 0 | 1 | 1 | no | 6 | 600 | 600 | 1 | `curse` |
 | `cultist` | `human` | 7 | 5 | 1 | 8 | 1 | 4 | no | 7 | 400 | 700 | 1 | `chant` |
-| `spider` | `vermin` | 9 | 5 | 1 | 0 | 1 | 1 | no | 8 | 300 | 600 | 1 | `none` |
+| `spider` | `vermin` | 9 | 5 | 1 | 0 | 1 | 1 | no | 8 | 300 | 600 | 1 | `leap` |
 | `ghost` | `undead` | 10 | 6 | 3 | 0 | 1 | 1 | no | 7 | 400 | 600 | 1 | `none` |
 | `reaper` | `undead` | 90 | 14 | 8 | 4 | 2 | 1 | no | 30 | 1000 | 800 | 2 | `none` |
 | `worm` | `vermin` | 9 | 5 | 2 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 | `none` |
@@ -41,7 +41,7 @@ the second lair's boss, a giant blue snake.
 | `demon` | `demon` | 16 | 7 | 4 | 0 | 1 | 1 | no | 7 | 400 | 600 | 1 | `none` |
 | `golem` | `construct` | 40 | 12 | 12 | 6 | 2 | 1 | no | 30 | 1600 | 1000 | 3 | `none` |
 | `serpent` | `vermin` | 60 | 10 | 6 | 0 | 1 | 1 | yes | 30 | 1200 | 900 | 3 | `none` |
-| `snowman` | `vermin` | 5 | 0 | 0 | 1 | 1 | 4 | yes | 7 | 133 | 200 | 1 | `none` |
+| `snowman` | `vermin` | 5 | 0 | 0 | 1 | 1 | 4 | yes | 7 | 133 | 600 | 1 | `none` |
 | `snow-skeleton` | `undead` | 11 | 5 | 2 | 0 | 1 | 1 | yes | 6 | 400 | 600 | 1 | `none` |
 | `wolf-man` | `vermin` | 14 | 5 | 2 | 0 | 1 | 1 | no | 7 | 400 | 600 | 1 | `enrage` |
 | `enraged-wolf-man` | `vermin` | 14 | 5 | 2 | 0 | 1 | 1 | no | 7 | 200 | 300 | 1 | `none` |
@@ -69,7 +69,10 @@ the second lair's boss, a giant blue snake.
   hastens the monsters near it); `enrage` (badly hurt, it becomes an
   `enraged-wolf-man`); `summon` (it never moves nor attacks: it chants
   up swarms); `split` (damage splits it in two); `fuse` (it never
-  attacks: near a foe it lights a fuse and explodes).
+  attacks: near a foe it lights a fuse and explodes); `leap` (a spider:
+  it springs into the air, untouchable, drops down beside a foe, and
+  badly hurt flees, spinning webs); `lunge` (a snake: from 3 cells away
+  it glides up to a foe in one quick slide).
 
 The **slimes** are `slime`, `blue-slime` and `fire-slime` (they act on
 every other turn only, `monsters` says).
@@ -129,7 +132,11 @@ defense: 1, magic: 4, magicPower: 1, range: 4, slows: false, reach: 7,
 step: 400, strike: 700, size: 1, ability: 'none'}`; `entry('beetle')`
 has `defense` 8, `strike` 1200 and `ability` `'push'`; `entry('mummy').ability`
 is `'curse'`, `entry('cultist').ability` `'chant'`; `entry('snowman')`
-has `attack` 0, `magic` 1, `range` 4, `slows` true, `step` 133;
+has `attack` 0, `magic` 1, `range` 4, `slows` true, `step` 133 and
+`strike` 600 (it throws at the usual speed); `entry('spider').ability`
+and `entry('blue-spider').ability` are `'leap'`, `entry('snake').ability`
+and `entry('blue-snake').ability` `'lunge'`, `entry('serpent').ability`
+`'none'`;
 `entry('enraged-wolf-man')` has `step` 200 and `strike` 300;
 `entry('swarm')` has `hp` 3, `step` 80, `strike` 300, `ability`
 `'split'`; `entry('pumpkin')` `size` 2, `step` 800, `ability` `'fuse'`;

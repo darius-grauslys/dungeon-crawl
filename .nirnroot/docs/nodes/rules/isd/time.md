@@ -127,8 +127,17 @@ every cell of each monster it flees (`bestiary.flees`), `blocked` every
 cell covered by every other alive creature and every ware's and lever's
 cell, all as they stand at that moment (monsters already moved count
 where they now are), `turn` `Math.floor(time / 400)` with `time` the new
-time. Before deciding, a `dormant` monster wakes as the EED says, or
-waits. A `guard` is decided like any other monster (never skipped):
+time, and `friends` the other alive monsters on the ground not hostile
+to it (`monsters` keeps those within 6). A creature **off the ground**
+(a spider's `air` phase `rise`, `aloft` or `drop`) is in no one's
+`foes`, `threats` or `blocked`, and no attack's line, cleave, blast or
+spike touches it. Before deciding, a `dormant` monster wakes as the EED
+says, or waits; then, in this order, a chant, a fuse, a spider's leap
+phases (and its flight), a snake's lunge, as **Abilities** says. Keep
+the heroes' plain steps of step 1 in a list for step 2b (**Attacked
+first**). New creatures and items (a split slime, a web) take ids as the
+golem's gold does: on from the largest id of the world's monsters and
+items, plus 1. A `guard` is decided like any other monster (never skipped):
 `decide`'s own guard rule keeps it in place. Every attack is `combat.resolve(attacker.stats, defender.stats,
 roll, ward)`: two draws, the d20 `roll` first, then `ward`, `1 +
 Math.floor(value * 100)`. The log line follows the strike: `hit` false

@@ -36,6 +36,29 @@ is a uint32, each draw adds 0x6D2B79F5 to it and mixes it) started at
    `start`, shuffled (Fisher-Yates with the generator), the first 40 kept.
    If fewer than 12, draw again from step 1.
 
+7. **Spikes** (only when `level.number(depth)` is 2 or more; never on
+   depth 1), drawn from the same generator after step 6, so nothing
+   before changes. Corridor cells are the `floor` cells no room holds
+   (carved in step 4 alone). Two features, each: one draw `v`, the kind
+   `['hallway', 'edge', 'scatter'][Math.floor(v * 3)]`:
+   - `hallway`: the **runs** are the maximal straight horizontal and
+     vertical stretches of 4 or more consecutive corridor cells (each
+     direction scanned row by row, then column by column; the
+     horizontal runs first); with none, take `edge` instead. One draw
+     picks a run (`runs[Math.floor(v * runs.length)]`); its `i`-th cell
+     from the top or left one gets `shift` `Math.floor(i / 2) % 6`.
+   - `edge`: one draw picks a kept room other than the first
+     (`rooms[1 + Math.floor(v * (rooms.length - 1))]`), one draw its side
+     (`['top', 'right', 'bottom', 'left'][Math.floor(v * 4)]`): every
+     cell of that side's row or column of the room (its outermost cells
+     on that side), `shift` 0.
+   - `scatter`: 6 cells, each by one draw from the rooms' `floor` cells
+     (row by row, every room's cells together) not yet taken, `shift`
+     one more draw, `Math.floor(v * 6)`.
+   A cell that is `start` or `stairs`, or already holds a spike, is
+   skipped (the first feature's spike stays). Spikes may share a cell
+   with a spot.
+
 Answer the `floor-plan` built with its shape's `of`.
 
 This Node's edge:
