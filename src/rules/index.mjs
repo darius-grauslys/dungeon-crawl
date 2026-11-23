@@ -44,6 +44,42 @@ function pick(rng, list) {
   return { rng: nr, item: list[Math.floor(value * list.length)] };
 }
 
+function maybeSplitSlime(m, currentGrid, monsterMap, heroes, items, newTime, log, rng) {
+  if (m.kind !== "slime" && m.kind !== "blue-slime") return { monsters: null, rng };
+  if (m.stats.maxHp <= 1) return { monsters: null, rng };
+  if (isBoss(m.kind)) return { monsters: null, rng };
+  const { rng: nrr, value } = mulberryDraw(rng);
+  if (value >= 0.5) return { rng: nrr, monsters: null };
+  let maxId = 0;
+  for (const mm of monsterMap.values()) if (mm.id > maxId) maxId = mm.id;
+  for (const it of items) if (it.id > maxId) maxId = it.id;
+  const newId1 = maxId + 1, newId2 = maxId + 2;
+  const cells = [];
+  for (let dy2 = -2; dy2 <= 2; dy2++) {
+    for (let dx2 = -2; dx2 <= 2; dx2++) {
+      if (dx2 === 0 && dy2 === 0) continue;
+      if (Math.max(Math.abs(dx2), Math.abs(dy2)) > 2) continue;
+      const cx = m.pos.x + dx2, cy = m.pos.y + dy2;
+      if (!currentGrid.open(cx, cy)) continue;
+      let occ = false;
+      for (const mm of monsterMap.values()) if (mm.id !== m.id && mm.covers(cx, cy)) { occ = true; break; }
+      if (occ) continue;
+      for (const h of heroes) if (h.alive && h.actor.covers(cx, cy)) { occ = true; break; }
+      if (occ) continue;
+      cells.push(pointShape.of(cx, cy));
+    }
+  }
+  if (cells.length < 2) return { rng: nrr, monsters: null };
+  const shuffled = cells.slice().sort(() => mulberryDraw(nrr).value - 0.5);
+  const c1 = shuffled[0], c2 = shuffled[1];
+  const mk = m.kind;
+  const mkStats = statsShape.of({ hp: 1, maxHp: 1, attack: m.stats.attack, defense: m.stats.defense, range: m.stats.range, magic: m.stats.magic, magicPower: m.stats.magicPower, magicResist: m.stats.magicResist });
+  const s1 = actorShape.of({ id: newId1, kind: mk, pos: c1, stats: mkStats, ready: newTime, flung: true, slow: 0, held: 0, mode: "roam", size: 1, small: false });
+  const s2 = actorShape.of({ id: newId2, kind: mk, pos: c2, stats: mkStats, ready: newTime, flung: true, slow: 0, held: 0, mode: "roam", size: 1, small: false });
+  log.push(`The ${mk} splits!`);
+  return { monsters: [s1, s2], rng: mulberryDraw(shuffled.length > 1 ? nrr : nrr).rng };
+}
+
 function combatDraw(rng) {
   const { rng: nr1, value: v1 } = mulberryDraw(rng);
   const rollVal = Math.max(1, Math.min(20, 1 + Math.floor(v1 * 20)));
@@ -1419,7 +1455,12 @@ function advance(world, ms) {
               } else {
                 log.push(`The blast hits the ${mm.kind} for 25.`);
                 const nhp = mm.stats.hp - 25;
-                if (nhp <= 0) { log.push(`The ${mm.kind} is slain.`); monsterMap.delete(mm.id); monstersList = monstersList.filter((x) => x.id !== mm.id); }
+                if (nhp <= 0) {
+                  log.push(`The ${mm.kind} is slain.`);
+                  const split = maybeSplitSlime(mm, currentGrid, monsterMap, heroes, items, newTime, log, rng);
+                  if (split.monsters) { for (const sm of split.monsters) monsterMap.set(sm.id, sm); rng = split.rng; }
+                  monsterMap.delete(mm.id); monstersList = monstersList.filter((x) => x.id !== mm.id);
+                }
                 else { monsterMap.set(mm.id, mm.with({ stats: statsShape.of({ hp: nhp, maxHp: mm.stats.maxHp, attack: mm.stats.attack, defense: mm.stats.defense, range: mm.stats.range, magic: mm.stats.magic, magicPower: mm.stats.magicPower, magicResist: mm.stats.magicResist }) })); }
               }
             }
@@ -1648,6 +1689,8 @@ function advance(world, ms) {
               const nhp = tm.stats.hp - s.damage;
               if (nhp <= 0) {
                 monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${tm.kind} for ${s.damage}.` : `The ${m.kind} hits the ${tm.kind} for ${s.damage}.`;
+                const split = maybeSplitSlime(tm, currentGrid, monsterMap, heroes, items, newTime, log, rng);
+                if (split.monsters) { for (const sm of split.monsters) monsterMap.set(sm.id, sm); rng = split.rng; }
                 monsterMap.delete(tm.id);
               } else {
                 monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${tm.kind} for ${s.damage}.` : `The ${m.kind} hits the ${tm.kind} for ${s.damage}.`;
@@ -1715,6 +1758,8 @@ function advance(world, ms) {
               const nhp = target.stats.hp - s.damage;
               if (nhp <= 0) {
                 monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${target.kind} for ${s.damage}.` : `The ${m.kind} hits the ${target.kind} for ${s.damage}.`;
+                const split = maybeSplitSlime(target, currentGrid, monsterMap, heroes, items, newTime, log, rng);
+                if (split.monsters) { for (const sm of split.monsters) monsterMap.set(sm.id, sm); rng = split.rng; }
                 monsterMap.delete(target.id);
               } else {
                 monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${target.kind} for ${s.damage}.` : `The ${m.kind} hits the ${target.kind} for ${s.damage}.`;
@@ -1825,6 +1870,8 @@ function advance(world, ms) {
           const nhp = tm.stats.hp - s.damage;
           if (nhp <= 0) {
             monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${tm.kind} for ${s.damage}.` : `The ${m.kind} hits the ${tm.kind} for ${s.damage}.`;
+            const split = maybeSplitSlime(tm, currentGrid, monsterMap, heroes, items, newTime, log, rng);
+            if (split.monsters) { for (const sm of split.monsters) monsterMap.set(sm.id, sm); rng = split.rng; }
             monsterMap.delete(tm.id);
           } else {
             monsterLine = s.critical ? `Critical! The ${m.kind} hits the ${tm.kind} for ${s.damage}.` : `The ${m.kind} hits the ${tm.kind} for ${s.damage}.`;
