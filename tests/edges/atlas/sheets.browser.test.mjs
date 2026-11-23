@@ -19,6 +19,7 @@ const NAMES = [
   "bread", "meat", "cheese",
   "sword-2", "sword-3", "sword-4",
   "armor-2", "armor-3", "armor-4",
+  "web",
   "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5",
   "wall-6", "wall-7", "wall-8", "wall-9", "wall-10", "wall-11",
   "wall-12", "wall-13", "wall-14", "wall-15"
@@ -36,20 +37,20 @@ test("themes: before load, tile('frozen','floor') is null and sprite('hero') is 
 
 // Intrinsic - table:
 // `names()` is the table's names in order. Before any `load`, `sprite('hero')` is `null`;
-// `sprite('dragon')` throws a `TypeError`. `names()` has 70 names, `wall-0` to `wall-15` the last sixteen in order, `armor-4` just before `wall-0`, the eleven from `snowman` to `sparkle-2` right after `serpent` and before `bread`, `mage` just after `necklace`, `ring` before `necklace`, `lever-pulled` before `ring`;
-// `sprite('ring')` has `sx` 0 and `sy` 64, `sprite('necklace')` `sx` 128 and `sy` 64;
+// `sprite('dragon')` throws a `TypeError`. `names()` has 71 names, `wall-0` to `wall-15` the last sixteen in order, `web` just before `wall-0` and `armor-4` just before `web`, the eleven from `snowman` to `sparkle-2` right after `serpent` and before `bread`, `mage` just after `necklace`, `ring` before `necklace`, `lever-pulled` before `ring`;
 // `sprite('wall-16')` throws a `TypeError`.
-test("table: before load, sprite('hero') is null; sprite('dragon') and sprite('wall-16') throw; names() has 70 names with armor-4 before wall-0, the 11 from snowman to sparkle-2 after serpent and before bread, mage after necklace, ring before necklace, lever-pulled before ring, wall-0..wall-15 last", () => {
+test("table: before load, sprite('hero') is null; sprite('dragon') and sprite('wall-16') throw; names() has 71 names with armor-4 before web before wall-0, the 11 from snowman to sparkle-2 after serpent and before bread, mage after necklace, ring before necklace, lever-pulled before ring, wall-0..wall-15 last", () => {
   assert.equal(sprite("hero"), null);
   assert.throws(() => sprite("dragon"), TypeError);
   assert.throws(() => sprite("wall-16"), TypeError);
   const n = names();
-  assert.equal(n.length, 70);
+  assert.equal(n.length, 71);
   assert.deepEqual(n.slice(-16), [
     "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5", "wall-6", "wall-7",
     "wall-8", "wall-9", "wall-10", "wall-11", "wall-12", "wall-13", "wall-14", "wall-15"
   ]);
-  assert.equal(n[n.length - 17], "armor-4");
+  assert.equal(n[n.length - 17], "web");
+  assert.equal(n[n.length - 18], "armor-4");
   const serpentIdx = n.indexOf("serpent");
   assert.equal(n[serpentIdx + 1], "snowman");
   assert.equal(n[serpentIdx + 11], "sparkle-2");
@@ -172,6 +173,7 @@ test("table: after load, each name's sprite has the EED table's sx, sy, sw 16, s
     "armor-2": [0, 48],
     "armor-3": [16, 48],
     "armor-4": [32, 48],
+    "web": [0, 208],
     "wall-0": [48, 0],
     "wall-1": [0, 32],
     "wall-2": [48, 32],
@@ -198,10 +200,16 @@ test("table: after load, each name's sprite has the EED table's sx, sy, sw 16, s
     assert.equal(sp.sw, 16, `sprite('${name}').sw`);
     assert.equal(sp.sh, 16, `sprite('${name}').sh`);
   }
+  // web placement and sprite
+  const web = sprite("web");
+  assert.ok(web, "sprite('web') should exist after load");
+  assert.equal(web.sx, 0);
+  assert.equal(web.sy, 208);
+  assert.notEqual(web.image, sprite("potion").image);
 });
 
 // Intrinsic - themes:
-// After `load('/assets/')` resolves: `tile('dungeon', n)` has the same `image`, `sx` and `sy` as `sprite(n)` for `n` `floor`, `stairs`, `wall-0` and `wall-15`; `tile('frozen', 'wall-6')` has `sx` 32 and `sy` 0 and an `image` other than `sprite('wall-6')`'s; `tile('interior', 'floor')` has `sx` 224 and `sy` 112; `tile('magma', 'stairs')` `sx` 0 and `sy` 112; `tile('interior', 'stairs')` has `sx` 32, `sy` 96 and the same `image` as `sprite('stairs')`; `tile('arid', 'wall-15')`, drawn at its own size on a canvas filled with pure green, leaves at least 100 of the 256 pixels not pure green; for each of the six themes, `tile(theme, 'floor')` and `tile(theme, 'wall-10')` are each 16 by 16.
+// After `load('/assets/')` resolves: `tile('dungeon', n)` has the same `image`, `sx` and `sy` as `sprite(n)` for `n` `floor`, `stairs`, `wall-0` and `wall-15`; `tile('frozen', 'wall-6')` has `sx` 32 and `sy` 0 and an `image` other than `sprite('wall-6')`'s; `tile('interior', 'floor')` has `sx` 224 and `sy` 112; `tile('magma', 'stairs')` `sx` 0 and `sy` 112; `tile('interior', 'stairs')` has `sx` 32, `sy` 96 and the same `image` as `sprite('stairs')`; `tile('arid', 'wall-15')`, drawn at its own size on a canvas filled with pure green, leaves at least 100 of the 256 pixels not pure green; for each of the six themes, `tile(theme, 'floor')`, `tile(theme, 'wall-10')` and `tile(theme, 'spikes-2')` are each 16 by 16. `tile('dungeon', 'spikes-1')` has `sx` 16, `sy` 0 and the same `image` as `sprite('lever')`; so do `tile('arid', 'spikes-1')` and `tile('temple', 'spikes-1')`; `tile('frozen', 'spikes-2')` has `sx` 32, `sy` 0 and an `image` other than `sprite('lever')`'s and other than `tile('magma', 'spikes-2')`'s; `tile('frozen', 'spikes-3')` throws a `TypeError`.
 test("themes: after load, theme tiles have correct values", async () => {
   await load("/assets/");
   const themes = ["dungeon", "frozen", "arid", "temple", "magma", "interior"];
@@ -268,7 +276,7 @@ test("themes: after load, theme tiles have correct values", async () => {
     assert.ok(notGreen >= 100, `expected at least 100 non-green pixels for arid wall-15, got ${notGreen}`);
   }
 
-  // for each of the six themes, tile(theme, 'floor') and tile(theme, 'wall-10') are each 16 by 16
+  // for each of the six themes, tile(theme, 'floor'), tile(theme, 'wall-10') and tile(theme, 'spikes-2') are each 16 by 16
   for (const theme of themes) {
     const f = tile(theme, "floor");
     assert.ok(f, `tile('${theme}', 'floor') should exist`);
@@ -278,7 +286,31 @@ test("themes: after load, theme tiles have correct values", async () => {
     assert.ok(w, `tile('${theme}', 'wall-10') should exist`);
     assert.equal(w.sw, 16, `tile('${theme}', 'wall-10').sw`);
     assert.equal(w.sh, 16, `tile('${theme}', 'wall-10').sh`);
+    const s2 = tile(theme, "spikes-2");
+    assert.ok(s2, `tile('${theme}', 'spikes-2') should exist`);
+    assert.equal(s2.sw, 16, `tile('${theme}', 'spikes-2').sw`);
+    assert.equal(s2.sh, 16, `tile('${theme}', 'spikes-2').sh`);
   }
+
+  // tile('dungeon', 'spikes-1') has sx 16, sy 0 and the same image as sprite('lever'); so do tile('arid', 'spikes-1') and tile('temple', 'spikes-1')
+  for (const theme of ["dungeon", "arid", "temple"]) {
+    const spk = tile(theme, "spikes-1");
+    assert.ok(spk, `tile('${theme}', 'spikes-1') should exist`);
+    assert.equal(spk.sx, 16);
+    assert.equal(spk.sy, 0);
+    assert.equal(spk.image, sprite("lever").image);
+  }
+
+  // tile('frozen', 'spikes-2') has sx 32, sy 0 and an image other than sprite('lever')'s and other than tile('magma', 'spikes-2')'s
+  const frozenSpikes2 = tile("frozen", "spikes-2");
+  assert.ok(frozenSpikes2, "tile('frozen', 'spikes-2') should exist");
+  assert.equal(frozenSpikes2.sx, 32);
+  assert.equal(frozenSpikes2.sy, 0);
+  assert.notEqual(frozenSpikes2.image, sprite("lever").image);
+  assert.notEqual(frozenSpikes2.image, tile("magma", "spikes-2").image);
+
+  // tile('frozen', 'spikes-3') throws a TypeError
+  assert.throws(() => tile("frozen", "spikes-3"), TypeError);
 });
 
 // Intrinsic - poses:
