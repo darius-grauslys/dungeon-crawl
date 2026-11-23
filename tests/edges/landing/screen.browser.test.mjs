@@ -190,6 +190,92 @@ test("joins", () => {
   handle.hide();
 });
 
+test("debug", () => {
+  // no debug group without options
+  const handlers1 = makeHandlers();
+  const handle1 = show(document, handlers1);
+  assert.strictEqual(document.querySelector("#landing-debug"), null);
+  handle1.hide();
+
+  // debug group with options
+  const handlers = makeHandlers();
+  const handle = show(document, handlers, { debug: true });
+  assert.ok(document.querySelector("#landing-debug"));
+  const depthInput = document.querySelector("#landing-debug-depth");
+  assert.strictEqual(depthInput.value, "1");
+  const stats = ["hp", "attack", "defense", "range", "magic", "magicPower", "magicResist"];
+  for (const stat of stats) {
+    const input = document.querySelector(`#landing-debug-${stat}`);
+    assert.ok(input);
+    assert.strictEqual(input.value, "0");
+  }
+  const rangeInput = document.querySelector("#landing-debug-range");
+  assert.strictEqual(rangeInput.getAttribute("max"), "8");
+  assert.ok(document.querySelector("#landing-debug-create"));
+  assert.strictEqual(document.querySelector("#landing-debug-create").textContent, "Start debug session");
+  const bossBtns = document.querySelectorAll("button.landing-debug-boss");
+  assert.strictEqual(bossBtns.length, 4);
+  assert.strictEqual(bossBtns[0].getAttribute("data-depth"), "7");
+  assert.strictEqual(bossBtns[1].getAttribute("data-depth"), "14");
+  assert.strictEqual(bossBtns[2].getAttribute("data-depth"), "21");
+  assert.strictEqual(bossBtns[3].getAttribute("data-depth"), "28");
+  assert.strictEqual(bossBtns[0].textContent, "Lair 1 (golem)");
+  assert.strictEqual(bossBtns[1].textContent, "Lair 2");
+  assert.strictEqual(bossBtns[2].textContent, "Lair 3");
+  assert.strictEqual(bossBtns[3].textContent, "Lair 4");
+
+  // click debug-create
+  const nameInput = document.querySelector("#landing-name");
+  nameInput.value = "Ann";
+  depthInput.value = "3";
+  document.querySelector("#landing-debug-attack").value = "5";
+  document.querySelector("#landing-debug-hp").value = "10";
+  document.querySelector("#landing-debug-range").value = "2";
+  document.querySelector("#landing-debug-create").click();
+  assert.strictEqual(handlers.calls.create.length, 1);
+  const [saveArg, name] = handlers.calls.create[0];
+  assert.strictEqual(saveArg.data().depth, 3);
+  assert.ok(Number.isInteger(saveArg.data().seed));
+  assert.ok(saveArg.data().seed >= 0 && saveArg.data().seed <= 4294967295);
+  assert.strictEqual(saveArg.data().players[0].name, "Ann");
+  assert.deepStrictEqual(saveArg.data().players[0].stats, { hp: 34, maxHp: 34, attack: 9, defense: 1, range: 3, magic: 0, magicPower: 1, magicResist: 0 });
+  assert.strictEqual(name, "Ann");
+
+  // click boss button
+  handlers.calls.create.length = 0;
+  document.querySelector('button.landing-debug-boss[data-depth="7"]').click();
+  assert.strictEqual(handlers.calls.create.length, 1);
+  const [saveArg2, name2] = handlers.calls.create[0];
+  assert.strictEqual(saveArg2.data().depth, 7);
+  assert.deepStrictEqual(saveArg2.data().players[0].stats, { hp: 34, maxHp: 34, attack: 9, defense: 1, range: 3, magic: 0, magicPower: 1, magicResist: 0 });
+
+  // invalid depth
+  handlers.calls.create.length = 0;
+  depthInput.value = "40";
+  document.querySelector("#landing-debug-create").click();
+  assert.strictEqual(handlers.calls.create.length, 0);
+  assert.strictEqual(document.querySelector("#landing-error").textContent, "Debug: depth 1 to 33, buffs whole numbers of 0 or more.");
+
+  // invalid buff
+  handlers.calls.create.length = 0;
+  depthInput.value = "3";
+  document.querySelector("#landing-debug-magic").value = "-1";
+  document.querySelector("#landing-debug-create").click();
+  assert.strictEqual(handlers.calls.create.length, 0);
+  assert.strictEqual(document.querySelector("#landing-error").textContent, "Debug: depth 1 to 33, buffs whole numbers of 0 or more.");
+
+  // empty name
+  handlers.calls.create.length = 0;
+  depthInput.value = "3";
+  document.querySelector("#landing-debug-magic").value = "0";
+  nameInput.value = "";
+  document.querySelector("#landing-debug-create").click();
+  assert.strictEqual(handlers.calls.create.length, 0);
+  assert.strictEqual(document.querySelector("#landing-error").textContent, "Enter a name of 1 to 16 characters.");
+
+  handle.hide();
+});
+
 test("handle", () => {
   const handlers = makeHandlers();
   const handle = show(document, handlers);
