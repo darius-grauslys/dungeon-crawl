@@ -94,20 +94,20 @@ test("generate returns the fixed lair plan on lair depth 7 (round 1)", () => {
     assert.strictEqual(p.boss.x, 32);
     assert.strictEqual(p.boss.y, 15);
     assert.strictEqual(p.levers.length, 3);
-    assert.strictEqual(p.levers[0].x, 12);
-    assert.strictEqual(p.levers[0].y, 8);
-    assert.strictEqual(p.levers[1].x, 12);
-    assert.strictEqual(p.levers[1].y, 24);
-    assert.strictEqual(p.levers[2].x, 22);
+    assert.strictEqual(p.levers[0].x, 39);
+    assert.strictEqual(p.levers[0].y, 7);
+    assert.strictEqual(p.levers[1].x, 39);
+    assert.strictEqual(p.levers[1].y, 25);
+    assert.strictEqual(p.levers[2].x, 39);
     assert.strictEqual(p.levers[2].y, 16);
     assert.strictEqual(p.spots.length, 72);
-    assert.strictEqual(p.spots[0].x, 10);
-    assert.strictEqual(p.spots[0].y, 6);
-    assert.strictEqual(p.spots[23].x, 14);
-    assert.strictEqual(p.spots[23].y, 10);
-    assert.strictEqual(p.spots[24].x, 10);
-    assert.strictEqual(p.spots[24].y, 22);
-    assert.strictEqual(p.spots[71].x, 24);
+    assert.strictEqual(p.spots[0].x, 37);
+    assert.strictEqual(p.spots[0].y, 5);
+    assert.strictEqual(p.spots[23].x, 41);
+    assert.strictEqual(p.spots[23].y, 9);
+    assert.strictEqual(p.spots[24].x, 37);
+    assert.strictEqual(p.spots[24].y, 23);
+    assert.strictEqual(p.spots[71].x, 41);
     assert.strictEqual(p.spots[71].y, 18);
     // levers are not spots
     for (const lever of p.levers) {

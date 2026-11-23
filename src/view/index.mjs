@@ -55,6 +55,27 @@ export function camera(world, me, cols, rows) {
   return typeof point.of === "function" ? point.of(cx, cy) : { x: cx, y: cy };
 }
 
+function layout(world, me) {
+  if (!canvas_) throw new Error("no canvas given to init");
+  const W = canvas_.width;
+  const H = canvas_.height;
+  const cols = Math.floor(W / 48);
+  const rows = Math.floor((H - 120) / 48);
+  const cam = camera(world, me, cols, rows);
+  return { W, H, cols, rows, cam };
+}
+
+/** `cellAt(world, me, x, y) -> point`. The cell of the grid drawn under the canvas pixel `(x, y)` (canvas pixels, as `draw` lays them out on the canvas given to `init`, for the player `me`): with `cols` and `rows` from the canvas's size and the camera as the layout says, the point `(camera.x + Math.floor(x / 48), camera.y + Math.floor(y / 48))`. `null` when the pixel is not on the map: `x` below 0 or at least `cols * 48`, `y` below 0 or at least `rows * 48` (the panel), or the cell outside the grid. Throws an `Error` if no canvas was given to `init`. */
+export function cellAt(world, me, x, y) {
+  const l = layout(world, me);
+  const { cols, rows, cam } = l;
+  if (x < 0 || x >= cols * 48 || y < 0 || y >= rows * 48) return null;
+  const cx = cam.x + Math.floor(x / 48);
+  const cy = cam.y + Math.floor(y / 48);
+  if (cx < 0 || cy < 0 || cx >= world.grid.width || cy >= world.grid.height) return null;
+  return typeof point.of === "function" ? point.of(cx, cy) : { x: cx, y: cy };
+}
+
 function tileColor(kind) {
   if (kind === "wall") return [90, 80, 90];
   if (kind === "floor") return [50, 36, 44];
@@ -332,17 +353,12 @@ function drawAimDot(world, me, now, cam) {
 
 /** `draw(world, me, paused, now, aiming)`. Draws the world for the player `me`, as above, onto the canvas given to `init` (throws an `Error` if none was given), with the paused band when `paused` is true. `now` is the world time to animate at, a number of 0 or more (left out: the world's `time`): the page draws every frame, with `now` running on from the last world's `time` between two worlds. `aiming` (left out: `false`): whether the player is aiming, so the aim dot is drawn. */
 export function draw(world, me, paused, nowIn, aiming = false) {
-  if (!canvas_) throw new Error("no canvas given to init");
-  const W = canvas_.width;
-  const H = canvas_.height;
-  const cols = Math.floor(W / 48);
-  const rows = Math.floor((H - 120) / 48);
+  const l = layout(world, me);
+  const { W, H, cols, rows, cam } = l;
   const now = nowIn !== undefined ? nowIn : world.time;
 
   ctx_.fillStyle = "rgb(22,13,19)";
   ctx_.fillRect(0, 0, W, H);
-
-  const cam = camera(world, me, cols, rows);
 
   // Pass 1: tiles of every cell in visible or explored.
   for (let r = 0; r < rows; r++) {
