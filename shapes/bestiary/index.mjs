@@ -10,7 +10,7 @@ const TABLE = [
   { kind: 'blue-snake', group: 'vermin', hp: 5, attack: 3, defense: 0, magic: 0, magicPower: 1, range: 1, slows: true, reach: 6, step: 400, strike: 600, size: 1 },
   { kind: 'beetle', group: 'vermin', hp: 8, attack: 4, defense: 3, magic: 0, magicPower: 1, range: 1, slows: false, reach: 6, step: 400, strike: 600, size: 1 },
   { kind: 'mummy', group: 'undead', hp: 12, attack: 5, defense: 2, magic: 0, magicPower: 1, range: 1, slows: false, reach: 6, step: 600, strike: 600, size: 1 },
-  { kind: 'cultist', group: 'human', hp: 7, attack: 5, defense: 1, magic: 0, magicPower: 1, range: 4, slows: false, reach: 7, step: 400, strike: 700, size: 1 },
+  { kind: 'cultist', group: 'human', hp: 7, attack: 5, defense: 1, magic: 8, magicPower: 1, range: 4, slows: false, reach: 7, step: 400, strike: 700, size: 1 },
   { kind: 'spider', group: 'vermin', hp: 9, attack: 5, defense: 1, magic: 0, magicPower: 1, range: 1, slows: false, reach: 8, step: 300, strike: 600, size: 1 },
   { kind: 'ghost', group: 'undead', hp: 10, attack: 6, defense: 3, magic: 0, magicPower: 1, range: 1, slows: false, reach: 7, step: 400, strike: 600, size: 1 },
   { kind: 'reaper', group: 'undead', hp: 14, attack: 7, defense: 3, magic: 0, magicPower: 1, range: 1, slows: false, reach: 6, step: 400, strike: 600, size: 1 },
