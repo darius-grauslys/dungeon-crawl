@@ -14,6 +14,8 @@ ranged attack passes through friends). A `vermin` **flees** a `demon`.
 
 The `skeleton` is the plain one, the `archer` the one with a bow, the
 `mage` a skeleton with a staff, the `swordsman` one with a sword.
+The `blue-spider` replaces the snakes on levels 5 to 10; the `serpent` is
+the second lair's boss, a giant blue snake.
 
 | kind | group | hp | attack | defense | magic | magicPower | range | slows | reach | step | strike | size |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -26,6 +28,7 @@ The `skeleton` is the plain one, the `archer` the one with a bow, the
 | `swordsman` | `undead` | 11 | 5 | 2 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
 | `blue-slime` | `vermin` | 6 | 2 | 1 | 0 | 1 | 1 | yes | 6 | 400 | 600 | 1 |
 | `blue-snake` | `vermin` | 5 | 3 | 0 | 0 | 1 | 1 | yes | 6 | 400 | 600 | 1 |
+| `blue-spider` | `vermin` | 7 | 3 | 1 | 0 | 1 | 1 | yes | 7 | 300 | 600 | 1 |
 | `beetle` | `vermin` | 8 | 4 | 3 | 0 | 1 | 1 | no | 6 | 400 | 600 | 1 |
 | `mummy` | `undead` | 12 | 5 | 2 | 0 | 1 | 1 | no | 6 | 600 | 600 | 1 |
 | `cultist` | `human` | 7 | 5 | 1 | 8 | 1 | 4 | no | 7 | 400 | 700 | 1 |
@@ -37,6 +40,7 @@ The `skeleton` is the plain one, the `archer` the one with a bow, the
 | `imp` | `demon` | 12 | 6 | 3 | 0 | 1 | 1 | no | 7 | 300 | 600 | 1 |
 | `demon` | `demon` | 16 | 7 | 4 | 0 | 1 | 1 | no | 7 | 400 | 600 | 1 |
 | `golem` | `construct` | 40 | 12 | 12 | 6 | 2 | 1 | no | 30 | 1600 | 1000 | 3 |
+| `serpent` | `vermin` | 60 | 10 | 6 | 0 | 1 | 1 | yes | 30 | 1200 | 900 | 3 |
 
 - `hp`, `attack`, `defense`: the base stats (`hp` is also `maxHp`),
   before `rules` adds the floor's tier.
@@ -57,7 +61,7 @@ every other turn only, `monsters` says).
 
 The module (`shapes/bestiary/index.mjs`) exports:
 
-- `KINDS`: the twenty kinds, in the table's order (a frozen array).
+- `KINDS`: the twenty-two kinds, in the table's order (a frozen array).
 - `GROUPS`: `['human', 'undead', 'vermin', 'demon', 'construct']` (a
   frozen array).
 - `SLIMES`: `['slime', 'blue-slime', 'fire-slime']` (a frozen array).
@@ -97,8 +101,11 @@ The function `flees(a, b)`.
 
 # Intrinsics:
 ## Intrinsic - valid:
-`KINDS` has 20 kinds, the first `bat` and the last `golem`, `mage` and
-`swordsman` right after `archer`, and is frozen. `entry('bat')` has
+`KINDS` has 22 kinds, the first `bat` and the last `serpent` (right
+after `golem`), `mage` and `swordsman` right after `archer`,
+`blue-spider` right after `blue-snake`, and is frozen. `entry('serpent')`
+has `group` `'vermin'`, `hp` 60, `attack` 10, `defense` 6, `slows` true
+and `size` 3; `entry('blue-spider').slows` is true. `entry('bat')` has
 `step` 133 and `strike` 200 (bats are three times as fast as most);
 `entry('mage')` is `{kind: 'mage', group: 'undead', hp: 8, attack: 2,
 defense: 1, magic: 4, magicPower: 1, range: 4, slows: false, reach: 7,

@@ -2,7 +2,7 @@
 
 A shop depth (`level.kind(depth)` is `interior`) answers the EED's shop,
 and a lair depth (`boss`) the EED's lair (its boss, levers and guards'
-spots on `level.round(depth)` 1 alone), each built cell by cell, without
+spots on `level.round(depth)` 1, its boss alone on round 2), each built cell by cell, without
 drawing from any generator. Every other depth is carved as below.
 
 How a floor is carved. Everything random comes from one generator seeded

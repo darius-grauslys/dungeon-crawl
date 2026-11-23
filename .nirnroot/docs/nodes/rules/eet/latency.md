@@ -105,6 +105,9 @@ As the EED states.
 ## Intrinsic - golem-dies:
 As the EED states: replace the heroes and monsters of the `lair` world with `with`.
 
+## Intrinsic - serpent-dies:
+As the EED states: `fromSave` of a save of Ann at depth 14, then replace Ann and the serpent with `with`.
+
 ## Intrinsic - golem-gold:
 As the EED states: replace the heroes and the golem of the `lair` world with `with` (the golem's `pos`, `size`, `small`, `stats` and `ready`).
 

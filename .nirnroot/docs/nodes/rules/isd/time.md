@@ -26,15 +26,18 @@ from the level's list:
 |---|---|---|
 | 1, 2 | (no first draw) | bat, slime, snake |
 | 3 | 0.08: `swordsman` | bat, slime, snake |
-| 4, 5 | 0.10: `archer`; 0.16: `swordsman`; 0.22: `mage` | bat, slime, snake, skeleton |
-| 6 to 10 | 0.25: `mage` | blue-slime, blue-snake, archer, swordsman |
+| 4 | 0.10: `archer`; 0.16: `swordsman`; 0.22: `mage` | bat, slime, snake, skeleton |
+| 5 | 0.10: `archer`; 0.16: `swordsman`; 0.22: `mage` | bat, slime, blue-spider, skeleton |
+| 6 to 10 | 0.25: `mage` | blue-slime, blue-spider, archer, swordsman |
 | 11 to 15 | (no first draw) | beetle, mummy, cultist |
 | 16 to 20 | (no first draw) | spider, ghost, reaper |
 | 21 to 25 | (no first draw) | worm, fire-slime, imp, demon |
 
 (On levels 4 and 5, a first draw from 0.10 to below 0.16 is a
 swordsman, from 0.16 to below 0.22 a mage. Levels 6 to 10 have no plain
-skeleton: only the armed ones.)
+skeleton, only the armed ones; from level 5 to 10 the blue spider takes
+the snake's place, and no `blue-snake` is placed anywhere: it grew into
+the second lair's serpent.)
 
 Monster stats from `bestiary.entry(kind)` (`hp` = `maxHp`), with the
 tier: `hp` and `maxHp` are `base + Math.floor(base * tier / 2)`,
@@ -82,11 +85,12 @@ So each shop's prices are a quarter more than the last's.
 `visible` and `explored` are every cell (`mask.of` with every cell
 true), on arrival and after every `advance`.
 
-On a **lair** depth (`boss`): when the plan has a `boss`, the golem (id
-10; stats from its entry, untiered; `size` 3, `mode` `dormant`,
-`facing` `left`) at `plan.boss`; the grid made again with `tile-grid`'s
+On a **lair** depth (`boss`): when the plan has a `boss`, the boss (id
+10; the `golem` on round 1, the `serpent` on round 2; stats from its
+entry, untiered; `size` 3, `mode` `dormant`, `facing` `left`) at
+`plan.boss`; the grid made again with `tile-grid`'s
 `of`, the `plan.stairs` cell `floor`; the levers (ids 11 onward) on
-`plan.levers` in order; a guard `slime` (`mode` `guard`, stats of tier
+`plan.levers` in order (round 1 only: the serpent's plan has none); a guard `slime` (`mode` `guard`, stats of tier
 0) on every spot in order (ids after the levers). Without a `boss`:
 nothing. No draws on a lair.
 
@@ -131,8 +135,8 @@ it (alive heroes in order, then monsters, each once), and run the same
 melee strike helper on each in turn (two draws each, threaded). Its
 `ready` and `last` are set once.
 
-**The golem's gold.** When the golem dies, at time `t`, two draws: the
-total `25 + Math.floor(value * 51)`, then the count `n = 1 +
+**The golem's gold** (a boss's). When a boss dies, at time `t`, two draws: the
+total `(25 + Math.floor(value * 51)) * level.round(depth)`, then the count `n = 1 +
 Math.floor(value * 5)`. The candidate cells: every `floor` cell (not
 `stairs`) at distance 1 or 2 from the golem's last square, outside it (the
 square is the dying golem actor's own: from its `pos`, `size` cells
