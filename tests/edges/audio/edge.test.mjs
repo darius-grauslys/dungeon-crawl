@@ -144,6 +144,52 @@ test("audio: music", async () => {
   await settleDecoding();
   assert.ok(fetchFn.urls().includes("music/dungeon-5.mp3"), "depth 33 fetches music/dungeon-5.mp3");
 
+  // variation music: shops, bosses, stage variations, empty lair
+  w = makeWorld({ depth: 2, state: "playing" });
+  await update(audio, w, w, "Ann");
+  await settleDecoding();
+  assert.ok(fetchFn.urls().includes("music/dark-comical.mp3"), "depth 2 fetches music/dark-comical.mp3");
+
+  w = makeWorld({ depth: 4, state: "playing" });
+  await update(audio, w, w, "Ann");
+  await settleDecoding();
+  assert.ok(fetchFn.urls().includes("music/desert-dungeon.mp3"), "depth 4 fetches music/desert-dungeon.mp3");
+
+  w = makeWorld({ depth: 11, state: "playing" });
+  await update(audio, w, w, "Ann");
+  await settleDecoding();
+  assert.ok(fetchFn.urls().includes("music/desert-dungeon.mp3"), "depth 11 fetches music/desert-dungeon.mp3");
+
+  w = makeWorld({ depth: 6, state: "playing" });
+  await update(audio, w, w, "Ann");
+  await settleDecoding();
+  assert.ok(fetchFn.urls().includes("music/shop.mp3"), "depth 6 fetches music/shop.mp3");
+
+  w = makeWorld({ depth: 27, state: "playing" });
+  await update(audio, w, w, "Ann");
+  await settleDecoding();
+  assert.ok(fetchFn.urls().includes("music/shop.mp3"), "depth 27 fetches music/shop.mp3");
+
+  w = makeWorld({ depth: 7, state: "playing" });
+  await update(audio, w, w, "Ann");
+  await settleDecoding();
+  assert.ok(fetchFn.urls().includes("music/boss.mp3"), "depth 7 fetches music/boss.mp3");
+
+  w = makeWorld({ depth: 14, state: "playing" });
+  await update(audio, w, w, "Ann");
+  await settleDecoding();
+  assert.ok(fetchFn.urls().includes("music/boss.mp3"), "depth 14 fetches music/boss.mp3");
+
+  w = makeWorld({ depth: 21, state: "playing" });
+  await update(audio, w, w, "Ann");
+  await settleDecoding();
+  assert.ok(fetchFn.urls().includes("music/boss.mp3"), "depth 21 fetches music/boss.mp3");
+
+  w = makeWorld({ depth: 28, state: "playing" });
+  await update(audio, w, w, "Ann");
+  await settleDecoding();
+  assert.ok(fetchFn.urls().includes("music/dungeon-4.mp3"), "depth 28 fetches music/dungeon-4.mp3");
+
   w = makeWorld({ depth: 33, state: "won" });
   context.bufferSources.length = 0;
   await update(audio, w, w, "Ann");
