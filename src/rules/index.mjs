@@ -410,16 +410,17 @@ function makeFloor(seed, depth, rngIn) {
   return { plan, monsters, items, rng, grid };
 }
 
-function newGame(seed) {
+function newGame(seed, depth = 1) {
   if (!Number.isInteger(seed) || seed < 0 || seed > 4294967295) {
     throw new TypeError("rules.newGame: seed must be an integer from 0 to 4294967295");
   }
-  const { plan, monsters, items, rng, grid } = makeFloor(seed, 1, seed);
+  const d = depth || 1;
+  const { plan, monsters, items, rng, grid } = makeFloor(seed, d, seed);
   const visible = maskShape.empty(grid.width, grid.height);
   const explored = maskShape.empty(grid.width, grid.height);
-  const entry = saveShape.of({ seed, depth: 1, players: [] });
+  const entry = saveShape.of({ seed, depth: d, players: [] });
   return worldShape.of({
-    seed, rng, depth: 1, time: 0, state: "playing", grid,
+    seed, rng, depth: d, time: 0, state: "playing", grid,
     heroes: [], monsters, items, visible, explored, gold: 0,
     log: ["Welcome to the dungeon. Find the stairs (>)."], entry,
   });
@@ -1076,8 +1077,8 @@ function heroFiredAction(world, h, newTime, heroLatencyFn, state) {
 }
 
 function advance(world, ms) {
-  if (!Number.isInteger(ms) || ms < 1 || ms > 1000) {
-    throw new TypeError("rules.advance: ms must be an integer from 1 to 1000");
+  if (!Number.isInteger(ms) || ms < 1) {
+    throw new TypeError("rules.advance: ms must be a positive integer");
   }
   const newTime = world.time + ms;
   const eff = (world.effects || []).filter((e) => newTime - e.at <= 1000);
