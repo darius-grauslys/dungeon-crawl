@@ -68,8 +68,8 @@ test("item valid: builds a flung gold item with a frozen flung copy", () => {
   assert.ok(Object.isFrozen(item));
 });
 
-test("item valid: KINDS is the seven kind names in the table's order and is frozen", () => {
-  assert.deepStrictEqual(KINDS, ['potion', 'gold', 'sword', 'armor', 'ring', 'necklace', 'lever']);
+test("item valid: KINDS is the sixteen kind names in the table's order and is frozen", () => {
+  assert.deepStrictEqual(KINDS, ['potion', 'gold', 'sword', 'armor', 'ring', 'necklace', 'lever', 'bread', 'meat', 'cheese', 'sword-2', 'sword-3', 'sword-4', 'armor-2', 'armor-3', 'armor-4']);
   assert.ok(Object.isFrozen(KINDS));
 });
 
@@ -145,4 +145,51 @@ test("item valid: builds a necklace with amount 0 and price 0", () => {
   assert.strictEqual(item.pulled, false);
   assert.strictEqual(item.flung, null);
   assert.ok(Object.isFrozen(item));
+});
+
+test("item valid: builds a cheese food item", () => {
+  const item = of({ id: 11, kind: 'cheese', pos: point.of(1, 1) });
+  assert.strictEqual(item.id, 11);
+  assert.strictEqual(item.kind, 'cheese');
+  assert.strictEqual(item.pos.x, 1);
+  assert.strictEqual(item.pos.y, 1);
+  assert.strictEqual(item.amount, 0);
+  assert.strictEqual(item.price, 0);
+  assert.strictEqual(item.pulled, false);
+  assert.strictEqual(item.flung, null);
+  assert.ok(Object.isFrozen(item));
+});
+
+test("item valid: builds a ware armor-3 with price 70", () => {
+  const item = of({ id: 12, kind: 'armor-3', pos: point.of(1, 1), price: 70 });
+  assert.strictEqual(item.id, 12);
+  assert.strictEqual(item.kind, 'armor-3');
+  assert.strictEqual(item.pos.x, 1);
+  assert.strictEqual(item.pos.y, 1);
+  assert.strictEqual(item.amount, 0);
+  assert.strictEqual(item.price, 70);
+  assert.strictEqual(item.pulled, false);
+  assert.strictEqual(item.flung, null);
+  assert.ok(Object.isFrozen(item));
+});
+
+test("item valid: builds a ware sword-4 with price 0", () => {
+  const item = of({ id: 13, kind: 'sword-4', pos: point.of(1, 1) });
+  assert.strictEqual(item.id, 13);
+  assert.strictEqual(item.kind, 'sword-4');
+  assert.strictEqual(item.pos.x, 1);
+  assert.strictEqual(item.pos.y, 1);
+  assert.strictEqual(item.amount, 0);
+  assert.strictEqual(item.price, 0);
+  assert.strictEqual(item.pulled, false);
+  assert.strictEqual(item.flung, null);
+  assert.ok(Object.isFrozen(item));
+});
+
+test("item valid: refuses a meat of amount 2", () => {
+  assert.throws(() => of({ id: 0, kind: 'meat', pos: point.of(0, 0), amount: 2 }), TypeError);
+});
+
+test("item valid: refuses kind 'armor-5'", () => {
+  assert.throws(() => of({ id: 0, kind: 'armor-5', pos: point.of(0, 0) }), TypeError);
 });
