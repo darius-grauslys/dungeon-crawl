@@ -169,15 +169,15 @@ function floorTileIndices(world, theme) {
 
   const { regionId, regionType } = computeRegions(world);
   const half = Math.floor(N / 2);
+  const Hbase = 1 + Math.floor(h(world, 1000, 0) * half);
 
   function baseForRegion(r) {
     if (regionType[r] === 'hall') {
-      // halls get busy patterns: base in [half, N-2]
-      const hb = half + Math.floor(h(world, r, 3) * (N - 1 - half));
-      return Math.min(hb, N - 2);
+      // every hall region has base H, capped at N-2
+      return Math.min(Hbase, N - 2);
     } else {
-      // rooms get calm patterns: base in [0, half-1]
-      const rb = Math.floor(h(world, r, 2) * half);
+      // a room region r has base H-1 when h(r,2) < 0.5, else H+1, capped at N-2
+      const rb = h(world, r, 2) < 0.5 ? Hbase - 1 : Hbase + 1;
       return Math.min(rb, N - 2);
     }
   }
