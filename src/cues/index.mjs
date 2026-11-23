@@ -26,6 +26,12 @@ function gestureEqual(a, b) {
   return a.kind === b.kind && a.at === b.at;
 }
 
+function fuseEqual(a, b) {
+  if (a === null && b === null) return true;
+  if (a === null || b === null) return false;
+  return a.at === b.at;
+}
+
 function monsterSeen(actor, mask) {
   const cells = actor.cells();
   for (let i = 0; i < cells.length; i++) {
@@ -101,6 +107,13 @@ export function cues(prev, next, me) {
     if (prevH !== undefined && prevH.alive && !h.alive) {
       sounds.push({ name: 'death', gain });
     }
+
+    if (actor.fuse !== null) {
+      const prevFuse = prevH ? prevH.actor.fuse : null;
+      if (prevH === undefined || !fuseEqual(actor.fuse, prevFuse)) {
+        sounds.push({ name: 'hiss', gain });
+      }
+    }
   }
 
   for (let i = 0; i < next.monsters.length; i++) {
@@ -130,6 +143,13 @@ export function cues(prev, next, me) {
     if (prevM !== undefined && actor.stats.hp < prevM.stats.hp) {
       sounds.push({ name: 'hit', gain });
     }
+
+    if (actor.fuse !== null) {
+      const prevFuse = prevM ? prevM.fuse : null;
+      if (prevM === undefined || !fuseEqual(actor.fuse, prevFuse)) {
+        sounds.push({ name: 'hiss', gain });
+      }
+    }
   }
 
   for (let i = 0; i < prev.monsters.length; i++) {
@@ -145,6 +165,25 @@ export function cues(prev, next, me) {
 
   if (next.gold > prev.gold) {
     sounds.push({ name: 'coin', gain: 1 });
+  }
+
+  const prevEffects = Array.isArray(prev.effects) ? prev.effects : [];
+  const nextEffects = Array.isArray(next.effects) ? next.effects : [];
+  for (let i = 0; i < nextEffects.length; i++) {
+    const e = nextEffects[i];
+    if (e.kind !== 'blast') continue;
+    let inPrev = false;
+    for (let j = 0; j < prevEffects.length; j++) {
+      const pe = prevEffects[j];
+      if (pe.kind === e.kind && pe.x === e.x && pe.y === e.y && pe.size === e.size && pe.at === e.at) {
+        inPrev = true;
+        break;
+      }
+    }
+    if (inPrev) continue;
+    const cx = e.x + Math.floor(e.size / 2);
+    const cy = e.y + Math.floor(e.size / 2);
+    sounds.push({ name: 'boom', gain: computeGain(cx, cy, next, me) });
   }
 
   const best = new Map();
