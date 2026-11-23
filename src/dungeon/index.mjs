@@ -218,7 +218,7 @@ function buildLairPlan(round) {
 
   if (round === 1) {
     bossPt = point.of(32, 15);
-    leversArr = [point.of(12, 8), point.of(12, 24), point.of(22, 16)];
+    leversArr = [point.of(39, 7), point.of(39, 25), point.of(39, 16)];
     for (const lever of leversArr) {
       for (let dy = -2; dy <= 2; dy++) {
         for (let dx = -2; dx <= 2; dx++) {
