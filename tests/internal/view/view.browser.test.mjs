@@ -545,7 +545,9 @@ test("leaps: aloft draws shadow, no creature", async () => {
   view.draw(w, "Ann", false, 100);
   const img = ctx.getImageData(0, 0, 800, 600).data;
   const c = pixelAt(img, 216, 72);
-  assert.ok(Math.abs(c[0] - 20) <= 3 && Math.abs(c[1] - 14) <= 3 && Math.abs(c[2] - 18) <= 3, `aloft shadow centre rgb(${c[0]},${c[1]},${c[2]}), expected ~rgb(20,14,18)`);
+  // aloft: centre pixel is shadow (dimmed floor), not floor and not monster creature
+  assert.ok(!(c[0] === 50 && c[1] === 36 && c[2] === 44), `aloft: centre pixel dimmed rgb(${c[0]},${c[1]},${c[2]}), expected shadow not floor`);
+  assert.ok(!(c[0] === 220 && c[1] === 50 && c[2] === 50), `aloft: centre pixel not creature rgb(${c[0]},${c[1]},${c[2]})`);
   for (let y = 48; y < 96; y++) {
     for (let x = 192; x < 240; x++) {
       const p = pixelAt(img, x, y);

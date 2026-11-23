@@ -423,7 +423,7 @@ function leapTransform(air, now) {
     oy = 0;
     a = 0;
   } else if (phase === 'rise') {
-    p = Math.min(1, t / 250);
+    p = Math.min(1, t / 400);
     a = p;
     if (p < 0.4) {
       const q = p / 0.4;
