@@ -56,19 +56,43 @@ test("generate returns the fixed shop plan on shop depths", () => {
     assert.strictEqual(p.start.y, 19);
     assert.strictEqual(p.stairs.x, 31);
     assert.strictEqual(p.stairs.y, 19);
-    assert.strictEqual(p.spots.length, 6);
-    assert.strictEqual(p.spots[0].x, 16);
+    assert.strictEqual(p.spots.length, 18);
+    assert.strictEqual(p.spots[0].x, 15);
     assert.strictEqual(p.spots[0].y, 13);
-    assert.strictEqual(p.spots[1].x, 19);
+    assert.strictEqual(p.spots[1].x, 17);
     assert.strictEqual(p.spots[1].y, 13);
-    assert.strictEqual(p.spots[2].x, 22);
+    assert.strictEqual(p.spots[2].x, 19);
     assert.strictEqual(p.spots[2].y, 13);
-    assert.strictEqual(p.spots[3].x, 25);
+    assert.strictEqual(p.spots[3].x, 21);
     assert.strictEqual(p.spots[3].y, 13);
-    assert.strictEqual(p.spots[4].x, 28);
+    assert.strictEqual(p.spots[4].x, 23);
     assert.strictEqual(p.spots[4].y, 13);
-    assert.strictEqual(p.spots[5].x, 31);
+    assert.strictEqual(p.spots[5].x, 25);
     assert.strictEqual(p.spots[5].y, 13);
+    assert.strictEqual(p.spots[6].x, 27);
+    assert.strictEqual(p.spots[6].y, 13);
+    assert.strictEqual(p.spots[7].x, 29);
+    assert.strictEqual(p.spots[7].y, 13);
+    assert.strictEqual(p.spots[8].x, 31);
+    assert.strictEqual(p.spots[8].y, 13);
+    assert.strictEqual(p.spots[9].x, 15);
+    assert.strictEqual(p.spots[9].y, 16);
+    assert.strictEqual(p.spots[10].x, 17);
+    assert.strictEqual(p.spots[10].y, 16);
+    assert.strictEqual(p.spots[11].x, 19);
+    assert.strictEqual(p.spots[11].y, 16);
+    assert.strictEqual(p.spots[12].x, 21);
+    assert.strictEqual(p.spots[12].y, 16);
+    assert.strictEqual(p.spots[13].x, 23);
+    assert.strictEqual(p.spots[13].y, 16);
+    assert.strictEqual(p.spots[14].x, 25);
+    assert.strictEqual(p.spots[14].y, 16);
+    assert.strictEqual(p.spots[15].x, 27);
+    assert.strictEqual(p.spots[15].y, 16);
+    assert.strictEqual(p.spots[16].x, 29);
+    assert.strictEqual(p.spots[16].y, 16);
+    assert.strictEqual(p.spots[17].x, 31);
+    assert.strictEqual(p.spots[17].y, 16);
     // deterministic across seeds
     const p2 = dungeon.generate(4294967295, d);
     assert.deepStrictEqual(p.grid.tiles(), p2.grid.tiles());
@@ -121,8 +145,8 @@ test("generate returns the fixed lair plan on lair depth 7 (round 1)", () => {
   }
 });
 
-test("generate returns the empty lair plan on lair depths 14, 21, 28", () => {
-  for (const d of [14, 21, 28]) {
+test("generate returns the empty lair plan on lair depths 21, 28", () => {
+  for (const d of [21, 28]) {
     for (const s of [0, 1, 19]) {
       const p = dungeon.generate(s, d);
       assert.strictEqual(p.grid.width, 48);
@@ -138,6 +162,25 @@ test("generate returns the empty lair plan on lair depths 14, 21, 28", () => {
       const p7 = dungeon.generate(0, 7);
       assert.deepStrictEqual(p.grid.tiles(), p7.grid.tiles());
     }
+  }
+});
+
+test("generate returns the serpent lair plan on lair depth 14 (round 2)", () => {
+  for (const s of [0, 1, 19]) {
+    const p = dungeon.generate(s, 14);
+    assert.strictEqual(p.grid.width, 48);
+    assert.strictEqual(p.grid.height, 32);
+    assert.strictEqual(p.stairs.x, 33);
+    assert.strictEqual(p.stairs.y, 16);
+    assert.strictEqual(p.start.x, 8);
+    assert.strictEqual(p.start.y, 16);
+    assert.strictEqual(p.boss.x, 32);
+    assert.strictEqual(p.boss.y, 15);
+    assert.strictEqual(p.levers.length, 0);
+    assert.strictEqual(p.spots.length, 0);
+    // tiles deep equal to depth 7
+    const p7 = dungeon.generate(0, 7);
+    assert.deepStrictEqual(p.grid.tiles(), p7.grid.tiles());
   }
 });
 

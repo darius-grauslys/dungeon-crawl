@@ -12,6 +12,10 @@ const NAMES = [
   "archer", "blue-slime", "blue-snake", "golem", "beetle", "mummy",
   "cultist", "spider", "ghost", "reaper", "worm", "fire-slime", "imp",
   "lever", "lever-pulled", "ring", "necklace",
+  "mage", "swordsman", "blue-spider", "serpent",
+  "bread", "meat", "cheese",
+  "sword-2", "sword-3", "sword-4",
+  "armor-2", "armor-3", "armor-4",
   "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5",
   "wall-6", "wall-7", "wall-8", "wall-9", "wall-10", "wall-11",
   "wall-12", "wall-13", "wall-14", "wall-15"
@@ -29,22 +33,23 @@ test("themes: before load, tile('frozen','floor') is null and sprite('hero') is 
 
 // Intrinsic - table:
 // `names()` is the table's names in order. Before any `load`, `sprite('hero')` is `null`;
-// `sprite('dragon')` throws a `TypeError`. `names()` has 46 names, `wall-0` to `wall-15` the last sixteen in order, `necklace` just before `wall-0` and `ring` before it, `lever-pulled` before `ring`;
+// `sprite('dragon')` throws a `TypeError`. `names()` has 59 names, `wall-0` to `wall-15` the last sixteen in order, `armor-4` just before `wall-0`, `mage` just after `necklace`, `ring` before `necklace`, `lever-pulled` before `ring`;
 // `sprite('ring')` has `sx` 0 and `sy` 64, `sprite('necklace')` `sx` 128 and `sy` 64;
 // `sprite('wall-16')` throws a `TypeError`.
-test("table: before load, sprite('hero') is null; sprite('dragon') and sprite('wall-16') throw; names() has 46 names with lever-pulled, ring, necklace before wall-0..wall-15 last", () => {
+test("table: before load, sprite('hero') is null; sprite('dragon') and sprite('wall-16') throw; names() has 59 names with armor-4 before wall-0, mage after necklace, lever-pulled, ring, necklace before wall-0..wall-15 last", () => {
   assert.equal(sprite("hero"), null);
   assert.throws(() => sprite("dragon"), TypeError);
   assert.throws(() => sprite("wall-16"), TypeError);
   const n = names();
-  assert.equal(n.length, 46);
+  assert.equal(n.length, 59);
   assert.deepEqual(n.slice(-16), [
     "wall-0", "wall-1", "wall-2", "wall-3", "wall-4", "wall-5", "wall-6", "wall-7",
     "wall-8", "wall-9", "wall-10", "wall-11", "wall-12", "wall-13", "wall-14", "wall-15"
   ]);
-  assert.equal(n[n.length - 17], "necklace");
-  assert.equal(n[n.length - 18], "ring");
-  assert.equal(n[n.length - 19], "lever-pulled");
+  assert.equal(n[n.length - 17], "armor-4");
+  assert.equal(n[n.length - 30], "necklace");
+  assert.equal(n[n.length - 31], "ring");
+  assert.equal(n[n.length - 32], "lever-pulled");
   assert.deepEqual(n, NAMES);
 });
 
@@ -127,6 +132,19 @@ test("table: after load, each name's sprite has the EED table's sx, sy, sw 16, s
     "lever-pulled": [32, 80],
     ring: [0, 64],
     necklace: [128, 64],
+    mage: [0, 16],
+    swordsman: [64, 16],
+    "blue-spider": [64, 96],
+    serpent: [0, 16],
+    bread: [0, 144],
+    meat: [16, 144],
+    cheese: [32, 144],
+    "sword-2": [80, 16],
+    "sword-3": [0, 16],
+    "sword-4": [16, 16],
+    "armor-2": [0, 48],
+    "armor-3": [16, 48],
+    "armor-4": [32, 48],
     "wall-0": [48, 0],
     "wall-1": [0, 32],
     "wall-2": [48, 32],
