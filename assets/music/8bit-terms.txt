@@ -1,6 +1,9 @@
-Music: dark-comical.mp3 ("dark comical 8bit"), desert-dungeon.mp3 ("desert dungeon 8bit3"),
-shop.mp3 ("sudden 8bit"), boss.mp3 ("boss battle 8bit2"): free 8-bit MP3 sources, used unaltered.
-Credit is required by the terms below.
+Music: YUKARINOTI (ゆかりのてぃ)
+
+dark-comical.mp3 ("dark comical 8bit"), desert-dungeon.mp3 ("desert dungeon 8bit3"),
+shop.mp3 ("sudden 8bit"), boss.mp3 ("boss battle 8bit2"): BGM by YUKARINOTI, used unaltered.
+
+Terms of use:
 
 *Please refrain from using it for the following purposes.
 
