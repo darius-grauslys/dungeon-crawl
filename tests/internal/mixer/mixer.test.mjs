@@ -107,6 +107,23 @@ test('load rejects when a fetch is not ok', async () => {
   await assert.rejects(() => mixer.load(), (e) => e.message.includes('sfx/coin.mp3'));
 });
 
+test('load works with a fetch that enforces this is undefined or global', async () => {
+  const fake = makeFakeContext();
+  const globalObj = typeof globalThis !== 'undefined' ? globalThis : (typeof global !== 'undefined' ? global : undefined);
+  let calledThis = null;
+  const strictFetch = async function (url) {
+    calledThis = this;
+    if (this !== undefined && this !== globalObj) {
+      throw new TypeError('fetch must be called with undefined or globalThis as this');
+    }
+    return { ok: true, arrayBuffer: () => Promise.resolve(new ArrayBuffer(1)) };
+  };
+  const mixer = create({ context: fake.ctx, fetch: strictFetch });
+  await mixer.load();
+  assert.equal(fake.decodeCalls.length, 12);
+  assert.equal(calledThis, undefined);
+});
+
 test('play starts nothing before load resolves', async () => {
   const fake = makeFakeContext();
   const fetcher = async (url) => ({ ok: true, arrayBuffer: () => Promise.resolve(new ArrayBuffer(1)) });
