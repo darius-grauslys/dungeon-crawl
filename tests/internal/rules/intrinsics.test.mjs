@@ -506,6 +506,58 @@ test("rolls-advance: rng advances per attack, 20 attacks give miss and hit", () 
   assert.ok(anyHit);
 });
 
+test("bumps-are-uses: ware bump leaves last unchanged, sets gesture use, second bump buys with gesture power", () => {
+  const wShop = rules.fromSave(saveShape.of({ seed: 5, depth: 6, players: [{ name: "Ann", stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) }] }));
+  const swordWare = wShop.items.find((it) => it.kind === "sword");
+
+  const heroInit = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(18, 13), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, offer: null, alive: true });
+  const wShopAnn = worldShape.of({ seed: 5, rng: 5, depth: 6, time: 0, state: "playing", grid: wShop.grid, heroes: [heroInit], monsters: wShop.monsters, items: wShop.items, visible: wShop.visible, explored: wShop.explored, gold: 50, log: wShop.log, entry: wShop.entry });
+  const wFirst = rules.advance(rules.intend(wShopAnn, "Ann", intentShape.move(1, 0)), 50);
+  assert.equal(wFirst.heroes[0].offer, swordWare.id);
+  assert.deepEqual(wFirst.heroes[0].actor.gesture, { kind: "use", at: 50 });
+  assert.equal(wFirst.heroes[0].actor.last, null);
+
+  const heroOffer = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(18, 13), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0 }), pending: null, offer: swordWare.id, alive: true });
+  const wShopBuy = worldShape.of({ seed: 5, rng: 5, depth: 6, time: 0, state: "playing", grid: wShop.grid, heroes: [heroOffer], monsters: wShop.monsters, items: wShop.items, visible: wShop.visible, explored: wShop.explored, gold: 50, log: wShop.log, entry: wShop.entry });
+  const wBuy = rules.advance(rules.intend(wShopBuy, "Ann", intentShape.move(1, 0)), 350);
+  assert.equal(wBuy.heroes[0].offer, null);
+  assert.deepEqual(wBuy.heroes[0].actor.gesture, { kind: "power", at: 350 });
+  assert.equal(wBuy.heroes[0].actor.last, null);
+});
+
+test("bump-pulled-lever-again: second bump of a pulled lever is a use, last unchanged, gesture use", () => {
+  const grid = tileGridShape.fromRows(["##########", "#........#", "#........#", "#........#", "#........#", "##########"]);
+  const visible = maskShape.empty(10, 6);
+  const explored = maskShape.empty(10, 6);
+  const lever1 = itemShape.of({ id: 20, kind: "lever", pos: pointShape.of(2, 1), amount: 0, price: 0, pulled: true });
+  const hero = heroShape.of({ name: "Ann", actor: actorShape.of({ id: 0, kind: "hero", pos: pointShape.of(1, 1), stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }), ready: 0, gesture: null }), pending: null, alive: true });
+  const w = worldShape.of({ seed: 1, rng: 1, depth: 1, time: 0, state: "playing", grid, heroes: [hero], monsters: [], items: [lever1], visible, explored, gold: 0, log: [], entry: saveShape.of({ seed: 1, depth: 1, players: [] }) });
+  const wPulled = rules.advance(rules.intend(w, "Ann", intentShape.move(1, 0)), 50);
+  assert.deepEqual(wPulled.heroes[0].actor.gesture, { kind: "use", at: 50 });
+  assert.equal(wPulled.heroes[0].actor.last, null);
+  assert.equal(wPulled.heroes[0].actor.ready, 400);
+});
+
+test("colours: join gets smallest free colour and group 0, fromSave gives colour i", () => {
+  const w = rules.newGame(5);
+  const wAnn = rules.join(w, "Ann");
+  assert.equal(wAnn.heroes[0].colour, 0);
+  assert.equal(wAnn.heroes[0].group, 0);
+  const wBob = rules.join(wAnn, "Bob");
+  assert.equal(wBob.heroes[1].colour, 1);
+  assert.equal(wBob.heroes[1].group, 0);
+  const wC = rules.join(wBob, "C");
+  assert.equal(wC.heroes[2].colour, 2);
+  const wD = rules.join(wC, "D");
+  assert.equal(wD.heroes[3].colour, 3);
+
+  const wSave = rules.fromSave(saveShape.of({ seed: 9, depth: 3, players: [{ name: "A", stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) }, { name: "B", stats: statsShape.of({ hp: 24, maxHp: 24, attack: 4, defense: 1 }) }] }));
+  assert.equal(wSave.heroes[0].colour, 0);
+  assert.equal(wSave.heroes[0].group, 0);
+  assert.equal(wSave.heroes[1].colour, 1);
+  assert.equal(wSave.heroes[1].group, 0);
+});
+
 test("refuses: invalid inputs throw TypeError", () => {
   assert.throws(() => rules.newGame(-1), TypeError);
   assert.throws(() => rules.newGame(2.5), TypeError);
