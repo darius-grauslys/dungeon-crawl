@@ -39,7 +39,7 @@ export function frames(...args) {
 }
 
 // __nirnroot_begin__ names
-// `names() -> array`. The forty-six names, in the table's order, a fresh array each call.
+// `names() -> array`. The fifty-seven names, in the table's order, a fresh array each call.
 // __nirnroot_end__
 export function names(...args) {
   return target.names(...args);
