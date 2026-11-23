@@ -282,6 +282,8 @@ test("with is a shared method, not an own property of an actor", () => {
   assert.strictEqual(Object.hasOwn(a, 'chant'), true);
   assert.strictEqual(Object.hasOwn(a, 'cooldown'), true);
   assert.strictEqual(Object.hasOwn(a, 'fuse'), true);
+  assert.strictEqual(Object.hasOwn(a, 'air'), true);
+  assert.strictEqual(Object.hasOwn(a, 'flung'), true);
   assert.strictEqual(Object.hasOwn(a, 'covers'), false);
   assert.strictEqual(Object.hasOwn(a, 'cells'), false);
 });
@@ -445,4 +447,55 @@ test("actor with({kind: 'bat'}) throws for a hero", () => {
   const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
   const a = of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s });
   assert.throws(() => a.with({ kind: 'bat' }), TypeError);
+});
+
+test("actor of accepts last: {kind: 'lunge', dx: 1, dy: 0, at: 10, reach: 2}", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 5, attack: 3, defense: 0 });
+  const a = of({ id: 0, kind: 'snake', pos: pointShape.of(1, 2), stats: s, last: { kind: 'lunge', dx: 1, dy: 0, at: 10, reach: 2 } });
+  assert.strictEqual(Object.isFrozen(a.last), true);
+  assert.deepStrictEqual(a.last, { kind: 'lunge', dx: 1, dy: 0, at: 10, reach: 2 });
+});
+
+test("actor of accepts a spider with air {phase: 'aloft', at: 500}", () => {
+  const s = statsShape.of({ hp: 9, maxHp: 9, attack: 5, defense: 1 });
+  const a = of({ id: 0, kind: 'spider', pos: pointShape.of(1, 2), stats: s, air: { phase: 'aloft', at: 500 } });
+  assert.strictEqual(Object.isFrozen(a.air), true);
+  assert.deepStrictEqual(a.air, { phase: 'aloft', at: 500 });
+});
+
+test("actor of accepts a slime with flung {x: 2, y: 3, at: 40}", () => {
+  const s = statsShape.of({ hp: 6, maxHp: 6, attack: 2, defense: 1 });
+  const a = of({ id: 0, kind: 'slime', pos: pointShape.of(1, 2), stats: s, flung: { x: 2, y: 3, at: 40 } });
+  assert.strictEqual(Object.isFrozen(a.flung), true);
+  assert.deepStrictEqual(a.flung, { x: 2, y: 3, at: 40 });
+});
+
+test("actor of refuses air: {phase: 'fly', at: 0}", () => {
+  const s = statsShape.of({ hp: 9, maxHp: 9, attack: 5, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'spider', pos: pointShape.of(1, 2), stats: s, air: { phase: 'fly', at: 0 } }), TypeError);
+});
+
+test("actor of refuses air: {phase: 'rise', at: -1}", () => {
+  const s = statsShape.of({ hp: 9, maxHp: 9, attack: 5, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'spider', pos: pointShape.of(1, 2), stats: s, air: { phase: 'rise', at: -1 } }), TypeError);
+});
+
+test("actor of refuses air: {phase: 'rise'}", () => {
+  const s = statsShape.of({ hp: 9, maxHp: 9, attack: 5, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'spider', pos: pointShape.of(1, 2), stats: s, air: { phase: 'rise' } }), TypeError);
+});
+
+test("actor of refuses flung: {x: -1, y: 0, at: 0}", () => {
+  const s = statsShape.of({ hp: 6, maxHp: 6, attack: 2, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'slime', pos: pointShape.of(1, 2), stats: s, flung: { x: -1, y: 0, at: 0 } }), TypeError);
+});
+
+test("actor of refuses a hero with an air", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, air: { phase: 'rise', at: 0 } }), TypeError);
+});
+
+test("actor of refuses a hero with a flung", () => {
+  const s = statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 });
+  assert.throws(() => of({ id: 0, kind: 'hero', pos: pointShape.of(1, 2), stats: s, flung: { x: 2, y: 3, at: 40 } }), TypeError);
 });

@@ -537,3 +537,119 @@ test('world: intrinsic data - fromData with invalid hero gesture throws TypeErro
   d.heroes[0].actor.gesture = { kind: 'wave', at: 0 };
   assert.throws(() => worldFromData(JSON.parse(JSON.stringify(d))), TypeError);
 });
+
+test('world: intrinsic valid - spikes left out defaults to []', () => {
+  const { world } = makeWorld();
+  assert.deepStrictEqual(world.spikes, []);
+});
+
+test('world: intrinsic valid - spikes holds frozen', () => {
+  const { fields } = makeWorld();
+  const w = worldOf({ ...fields, spikes: [{ x: 2, y: 1, shift: 3 }] });
+  assert.deepStrictEqual(w.spikes, [{ x: 2, y: 1, shift: 3 }]);
+  assert.ok(Object.isFrozen(w.spikes));
+  assert.ok(Object.isFrozen(w.spikes[0]));
+});
+
+test('world: intrinsic valid - spikes off the grid throws TypeError', () => {
+  const { fields } = makeWorld();
+  assert.throws(() => worldOf({ ...fields, spikes: [{ x: 9, y: 1, shift: 0 }] }), TypeError);
+});
+
+test('world: intrinsic valid - spikes shift 6 throws TypeError', () => {
+  const { fields } = makeWorld();
+  assert.throws(() => worldOf({ ...fields, spikes: [{ x: 2, y: 1, shift: 6 }] }), TypeError);
+});
+
+test('world: intrinsic valid - spikes two on one cell throws TypeError', () => {
+  const { fields } = makeWorld();
+  assert.throws(() => worldOf({ ...fields, spikes: [{ x: 2, y: 1, shift: 0 }, { x: 2, y: 1, shift: 1 }] }), TypeError);
+});
+
+test('world: intrinsic data - data().spikes is []', () => {
+  const { world } = makeWorld();
+  assert.deepStrictEqual(world.data().spikes, []);
+});
+
+test('world: intrinsic data - round trip with spikes, air, flung, web item', () => {
+  const { grid, item, visible, explored, entry } = makeValidComponents();
+  const heroActor = actorShape.of({
+    id: 0,
+    kind: 'hero',
+    pos: pointShape.of(1, 1),
+    stats: statsShape.of({ hp: 5, maxHp: 10, attack: 3, defense: 1 }),
+    held: 300,
+    facing: 'left',
+    last: { kind: 'attack', dx: -1, dy: 0, at: 50 }
+  });
+  const hero = heroShape.of({ name: 'Ann', actor: heroActor, offer: 12 });
+  const heroWithPending = hero.with({ pending: intentShape.move(1, 0) });
+  const slime = actorShape.of({
+    id: 1,
+    kind: 'slime',
+    pos: pointShape.of(2, 0),
+    stats: statsShape.of({ hp: 5, maxHp: 10, attack: 2, defense: 1 }),
+    last: { kind: 'move', dx: 0, dy: 1, at: 20 },
+    flung: { x: 1, y: 1, at: 70 }
+  });
+  const golem = actorShape.of({
+    id: 2,
+    kind: 'golem',
+    pos: pointShape.of(4, 2),
+    stats: statsShape.of({ hp: 40, maxHp: 40, attack: 16, defense: 12, range: 1 }),
+    size: 2,
+    small: true,
+    mode: 'dormant',
+    slow: 1,
+    aim: { dx: -1, dy: 1 }
+  });
+  const spider = actorShape.of({
+    id: 3,
+    kind: 'spider',
+    pos: pointShape.of(3, 1),
+    stats: statsShape.of({ hp: 9, maxHp: 9, attack: 5, defense: 1, range: 1 }),
+    air: { phase: 'aloft', at: 60 }
+  });
+  const archer = actorShape.of({
+    id: 4,
+    kind: 'archer',
+    pos: pointShape.of(1, 2),
+    stats: statsShape.of({ hp: 7, maxHp: 7, attack: 3, defense: 1, range: 4 }),
+    last: { kind: 'attack', dx: 1, dy: 1, at: 30, reach: 3 }
+  });
+  const swordItem = itemShape.of({ id: 12, kind: 'sword', pos: pointShape.of(3, 1), price: 30 });
+  const leverItem = itemShape.of({ id: 13, kind: 'lever', pos: pointShape.of(2, 1), pulled: true });
+  const flungGold = itemShape.of({ id: 14, kind: 'gold', pos: pointShape.of(4, 0), amount: 5, flung: { x: 1, y: 1, at: 40 } });
+  const webItem = itemShape.of({ id: 15, kind: 'web', pos: pointShape.of(3, 1) });
+  const visibleWithOne = maskShape.of(5, 3, [false, false, false, false, false, false, true, false, false, false, false, false, false, false, false]);
+  const fields = {
+    seed: 123, rng: 456, depth: 2, time: 0, state: 'playing',
+    grid, heroes: [heroWithPending], monsters: [slime, golem, spider, archer], items: [item, swordItem, leverItem, flungGold, webItem],
+    visible: visibleWithOne, explored, gold: 7, log: ['start'], entry,
+    spikes: [{ x: 2, y: 1, shift: 1 }]
+  };
+  const w = worldOf(fields);
+  const round = worldFromData(JSON.parse(JSON.stringify(w.data())));
+  assert.deepStrictEqual(round, w);
+  assert.deepStrictEqual(w.data().spikes, [{ x: 2, y: 1, shift: 1 }]);
+});
+
+test('world: intrinsic valid - monster with last kind lunge is accepted', () => {
+  const { grid, hero, item, visible, explored, entry } = makeValidComponents();
+  const snakeMonster = actorShape.of({
+    id: 1,
+    kind: 'snake',
+    pos: pointShape.of(2, 0),
+    stats: statsShape.of({ hp: 5, maxHp: 5, attack: 3, defense: 0 }),
+    last: { kind: 'lunge', dx: 1, dy: 0, at: 10, reach: 2 }
+  });
+  const fields = {
+    seed: 123, rng: 456, depth: 2, time: 0, state: 'playing',
+    grid, heroes: [hero], monsters: [snakeMonster], items: [item],
+    visible, explored, gold: 7, log: ['start'], entry
+  };
+  const w = worldOf(fields);
+  assert.strictEqual(w.monsters[0].last.kind, 'lunge');
+  const round = worldFromData(JSON.parse(JSON.stringify(w.data())));
+  assert.deepStrictEqual(round, w);
+});
