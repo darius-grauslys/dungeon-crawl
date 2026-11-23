@@ -46,7 +46,6 @@ export function create({ context, fetch: fetcher, base, random }) {
 
   const state = {
     context,
-    fetch: fetchImpl,
     base: baseImpl,
     random: rand,
     master,
@@ -90,7 +89,7 @@ export function create({ context, fetch: fetcher, base, random }) {
   async function load() {
     const promises = SOUND_PATHS.map(async (path) => {
       const url = state.base + path;
-      const response = await state.fetch(url);
+      const response = await fetchImpl(url);
       if (!response.ok) {
         throw new Error(path);
       }
@@ -151,7 +150,7 @@ export function create({ context, fetch: fetcher, base, random }) {
       if (state.musicInFlight.has(track)) return state.musicInFlight.get(track);
       const promise = (async () => {
         const url = state.base + musicPath;
-        const response = await state.fetch(url);
+        const response = await fetchImpl(url);
         if (!response.ok) throw new Error(musicPath);
         const buffer = await response.arrayBuffer();
         const decoded = await state.context.decodeAudioData(buffer);
