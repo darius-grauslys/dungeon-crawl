@@ -226,6 +226,44 @@ test("keys", async () => {
   h.stop();
 });
 
+test("aiming", async () => {
+  let socket;
+  const open = (url) => {
+    socket = makeFakeSocket();
+    return socket;
+  };
+  const h = playEdge.start(document, { open, audioContext: null });
+
+  document.querySelector("#landing-name").value = "Ann";
+  document.querySelector("#landing-create").click();
+
+  await delay(10);
+  socket.open();
+  socket.message(messageShape.created("ABCDEF").text());
+  socket.message(messageShape.joined("ABCDEF", "Ann").text());
+  const w = makeSmallWorld();
+  socket.message(messageShape.state(w, false).text());
+  await delay(500);
+
+  // Shift keydown: not prevented, aims true
+  const evShiftDown = new KeyboardEvent("keydown", { key: "Shift", cancelable: true });
+  document.dispatchEvent(evShiftDown);
+  assert.strictEqual(evShiftDown.defaultPrevented, false);
+
+  // A direction key with shiftKey while aiming sends face
+  const evFace = new KeyboardEvent("keydown", { key: "ArrowLeft", cancelable: true, shiftKey: true });
+  document.dispatchEvent(evFace);
+  assert.strictEqual(evFace.defaultPrevented, true);
+  assert.strictEqual(socket.sent()[3], messageShape.act(intentShape.face(-1, 0)).text());
+
+  // Shift keyup: not prevented, aims false
+  const evShiftUp = new KeyboardEvent("keyup", { key: "Shift", cancelable: true });
+  document.dispatchEvent(evShiftUp);
+  assert.strictEqual(evShiftUp.defaultPrevented, false);
+
+  h.stop();
+});
+
 test("menu", async () => {
   let socket;
   let downloadCalls = [];

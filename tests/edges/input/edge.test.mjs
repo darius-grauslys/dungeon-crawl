@@ -224,6 +224,86 @@ test("listens: listen turns keypresses into intents, stops when stopped", async 
   assert.doesNotThrow(() => stop());
 });
 
+// Intrinsic - aiming: listen calls aiming(true) on Shift keydown (not repeat), aiming(false) on Shift keyup or blur; a Shift keydown isn't prevented; no aiming handler: Shift keydown throws nothing.
+test("aiming: listen calls aiming handler on Shift held state", async () => {
+  const { listen } = await import("../../../edges/edge_to_input.mjs");
+
+  // With listen(t, {intent: f, command: g, aiming: a}) on a fresh EventTarget:
+  const t = new EventTarget();
+  let aimingCalled = 0;
+  let aimingReceived = null;
+  let intentCalled = 0;
+  let commandCalled = 0;
+  let intentReceived = null;
+  const f = (i) => { intentCalled++; intentReceived = i; };
+  const g = (c) => { commandCalled++; };
+  const a = (v) => { aimingCalled++; aimingReceived = v; };
+  const stop = listen(t, { intent: f, command: g, aiming: a });
+
+  // a keydown with key 'Shift' calls a once with true (and neither f nor g, and isn't prevented)
+  const evShiftDown = new Event("keydown", { cancelable: true });
+  Object.defineProperty(evShiftDown, "key", { value: "Shift" });
+  t.dispatchEvent(evShiftDown);
+  assert.equal(aimingCalled, 1);
+  assert.equal(aimingReceived, true);
+  assert.equal(intentCalled, 0);
+  assert.equal(commandCalled, 0);
+  assert.equal(evShiftDown.defaultPrevented, false);
+
+  // another (a repeat) calls nothing
+  const evShiftRepeat = new Event("keydown", { cancelable: true });
+  Object.defineProperty(evShiftRepeat, "key", { value: "Shift" });
+  t.dispatchEvent(evShiftRepeat);
+  assert.equal(aimingCalled, 1);
+  assert.equal(intentCalled, 0);
+  assert.equal(commandCalled, 0);
+
+  // a keydown of ArrowLeft with shiftKey true calls f with face(-1, 0)
+  const evArrowLeft = new Event("keydown", { cancelable: true });
+  Object.defineProperty(evArrowLeft, "key", { value: "ArrowLeft" });
+  Object.defineProperty(evArrowLeft, "shiftKey", { value: true });
+  t.dispatchEvent(evArrowLeft);
+  assert.equal(intentCalled, 1);
+  assert.equal(intentReceived.kind, "face");
+  assert.equal(intentReceived.dx, -1);
+  assert.equal(intentReceived.dy, 0);
+  assert.equal(aimingCalled, 1);
+
+  // a keyup with key 'Shift' calls a with false
+  const evShiftUp = new Event("keyup", { cancelable: true });
+  Object.defineProperty(evShiftUp, "key", { value: "Shift" });
+  t.dispatchEvent(evShiftUp);
+  assert.equal(aimingCalled, 2);
+  assert.equal(aimingReceived, false);
+
+  // another keyup of Shift calls nothing
+  const evShiftUp2 = new Event("keyup", { cancelable: true });
+  Object.defineProperty(evShiftUp2, "key", { value: "Shift" });
+  t.dispatchEvent(evShiftUp2);
+  assert.equal(aimingCalled, 2);
+
+  // Shift down again (a(true)), then a blur: a(false)
+  const evShiftDown2 = new Event("keydown", { cancelable: true });
+  Object.defineProperty(evShiftDown2, "key", { value: "Shift" });
+  t.dispatchEvent(evShiftDown2);
+  assert.equal(aimingCalled, 3);
+  assert.equal(aimingReceived, true);
+
+  const evBlur = new Event("blur");
+  t.dispatchEvent(evBlur);
+  assert.equal(aimingCalled, 4);
+  assert.equal(aimingReceived, false);
+
+  stop();
+
+  // With no aiming handler, a Shift keydown throws nothing.
+  const t2 = new EventTarget();
+  const stop2 = listen(t2, { intent: f, command: g });
+  const evShiftDown3 = new Event("keydown", { cancelable: true });
+  Object.defineProperty(evShiftDown3, "key", { value: "Shift" });
+  assert.doesNotThrow(() => t2.dispatchEvent(evShiftDown3));
+});
+
 // Intrinsic - chords: listen tracks held keys for chords (keyup and blur).
 test("chords: listen tracks held keys for chords", async () => {
   const { listen } = await import("../../../edges/edge_to_input.mjs");
