@@ -6,7 +6,14 @@ import * as mixer from "../../edges/edge_to_mixer.mjs";
 
 /** `create(options) -> audio`. `options` (left out: `{}`): `context` (left out: a new `AudioContext` of the page, `window.AudioContext` or `window.webkitAudioContext`, or none; `null`: none); `fetch` and `base`, handed to the mixer. Answers an audio with the functions below: volume 0.7, not muted. */
 export function create(options = {}) {
-  const context = options.context ?? (typeof window !== "undefined" ? (window.AudioContext || window.webkitAudioContext) : null);
+  let context;
+  if (options.context === undefined) {
+    context = typeof window !== "undefined" && (window.AudioContext || window.webkitAudioContext)
+      ? new (window.AudioContext || window.webkitAudioContext)()
+      : null;
+  } else {
+    context = options.context;
+  }
   const fetch = options.fetch;
   const base = options.base;
 
